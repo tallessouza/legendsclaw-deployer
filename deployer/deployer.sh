@@ -33,6 +33,7 @@ show_menu() {
   echo -e "║  ${D_GREEN}[07] Whitelabel — Identidade do Agente${D_CYAN}     ║"
   echo -e "║  ${D_GREEN}[08] LLM Router — Tiers e API Keys${D_CYAN}         ║"
   echo -e "║  ${D_GREEN}[09] Skills AIOS — Configurar Skills${D_CYAN}        ║"
+  echo -e "║  ${D_GREEN}[10] Elicitation — Skill de Entrevistas${D_CYAN}    ║"
   echo -e "║  ${D_GRAY}[00] Sair${D_CYAN}                                    ║"
   echo "╚══════════════════════════════════════════════╝"
   echo -e "${D_NC}"
@@ -74,6 +75,10 @@ main() {
         ;;
       09|9)
         bash "${SCRIPT_DIR}/ferramentas/09-skills.sh"
+        read -rp "Pressione ENTER para voltar ao menu..."
+        ;;
+      10)
+        bash "${SCRIPT_DIR}/ferramentas/10-elicitation.sh"
         read -rp "Pressione ENTER para voltar ao menu..."
         ;;
       00|0)

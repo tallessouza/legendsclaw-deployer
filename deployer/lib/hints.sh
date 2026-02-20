@@ -358,6 +358,44 @@ hint_skills() {
   echo ""
 }
 
+# Hint de debug e proximos passos para Elicitation skill
+# Uso: hint_elicitation "$nome_agente" "$tables_status"
+hint_elicitation() {
+  local nome_agente="${1:-meu-agente}"
+  local tables_status="${2:-UNKNOWN}"
+
+  echo ""
+  echo -e "${UI_BOLD:-\033[1m}=============================================="
+  echo "  HINT: ELICITATION — DEBUG E PROXIMOS PASSOS"
+  echo -e "==============================================${UI_NC:-\033[0m}"
+  echo ""
+  echo "  1. Verificar skill registrada:"
+  echo "     node -e \"const s = require('./apps/${nome_agente}/skills/elicitation'); console.log(s.name, Object.keys(s.tools))\""
+  echo ""
+  echo "  2. Health check manual:"
+  echo "     node -e \"require('./apps/${nome_agente}/skills/elicitation').health().then(console.log)\""
+  echo ""
+  echo "  3. Supabase conectividade:"
+  echo "     curl -s -H 'apikey: \$SUPABASE_SERVICE_ROLE_KEY' \\"
+  echo "       \$SUPABASE_URL/rest/v1/"
+  echo ""
+
+  if [[ "$tables_status" != "OK" ]]; then
+    echo "  4. Criar tabelas (Story 4.3):"
+    echo "     Aplique a migration SQL no Supabase SQL Editor"
+    echo "     ou execute: deployer.sh → Ferramenta [11] (quando disponivel)"
+    echo ""
+  fi
+
+  echo "  Config: apps/${nome_agente}/skills/config.js"
+  echo "  Skill:  apps/${nome_agente}/skills/elicitation/"
+  echo ""
+  echo "  Proximo: criar tabelas e templates Supabase (Story 4.3)"
+  echo ""
+  echo "=============================================="
+  echo ""
+}
+
 hint_llm_router() {
   local nome_agente="${1:-meu-agente}"
 
