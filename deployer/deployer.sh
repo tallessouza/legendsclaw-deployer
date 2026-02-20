@@ -30,6 +30,7 @@ show_menu() {
   echo -e "║  ${D_GREEN}[04] Tailscale VPN${D_CYAN}                          ║"
   echo -e "║  ${D_GREEN}[05] OpenClaw Gateway${D_CYAN}                       ║"
   echo -e "║  ${D_GRAY}[06] N8N (Workflows)             [EM BREVE]${D_CYAN}  ║"
+  echo -e "║  ${D_GREEN}[07] Whitelabel — Identidade do Agente${D_CYAN}     ║"
   echo -e "║  ${D_GRAY}[00] Sair${D_CYAN}                                    ║"
   echo "╚══════════════════════════════════════════════╝"
   echo -e "${D_NC}"
@@ -59,6 +60,10 @@ main() {
         ;;
       05|5)
         bash "${SCRIPT_DIR}/ferramentas/05-openclaw.sh"
+        read -rp "Pressione ENTER para voltar ao menu..."
+        ;;
+      07|7)
+        bash "${SCRIPT_DIR}/ferramentas/07-whitelabel.sh"
         read -rp "Pressione ENTER para voltar ao menu..."
         ;;
       00|0)

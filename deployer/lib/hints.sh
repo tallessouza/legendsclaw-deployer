@@ -264,3 +264,28 @@ hint_validacao_gw() {
   echo "=============================================="
   echo ""
 }
+
+# Hint de proximos passos para whitelabel
+# Uso: hint_whitelabel "$nome_agente"
+hint_whitelabel() {
+  local nome_agente="${1:-meu-agente}"
+
+  echo ""
+  echo -e "${UI_BOLD:-\033[1m}=============================================="
+  echo "  HINT: PROXIMOS PASSOS"
+  echo -e "==============================================${UI_NC:-\033[0m}"
+  echo ""
+  echo "  1. Configurar LLM Router:"
+  echo "     deployer.sh → Ferramenta [08]"
+  echo ""
+  echo "  2. Editar credenciais no config.js:"
+  echo "     apps/${nome_agente}/skills/config.js"
+  echo ""
+  echo "  3. Criar definicao AIOS do agente no desktop:"
+  echo "     No Claude Code: @aios-master *create agent"
+  echo "     Ou manualmente: .aios-core/development/agents/${nome_agente}.md"
+  echo "     (requer AIOS Core instalado no projeto)"
+  echo ""
+  echo "=============================================="
+  echo ""
+}
