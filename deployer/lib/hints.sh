@@ -91,3 +91,46 @@ hint_provider() {
   echo "=============================================="
   echo ""
 }
+
+# Hint de setup Tailscale no desktop
+# Uso: hint_tailscale_desktop "$hostname" "$ip" "$ambiente"
+hint_tailscale_desktop() {
+  local hostname="${1:-meu-gateway}"
+  local ip="${2:-TAILSCALE_IP}"
+  local ambiente="${3:-vps}"
+
+  echo ""
+  echo -e "${UI_BOLD:-\033[1m}=============================================="
+  echo "  HINT: INSTALAR TAILSCALE NO DESKTOP"
+  echo -e "==============================================${UI_NC:-\033[0m}"
+  echo ""
+
+  echo "  Windows:"
+  echo "    Baixe: https://tailscale.com/download/windows"
+  echo "    Ou via winget: winget install Tailscale.Tailscale"
+  echo ""
+  echo "  Mac:"
+  echo "    brew install --cask tailscale"
+  echo "    Ou App Store: pesquise 'Tailscale'"
+  echo ""
+  echo "  WSL2 (Linux):"
+  echo "    curl -fsSL https://tailscale.com/install.sh | sh"
+  echo "    sudo tailscale up"
+  echo ""
+
+  if [[ "$ambiente" == "vps" ]]; then
+    echo "  Apos instalar no desktop, autentique com a"
+    echo "  mesma conta Tailscale usada na VPS."
+  else
+    echo "  Apos instalar no desktop, autentique com a"
+    echo "  mesma conta Tailscale usada nesta maquina."
+  fi
+  echo ""
+  echo "  Verifique conectividade com:"
+  echo "    tailscale ping ${hostname}"
+  echo ""
+  echo "  IP Tailscale desta maquina: ${ip}"
+  echo ""
+  echo "=============================================="
+  echo ""
+}
