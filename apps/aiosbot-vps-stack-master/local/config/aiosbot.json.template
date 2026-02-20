@@ -1,0 +1,47 @@
+{
+  "meta": {
+    "lastTouchedVersion": "2026.1.24-3",
+    "lastTouchedAt": "{{AUTO_GENERATED}}"
+  },
+  "wizard": {
+    "lastRunAt": "{{AUTO_GENERATED}}",
+    "lastRunVersion": "2026.1.24-3",
+    "lastRunCommand": "doctor",
+    "lastRunMode": "remote"
+  },
+  "agents": {
+    "defaults": {
+      "contextPruning": {
+        "mode": "cache-ttl",
+        "ttl": "1h"
+      },
+      "compaction": {
+        "mode": "safeguard"
+      },
+      "heartbeat": {
+        "every": "30m"
+      },
+      "maxConcurrent": 4,
+      "subagents": {
+        "maxConcurrent": 8
+      },
+      "sandbox": {
+        "mode": "off"
+      }
+    }
+  },
+  "messages": {
+    "ackReactionScope": "group-mentions"
+  },
+  "commands": {
+    "native": "auto",
+    "nativeSkills": "auto"
+  },
+  "gateway": {
+    "mode": "remote",
+    "remote": {
+      "url": "wss://{{GATEWAY_HOSTNAME}}.{{TAILNET_ID}}.ts.net",
+      "password": "{{GATEWAY_PASSWORD}}"
+    }
+  }
+}

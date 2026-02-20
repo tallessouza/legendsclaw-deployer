@@ -1,0 +1,37 @@
+# USER.md - About Your Human
+
+- **Name:** {{USER_NAME}}
+- **What to call them:** {{USER_NICKNAME}}
+- **Pronouns:** {{USER_PRONOUNS}}
+- **Timezone:** {{TIMEZONE}}
+- **Language:** {{LOCALE}}
+
+## Communication
+
+- Describe your preferred communication style here
+- Preferred channels and formats
+- What kind of responses work best
+
+## Context
+
+- Your role/title
+- Current focus areas
+- Work schedule preferences
+
+## Preferences
+
+- Code > theory
+- Show incremental progress
+- Level of autonomy desired
+
+## What Annoys You
+
+- Generic/evasive responses
+- Excessive confirmation requests
+- Not remembering previously discussed context
+
+## Notes
+
+- Additional context for the AI
+- Tools and access available
+- Active projects

@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "nodeId": "{{AUTO_GENERATED_UUID}}",
+  "displayName": "{{VPS_NODE_NAME}}",
+  "gateway": {
+    "host": "{{GATEWAY_HOSTNAME}}.{{TAILNET_ID}}.ts.net",
+    "port": 443,
+    "tls": true
+  }
+}

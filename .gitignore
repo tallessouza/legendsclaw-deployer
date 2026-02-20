@@ -69,3 +69,6 @@ docs/referencia/orion-scripts/SetupOrion-repo
 # End of AIOS Integration Section
 # ========================================
 __pycache__/
+
+# Windows Zone.Identifier files
+*Zone.Identifier

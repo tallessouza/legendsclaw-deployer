@@ -1,0 +1,23 @@
+{
+  "mcpServers": {
+    "brave-search": {
+      "command": "npx",
+      "args": ["-y", "@anthropic/mcp-brave-search"],
+      "env": {
+        "BRAVE_API_KEY": "{{BRAVE_API_KEY}}"
+      }
+    },
+    "filesystem": {
+      "command": "npx",
+      "args": ["-y", "@anthropic/mcp-filesystem", "{{WORKSPACE_PATH}}"]
+    },
+    "memory": {
+      "command": "npx",
+      "args": ["-y", "@anthropic/mcp-memory"],
+      "env": {
+        "SUPABASE_URL": "{{SUPABASE_URL}}",
+        "SUPABASE_KEY": "{{SUPABASE_SERVICE_ROLE_KEY}}"
+      }
+    }
+  }
+}

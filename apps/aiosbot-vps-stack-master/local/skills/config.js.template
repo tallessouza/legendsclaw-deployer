@@ -1,0 +1,63 @@
+/**
+ * Skills Configuration
+ * ====================
+ * Centralized configuration for all skills.
+ * Uses environment variables with fallbacks.
+ */
+
+export const config = {
+  // ClickUp Configuration (optional)
+  clickup: {
+    apiKey: process.env.CLICKUP_API_KEY,
+    teamId: process.env.CLICKUP_TEAM_ID || '{{CLICKUP_TEAM_ID}}',
+    baseUrl: 'https://api.clickup.com/api/v2',
+    rateLimit: { maxRequestsPerMinute: 100, retryAfterMs: 1000 }
+  },
+
+  // N8N Configuration (optional)
+  n8n: {
+    webhookBase: process.env.N8N_WEBHOOK_BASE || '{{N8N_WEBHOOK_URL}}',
+    apiKey: process.env.N8N_API_KEY,
+    rateLimit: { maxTriggersPerMinute: 50, retryAfterMs: 2000 }
+  },
+
+  // Supabase Configuration (optional)
+  supabase: {
+    url: process.env.SUPABASE_URL || '{{SUPABASE_URL}}',
+    anonKey: process.env.SUPABASE_ANON_KEY,
+    serviceKey: process.env.SUPABASE_SERVICE_ROLE_KEY,
+    rateLimit: { maxQueriesPerMinute: 200, retryAfterMs: 500 }
+  },
+
+  // Services Health Check
+  services: {
+    healthCheck: { timeoutMs: 5000, maxTotalTimeMs: 30000 }
+  },
+
+  // Logging
+  logging: {
+    level: process.env.LOG_LEVEL || 'info',
+    structured: true,
+    includeTimestamps: true
+  },
+
+  // Memory Configuration
+  memory: {
+    basePath: process.env.MEMORY_PATH || '{{MEMORY_PATH}}',
+    backupRetentionDays: 30,
+    autoBackup: true,
+    flushThreshold: parseFloat(process.env.MEMORY_FLUSH_THRESHOLD || '0.80'),
+    maxTokens: parseInt(process.env.MEMORY_MAX_TOKENS || '200000')
+  },
+
+  // LLM Router Configuration
+  llmRouter: {
+    enabled: process.env.LLM_ROUTER_ENABLED !== 'false',
+    configPath: process.env.LLM_ROUTER_CONFIG_PATH,
+    openrouterKey: process.env.OPENROUTER_API_KEY,
+    anthropicKey: process.env.ANTHROPIC_API_KEY,
+    defaultTier: process.env.LLM_ROUTER_DEFAULT_TIER || 'standard'
+  }
+};
+
+export default config;
