@@ -1,0 +1,70 @@
+schema: 1
+story: '5.4'
+story_title: 'Validacao Final — Teste End-to-End Completo'
+gate: CONCERNS
+status_reason: 'All 6 ACs met with solid implementation following deployer patterns. 28/28 tests passing, 0 regressions. Two MEDIUM issues: step counter mismatch (cosmetic) and unsanitized phone number input (low risk, operator-only).'
+reviewer: 'Quinn (Test Architect)'
+updated: '2026-02-20T20:00:00Z'
+
+top_issues:
+  - id: 'MNT-001'
+    severity: medium
+    finding: 'step_init(16) does not match actual step call count (15 calls), causing N/M display misalignment'
+    suggested_action: 'Change step_init(16) to step_init(15)'
+    suggested_owner: dev
+  - id: 'SEC-001'
+    severity: medium
+    finding: 'WhatsApp test numero_teste is interpolated into JSON without sanitization — input with quotes could break curl payload'
+    suggested_action: 'Add numero_teste="${numero_teste//[^0-9]/}" before curl call'
+    suggested_owner: dev
+  - id: 'MNT-002'
+    severity: low
+    finding: 'nome_servidor used at line 378 depends implicitly on dados() function — no explicit read_state call'
+    suggested_action: 'Add explicit nome_servidor=$(read_state "dados_vps" "Nome do Servidor") for clarity'
+    suggested_owner: dev
+  - id: 'MNT-003'
+    severity: low
+    finding: 'Check 12 offline branch marks OK when bridge.js is unreachable — semantically questionable'
+    suggested_action: 'Consider using echo for the offline note instead of a separate run_check'
+    suggested_owner: dev
+
+waiver: { active: false }
+
+quality_score: 80
+expires: '2026-03-06T20:00:00Z'
+
+evidence:
+  tests_reviewed: 28
+  tests_passing: 28
+  regression_tests: 25
+  regression_passing: 25
+  risks_identified: 4
+  trace:
+    ac_covered: [1, 2, 3, 4, 5, 6]
+    ac_gaps: []
+
+nfr_validation:
+  security:
+    status: CONCERNS
+    notes: 'Phone number input unsanitized before JSON interpolation (SEC-001). Low risk given operator-only context.'
+  performance:
+    status: PASS
+    notes: 'All HTTP checks with 5s connect+max timeout. Sequential execution appropriate for step counter design.'
+  reliability:
+    status: PASS
+    notes: 'Graceful degradation well implemented — SKIP for missing components, FAIL with diagnostics, independent checks.'
+  maintainability:
+    status: PASS
+    notes: 'Follows established deployer patterns. run_check helper keeps code DRY. 3 hints cover report/troubleshoot/rerun.'
+
+recommendations:
+  immediate:
+    - action: 'Sanitize numero_teste input'
+      refs: ['deployer/ferramentas/14-validacao-final.sh:291']
+    - action: 'Fix step_init(16) to step_init(15)'
+      refs: ['deployer/ferramentas/14-validacao-final.sh:22']
+  future:
+    - action: 'Add explicit nome_servidor read_state call'
+      refs: ['deployer/ferramentas/14-validacao-final.sh:378']
+    - action: 'Reconsider Check 12 offline as OK vs CONCERNS'
+      refs: ['deployer/ferramentas/14-validacao-final.sh:257']

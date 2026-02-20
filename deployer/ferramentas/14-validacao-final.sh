@@ -19,7 +19,7 @@ source "${LIB_DIR}/env-detect.sh"
 # LOGGING + STEP INIT
 # =============================================================================
 log_init "validation-final"
-step_init 16
+step_init 15
 
 # =============================================================================
 # PRE-REQUISITOS
@@ -254,7 +254,7 @@ if [[ -f "$STATE_DIR/dados_bridge" ]]; then
     if [[ -f "$bridge_file" ]] && node "$bridge_file" status &>/dev/null; then
       run_check 12 "Claude Code Hooks" "OK"
     else
-      run_check 12 "Claude Code Hooks" "OK" # Hooks configurados, bridge pode estar offline
+      run_check 12 "Claude Code Hooks" "OK"
       echo "  (bridge.js status offline — Tailscale pode estar desconectado)"
     fi
   else
@@ -283,34 +283,42 @@ if [[ "${CHECK_RESULTS[9]:-SKIP}" == "OK" ]]; then
 
     # Ler numero de teste (proprio numero ou numero configurado)
     read -rp "  Numero destino (com DDI, ex: 5511999999999): " numero_teste
+    # Sanitizar: manter apenas digitos
+    numero_teste="${numero_teste//[^0-9]/}"
+    if [[ -z "$numero_teste" ]]; then
+      whatsapp_test_result="FAIL"
+      whatsapp_test_detail="Numero invalido (nenhum digito informado)"
+    fi
 
-    send_response=$(curl -s --connect-timeout 10 --max-time 15 \
-      -X POST \
-      -H "apikey: ${evolution_apikey}" \
-      -H "Content-Type: application/json" \
-      -d "{\"number\":\"${numero_teste}\",\"text\":\"[Legendsclaw] Teste de validacao final - $(date '+%Y-%m-%d %H:%M:%S')\"}" \
-      "${evolution_url}/message/sendText/${evolution_instance}" 2>/dev/null || true)
+    if [[ "$whatsapp_test_result" != "FAIL" ]]; then
+      send_response=$(curl -s --connect-timeout 10 --max-time 15 \
+        -X POST \
+        -H "apikey: ${evolution_apikey}" \
+        -H "Content-Type: application/json" \
+        -d "{\"number\":\"${numero_teste}\",\"text\":\"[Legendsclaw] Teste de validacao final - $(date '+%Y-%m-%d %H:%M:%S')\"}" \
+        "${evolution_url}/message/sendText/${evolution_instance}" 2>/dev/null || true)
 
-    if [[ -n "$send_response" ]] && ! echo "$send_response" | grep -qi "error"; then
-      echo "  Mensagem enviada! Aguardando resposta (timeout 60s)..."
-      whatsapp_test_result="OK"
-      whatsapp_test_detail="Mensagem enviada para ${numero_teste}"
+      if [[ -n "$send_response" ]] && ! echo "$send_response" | grep -qi "error"; then
+        echo "  Mensagem enviada! Aguardando resposta (timeout 60s)..."
+        whatsapp_test_result="OK"
+        whatsapp_test_detail="Mensagem enviada para ${numero_teste}"
 
-      # Polling simplificado — aguardar indicacao do usuario
-      echo ""
-      echo "  Verifique no celular se a mensagem chegou."
-      echo "  Responda a mensagem para confirmar que o elicitation inicia."
-      echo ""
-      read -rp "  A resposta foi recebida e o agente respondeu? (s/n): " resposta_ok
-      if [[ "$resposta_ok" =~ ^[Ss]$ ]]; then
-        whatsapp_test_detail="Mensagem enviada e resposta confirmada pelo operador"
+        # Polling simplificado — aguardar indicacao do usuario
+        echo ""
+        echo "  Verifique no celular se a mensagem chegou."
+        echo "  Responda a mensagem para confirmar que o elicitation inicia."
+        echo ""
+        read -rp "  A resposta foi recebida e o agente respondeu? (s/n): " resposta_ok
+        if [[ "$resposta_ok" =~ ^[Ss]$ ]]; then
+          whatsapp_test_detail="Mensagem enviada e resposta confirmada pelo operador"
+        else
+          whatsapp_test_result="FAIL"
+          whatsapp_test_detail="Mensagem enviada mas resposta nao confirmada"
+        fi
       else
         whatsapp_test_result="FAIL"
-        whatsapp_test_detail="Mensagem enviada mas resposta nao confirmada"
+        whatsapp_test_detail="Falha ao enviar mensagem: ${send_response:-sem resposta}"
       fi
-    else
-      whatsapp_test_result="FAIL"
-      whatsapp_test_detail="Falha ao enviar mensagem: ${send_response:-sem resposta}"
     fi
   fi
 else
