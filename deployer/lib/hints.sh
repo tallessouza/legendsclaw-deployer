@@ -289,3 +289,29 @@ hint_whitelabel() {
   echo "=============================================="
   echo ""
 }
+
+# Hint de debug e proximos passos para LLM Router
+# Uso: hint_llm_router "$nome_agente"
+hint_llm_router() {
+  local nome_agente="${1:-meu-agente}"
+
+  echo ""
+  echo -e "${UI_BOLD:-\033[1m}=============================================="
+  echo "  HINT: LLM ROUTER — DEBUG E PROXIMOS PASSOS"
+  echo -e "==============================================${UI_NC:-\033[0m}"
+  echo ""
+  echo "  1. Verificar keys configuradas:"
+  echo "     grep API_KEY /opt/openclaw/.env"
+  echo ""
+  echo "  2. Testar manualmente:"
+  echo "     curl -H 'Authorization: Bearer \$OPENROUTER_API_KEY' \\"
+  echo "       https://openrouter.ai/api/v1/models"
+  echo ""
+  echo "  3. Config do router:"
+  echo "     apps/${nome_agente}/config/llm-router-config.yaml"
+  echo ""
+  echo "  4. Proximo: configurar skills do agente (Epics futuros)"
+  echo ""
+  echo "=============================================="
+  echo ""
+}

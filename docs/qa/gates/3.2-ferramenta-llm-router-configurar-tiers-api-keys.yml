@@ -1,0 +1,36 @@
+storyId: "3.2"
+storyTitle: "Ferramenta LLM Router — Configurar Tiers e API Keys"
+reviewDate: "2026-02-20"
+reviewedBy: "Quinn (Test Architect)"
+verdict: PASS
+
+checks:
+  - name: "Code Review"
+    result: PASS
+    notes: "10-step lifecycle seguido corretamente. set -euo pipefail, source de libs correto, deploy.sh NAO sourced. mask_key() para seguranca. upsert_env_block() para idempotencia. Backup com cp -p antes de sobrescrever YAML."
+
+  - name: "Unit Tests"
+    result: PASS
+    notes: "79 testes novos em 08-llm-router.bats, todos passando. Cobertura: hints, key validation, masking, config update, env population, state file, failure scenarios, script structure, menu integration, cost table."
+
+  - name: "Acceptance Criteria"
+    result: PASS
+    notes: "10/10 ACs atendidos. AC1: dados_whitelabel check. AC2: coleta 3 keys + tier. AC3: tabela custos. AC4: YAML update com providers. AC5: .env em /opt/openclaw. AC6: curl test. AC7: resultado + custo. AC8: hints debug. AC9: dados_llm_router. AC10: log_init."
+
+  - name: "No Regressions"
+    result: PASS
+    notes: "350 testes total — 347 passando, 3 falhando (pre-existentes em setup.bats desde antes de Story 3.2). Zero regressoes introduzidas."
+
+  - name: "Performance"
+    result: PASS
+    notes: "N/A — script interativo. curl com --max-time 15 para timeout do teste de routing."
+
+  - name: "Security"
+    result: PASS
+    notes: "Keys mascaradas via mask_key() em toda exibicao. chmod 600 em .env e dados_llm_router. Keys nunca em YAML (apenas ${ENV_VAR} refs). Input validation com prefixo e tamanho minimo. Upsert remove keys antigas antes de append."
+
+  - name: "Documentation"
+    result: PASS
+    notes: "Dev Agent Record completo. File List com 4 arquivos. Completion Notes detalhadas. Change Log atualizado."
+
+issues: []
