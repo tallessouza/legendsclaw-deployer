@@ -35,6 +35,8 @@ show_menu() {
   echo -e "║  ${D_GREEN}[09] Skills AIOS — Configurar Skills${D_CYAN}        ║"
   echo -e "║  ${D_GREEN}[10] Elicitation — Skill de Entrevistas${D_CYAN}    ║"
   echo -e "║  ${D_GREEN}[11] Elicitation Schema — Tabelas e Seeds${D_CYAN} ║"
+  echo -e "║  ${D_GREEN}[12] Seguranca (3 Layers)${D_CYAN}                   ║"
+  echo -e "║  ${D_GREEN}[13] Bridge — Claude Code Integration${D_CYAN}      ║"
   echo -e "║  ${D_GRAY}[00] Sair${D_CYAN}                                    ║"
   echo "╚══════════════════════════════════════════════╝"
   echo -e "${D_NC}"
@@ -84,6 +86,14 @@ main() {
         ;;
       11)
         bash "${SCRIPT_DIR}/ferramentas/11-elicitation-schema.sh"
+        read -rp "Pressione ENTER para voltar ao menu..."
+        ;;
+      12)
+        bash "${SCRIPT_DIR}/ferramentas/12-seguranca.sh"
+        read -rp "Pressione ENTER para voltar ao menu..."
+        ;;
+      13)
+        bash "${SCRIPT_DIR}/ferramentas/13-bridge.sh"
         read -rp "Pressione ENTER para voltar ao menu..."
         ;;
       00|0)

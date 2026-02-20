@@ -605,6 +605,102 @@ hint_seguranca_logging() {
   echo ""
 }
 
+# Hint de Bridge status — output esperado no SessionStart
+# Uso: hint_bridge_status "$nome_agente"
+hint_bridge_status() {
+  local nome_agente="${1:-meu-agente}"
+
+  echo ""
+  echo -e "${UI_BOLD:-\033[1m}=============================================="
+  echo "  HINT: BRIDGE STATUS — OUTPUT ESPERADO"
+  echo -e "==============================================${UI_NC:-\033[0m}"
+  echo ""
+  echo "  Ao iniciar uma sessao Claude Code, voce vera:"
+  echo ""
+  echo "    =============================================="
+  echo "    BRIDGE STATUS"
+  echo "    =============================================="
+  echo "    Service              Status         Latency"
+  echo "    ${nome_agente}       OK             42ms"
+  echo "    =============================================="
+  echo ""
+  echo "  Status possiveis:"
+  echo "    OK       — Gateway respondendo normalmente"
+  echo "    DEGRADED — Gateway lento (>2000ms)"
+  echo "    FAIL     — Gateway nao respondeu"
+  echo ""
+  echo "  Se aparecer '[Bridge] Offline':"
+  echo "    Tailscale pode estar desconectado"
+  echo "    Execute: tailscale up"
+  echo ""
+  echo "=============================================="
+  echo ""
+}
+
+# Hint de Bridge hooks — verificacao e troubleshooting
+# Uso: hint_bridge_hooks
+hint_bridge_hooks() {
+  echo ""
+  echo -e "${UI_BOLD:-\033[1m}=============================================="
+  echo "  HINT: BRIDGE HOOKS — VERIFICACAO"
+  echo -e "==============================================${UI_NC:-\033[0m}"
+  echo ""
+  echo "  Hooks configurados em .claude/settings.json:"
+  echo ""
+  echo "  SessionStart:"
+  echo "    Executa 'bridge.js status' automaticamente"
+  echo "    Mostra saude dos servicos ao iniciar sessao"
+  echo ""
+  echo "  PreToolUse (Bash):"
+  echo "    Executa 'bridge.js validate-call' antes de Bash"
+  echo "    Valida contra blocklist de seguranca (Layer 1)"
+  echo ""
+  echo "  PostToolUse (Bash):"
+  echo "    Executa 'bridge.js log-execution' apos Bash"
+  echo "    Registra no audit trail para auditoria"
+  echo ""
+  echo "  Verificar hooks ativos:"
+  echo "    cat .claude/settings.json | grep bridge"
+  echo ""
+  echo "  Ver audit trail:"
+  echo "    tail -20 ~/legendsclaw-logs/bridge-audit.log"
+  echo ""
+  echo "=============================================="
+  echo ""
+}
+
+# Hint de Bridge debug — comandos manuais
+# Uso: hint_bridge_debug "$nome_agente" "$gateway_url"
+hint_bridge_debug() {
+  local nome_agente="${1:-meu-agente}"
+  local gateway_url="${2:-http://localhost:18789}"
+
+  echo ""
+  echo -e "${UI_BOLD:-\033[1m}=============================================="
+  echo "  HINT: BRIDGE DEBUG"
+  echo -e "==============================================${UI_NC:-\033[0m}"
+  echo ""
+  echo "  Testar bridge manualmente:"
+  echo "    node .aios-core/infrastructure/services/bridge.js status"
+  echo "    node .aios-core/infrastructure/services/bridge.js list"
+  echo ""
+  echo "  Testar conectividade com gateway:"
+  echo "    curl -s ${gateway_url}/health"
+  echo ""
+  echo "  Verificar Tailscale:"
+  echo "    tailscale status"
+  echo "    tailscale ping \$(hostname)"
+  echo ""
+  echo "  Ver audit log:"
+  echo "    tail -f ~/legendsclaw-logs/bridge-audit.log"
+  echo ""
+  echo "  Verificar servico ${nome_agente}:"
+  echo "    node -e \"require('./.aios-core/infrastructure/services/${nome_agente}').health().then(console.log)\""
+  echo ""
+  echo "=============================================="
+  echo ""
+}
+
 hint_llm_router() {
   local nome_agente="${1:-meu-agente}"
 

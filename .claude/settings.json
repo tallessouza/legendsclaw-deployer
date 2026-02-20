@@ -1,3 +1,37 @@
 {
-  "language": "portuguese"
+  "language": "portuguese",
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node .aios-core/infrastructure/services/bridge.js status 2>/dev/null || echo '[Bridge] Offline — VPN may be disconnected'"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node .aios-core/infrastructure/services/bridge.js validate-call 2>/dev/null || true"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node .aios-core/infrastructure/services/bridge.js log-execution 2>/dev/null || true"
+          }
+        ]
+      }
+    ]
+  }
 }

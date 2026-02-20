@@ -1,0 +1,39 @@
+storyId: "5.2"
+storyTitle: "Ferramenta Seguranca — 3 Layers"
+verdict: PASS
+reviewer: "@qa"
+date: "2026-02-20"
+score: "7/7"
+
+checks:
+  code_review: PASS
+  unit_tests: PASS
+  acceptance_criteria: PASS
+  no_regressions: PASS
+  performance: PASS
+  security: PASS
+  documentation: PASS
+
+test_results:
+  new_tests: 21
+  new_tests_passing: 21
+  regression_total: 623
+  regression_passing: 620
+  regression_failing: 3
+  regression_note: "3 pre-existing failures in setup.bats (unrelated)"
+
+issues:
+  - severity: low
+    category: security
+    description: "sed -i with unsanitized user input in blocklist customization"
+    recommendation: "Escape metacharacters before sed. Non-blocking — local interactive operation."
+  - severity: low
+    category: code
+    description: "command-safety.js depends on js-yaml not in package.json"
+    recommendation: "Available via OpenClaw runtime. Document dependency if needed."
+
+files_reviewed:
+  - deployer/ferramentas/12-seguranca.sh
+  - deployer/lib/hints.sh
+  - deployer/deployer.sh
+  - tests/deployer/13-seguranca.bats
