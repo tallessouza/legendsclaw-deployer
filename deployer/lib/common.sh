@@ -56,14 +56,15 @@ verificar_stack() {
   fi
 }
 
-# Valida senha — minimo 8 chars, 1 maiuscula, 1 numero
-# Uso: validar_senha "MinhaS3nha"
+# Valida senha — minimo 12 chars, 1 maiuscula, 1 numero
+# (Portainer v2.33+ exige minimo 12 caracteres)
+# Uso: validar_senha "MinhaS3nha!!"
 # Retorna: 0 se valida, 1 se invalida
 validar_senha() {
   local senha="$1"
 
-  if [[ ${#senha} -lt 8 ]]; then
-    echo "Senha muito curta (minimo 8 caracteres)"
+  if [[ ${#senha} -lt 12 ]]; then
+    echo "Senha muito curta (minimo 12 caracteres — requisito Portainer v2.33+)"
     return 1
   fi
 

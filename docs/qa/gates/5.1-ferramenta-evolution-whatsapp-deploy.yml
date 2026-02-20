@@ -1,16 +1,28 @@
 schema: 1
 story: '5.1'
 gate: CONCERNS
-status_reason: 'All acceptance criteria met with backward compatibility preserved. Minor concerns on test depth and API key exposure in debug hints.'
+status_reason: 'All 12 ACs met, backward compat verified, 27/27 tests pass. Concerns: raw API key in terminal summary (SEC-002), tests are structural only without functional curl mocking (TEST-001).'
 reviewer: 'Quinn'
-updated: '2026-02-20T23:45:00Z'
+updated: '2026-02-20T23:55:00Z'
 top_issues:
+  - id: 'SEC-002'
+    severity: medium
+    finding: 'Raw API key printed in Step 14 final summary (03-evolution.sh:739) to stdout. Terminal output may be captured in logs, screen shares, or CI artifacts.'
+    suggested_action: 'Apply mask_key to apikeyglobal in Step 14 echo. Key is already saved in chmod 600 dados_evolution file.'
   - id: 'TEST-001'
     severity: medium
-    finding: 'Tests are mostly static (grep on source code). No functional tests with mocked curl to validate _evolution_curl retry behavior, HTTP code parsing, or error handling paths.'
-    suggested_action: 'Add functional tests mocking curl responses (200, 500, timeout) to validate retry logic and error handling in evolution-api.sh.'
+    finding: 'All 27 tests are static/structural (grep on source). No functional tests with mocked curl for retry/backoff, HTTP error codes, or timeout behavior.'
+    suggested_action: 'Add bats tests mocking curl responses (200, 500, timeout) to validate _evolution_curl retry logic and error paths.'
   - id: 'SEC-001'
     severity: low
     finding: 'hint_evolution_debug outputs raw API key in curl examples. If terminal output is shared/logged, key could leak.'
-    suggested_action: 'Use mask_key in hint_evolution_debug output, or add warning about not sharing terminal output.'
+    suggested_action: 'Use mask_key in hint output, or add explicit DO NOT SHARE warning.'
+  - id: 'TEST-002'
+    severity: low
+    finding: 'mask_key test assertion has malformed expected string with extra space. Test passes via glob fallback but logic is confusing.'
+    suggested_action: 'Simplify mask_key test to use single clean expected value.'
+  - id: 'DUP-001'
+    severity: low
+    finding: 'mask_key duplicated in 4 files (evolution-api.sh, 08-llm-router.sh, 09-skills.sh, 11-elicitation-schema.sh) instead of canonical location in common.sh.'
+    suggested_action: 'Consolidate mask_key into common.sh in a tech debt story.'
 waiver: { active: false }

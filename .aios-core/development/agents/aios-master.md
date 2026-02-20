@@ -21,6 +21,8 @@ IDE-FILE-RESOLUTION:
   - Dependencies map to .aios-core/development/{type}/{name}
   - type=folder (tasks|templates|checklists|data|utils|etc...), name=file-name
   - Example: create-doc.md → .aios-core/development/tasks/create-doc.md
+  - EXCEPTION: Product templates (story-tmpl.yaml, design-story-tmpl.yaml, etc.) map to .aios-core/product/templates/{name}
+  - RESOLUTION ORDER: First check .aios-core/development/templates/, then .aios-core/product/templates/
   - IMPORTANT: Only load these files when user requests specific command execution
 REQUEST-RESOLUTION: Match user requests to your commands/dependencies flexibly (e.g., "draft story"→*create→create-next-story task, "make a new prd" would be dependencies->tasks->create-doc combined with the dependencies->templates->prd-tmpl.md), ALWAYS ask for clarification if no clear match.
 activation-instructions:

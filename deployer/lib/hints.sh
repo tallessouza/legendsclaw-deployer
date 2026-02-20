@@ -701,6 +701,76 @@ hint_bridge_debug() {
   echo ""
 }
 
+# Hint de como interpretar o relatorio de validacao final
+# Uso: hint_validation_report
+hint_validation_report() {
+  echo ""
+  echo -e "${UI_BOLD:-\033[1m}=============================================="
+  echo "  HINT: COMO INTERPRETAR O RELATORIO"
+  echo -e "==============================================${UI_NC:-\033[0m}"
+  echo ""
+  echo "  [OK]   — Componente funcionando corretamente"
+  echo "  [FAIL] — Componente com problema (ver diagnostico)"
+  echo "  [SKIP] — Componente nao instalado (dependencia ausente)"
+  echo ""
+  echo "  SKIP nao e um erro — significa que a ferramenta"
+  echo "  correspondente ainda nao foi executada."
+  echo ""
+  echo "  FAIL requer atencao — execute o diagnostico indicado"
+  echo "  e reexecute a ferramenta correspondente se necessario."
+  echo ""
+  echo "  Relatorio: ~/dados_vps/relatorio_instalacao.txt"
+  echo ""
+  echo "=============================================="
+  echo ""
+}
+
+# Hint de troubleshooting por componente
+# Uso: hint_validation_troubleshoot
+hint_validation_troubleshoot() {
+  echo ""
+  echo -e "${UI_BOLD:-\033[1m}=============================================="
+  echo "  HINT: DEBUG POR COMPONENTE"
+  echo -e "==============================================${UI_NC:-\033[0m}"
+  echo ""
+  echo "  Docker Swarm:    docker info | grep Swarm"
+  echo "  Traefik:         docker stack ps traefik"
+  echo "  Portainer:       curl https://{URL}/api/system/status"
+  echo "  OpenClaw:        curl http://{URL}/health"
+  echo "  Tailscale:       tailscale status"
+  echo "  LLM Router:      cat ~/dados_vps/dados_llm_router"
+  echo "  Skills:          ls apps/{agente}/skills/"
+  echo "  Evolution:       curl -H 'apikey: ...' {URL}/instance/fetchInstances"
+  echo "  WhatsApp:        verificar pareamento QR Code"
+  echo "  Blocklist:       cat apps/{agente}/skills/lib/blocklist.yaml"
+  echo "  Sandbox:         cat ~/dados_vps/dados_seguranca"
+  echo "  Hooks:           cat .claude/settings.json | grep bridge"
+  echo ""
+  echo "=============================================="
+  echo ""
+}
+
+# Hint de como re-executar a validacao
+# Uso: hint_validation_rerun
+hint_validation_rerun() {
+  echo ""
+  echo -e "${UI_BOLD:-\033[1m}=============================================="
+  echo "  HINT: RE-EXECUTAR VALIDACAO"
+  echo -e "==============================================${UI_NC:-\033[0m}"
+  echo ""
+  echo "  Apos corrigir componentes com FAIL:"
+  echo ""
+  echo "  1. Corrija o problema usando o diagnostico indicado"
+  echo "  2. Re-execute: deployer.sh → Ferramenta [14]"
+  echo "  3. O relatorio sera sobrescrito com resultados atualizados"
+  echo ""
+  echo "  Cada execucao gera um novo log em ~/legendsclaw-logs/"
+  echo "  para manter historico de tentativas."
+  echo ""
+  echo "=============================================="
+  echo ""
+}
+
 hint_llm_router() {
   local nome_agente="${1:-meu-agente}"
 

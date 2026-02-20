@@ -152,8 +152,8 @@ services:
     command:
       - --api.dashboard=true
       - --api.insecure=false
-      - --providers.docker=true
-      - --providers.docker.swarmMode=true
+      - --providers.swarm=true
+      - --providers.docker.endpoint=unix:///var/run/docker.sock
       - --providers.docker.exposedbydefault=false
       - --providers.docker.network=${nome_rede}
       - --entrypoints.web.address=:80
@@ -165,6 +165,8 @@ services:
       - --certificatesresolvers.letsencryptresolver.acme.email=${email_ssl}
       - --certificatesresolvers.letsencryptresolver.acme.storage=/letsencrypt/acme.json
       - --log.level=INFO
+    environment:
+      - DOCKER_API_VERSION=1.44
     ports:
       - "80:80"
       - "443:443"
@@ -298,36 +300,53 @@ EOL
   # STEP 8: PORTAINER ADMIN ACCOUNT (AC: 11, 12)
   # =========================================================================
 
-  # Criar conta admin (retry 4x, sleep 15s)
-  local admin_criado=false
-  for i in 1 2 3 4; do
-    local response
-    response=$(curl -k -s -X POST \
-      "https://${dominio_portainer}/api/users/admin/init" \
-      -H "Content-Type: application/json" \
-      -d "{\"Username\":\"${user_portainer}\",\"Password\":\"${pass_portainer}\"}" 2>/dev/null)
+  # Aguardar API do Portainer estabilizar (pattern SetupOrion: sleep 30 + retry)
+  echo "  Aguardando API do Portainer estabilizar (30s)..."
+  sleep 30
 
-    if echo "$response" | grep -q "\"Username\":\"${user_portainer}\""; then
-      admin_criado=true
+  # Criar conta admin (pattern SetupOrion: 4 tentativas, delay 15s)
+  local MAX_RETRIES=4
+  local DELAY=15
+  local CONTA_CRIADA=false
+
+  for i in $(seq 1 $MAX_RETRIES); do
+    local RESPONSE
+    RESPONSE=$(curl -k -s -X POST "https://${dominio_portainer}/api/users/admin/init" \
+      -H "Content-Type: application/json" \
+      -d "{\"Username\": \"${user_portainer}\", \"Password\": \"${pass_portainer}\"}")
+
+    if echo "$RESPONSE" | grep -q "\"Username\":\"${user_portainer}\""; then
+      CONTA_CRIADA=true
       break
+    else
+      log "Tentando criar conta no Portainer ${i}/${MAX_RETRIES}. Resposta: ${RESPONSE}"
+      if [ $i -eq $MAX_RETRIES ]; then
+        echo "  Nao foi possivel criar conta admin apos ${MAX_RETRIES} tentativas."
+        echo "  Erro: ${RESPONSE}"
+        echo "  Crie manualmente acessando https://${dominio_portainer}"
+      fi
+      sleep $DELAY
     fi
-    log "Portainer admin init tentativa ${i}/4 falhou, retentando em 15s..."
-    sleep 15
   done
 
-  if ! $admin_criado; then
-    step_fail "Criar conta admin do Portainer (4 tentativas falharam)"
-    exit 1
+  if ! $CONTA_CRIADA; then
+    step_fail "Criar conta admin do Portainer (crie manualmente via browser)"
   fi
 
-  # Obter JWT token
-  local token
-  token=$(curl -k -s -X POST \
-    "https://${dominio_portainer}/api/auth" \
-    -H "Content-Type: application/json" \
-    -d "{\"username\":\"${user_portainer}\",\"password\":\"${pass_portainer}\"}" | jq -r .jwt 2>/dev/null)
+  # Obter JWT token (só se conta foi criada)
+  local token=""
+  if $CONTA_CRIADA; then
+    sleep 5
+    token=$(curl -k -s -X POST "https://${dominio_portainer}/api/auth" \
+      -H "Content-Type: application/json" \
+      -d "{\"username\":\"${user_portainer}\",\"password\":\"${pass_portainer}\"}" | jq -r .jwt 2>/dev/null)
 
-  step_ok "Conta admin do Portainer criada e token JWT obtido"
+    if [ -n "$token" ] && [ "$token" != "null" ]; then
+      step_ok "Conta admin do Portainer criada e token JWT obtido"
+    else
+      step_fail "Falha ao gerar token JWT"
+    fi
+  fi
 
   # Salvar credenciais
   cat > "$HOME/dados_vps/dados_portainer" << EOL

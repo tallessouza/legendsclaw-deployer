@@ -14,7 +14,7 @@ set -euo pipefail
 # -----------------------------------------------------------------------------
 readonly LEGENDSCLAW_VERSION="1.0.0"
 readonly NODE_MIN_VERSION=22
-readonly TOTAL_STEPS=15
+readonly TOTAL_STEPS=16
 readonly LOG_DIR="$HOME/legendsclaw-logs"
 readonly STATE_DIR="$HOME/dados_vps"
 readonly TIMESTAMP=$(date +%Y%m%d_%H%M%S)
@@ -147,7 +147,18 @@ install_apt_package() {
 _install_docker() {
   curl -fsSL https://get.docker.com | bash >/dev/null 2>&1 && \
   systemctl enable docker >/dev/null 2>&1 && \
-  systemctl start docker >/dev/null 2>&1
+  systemctl start docker >/dev/null 2>&1 && \
+  _configure_docker_min_api
+}
+
+_configure_docker_min_api() {
+  mkdir -p /etc/systemd/system/docker.service.d
+  cat > /etc/systemd/system/docker.service.d/override.conf <<EOF
+[Service]
+Environment=DOCKER_MIN_API_VERSION=1.24
+EOF
+  systemctl daemon-reload >/dev/null 2>&1
+  systemctl restart docker >/dev/null 2>&1
 }
 
 _install_jq() {
@@ -295,6 +306,14 @@ main() {
 
   # Dependencias (Steps 5-12)
   install_if_missing "docker" "_install_docker" "Docker"
+
+  # Garante DOCKER_MIN_API_VERSION mesmo se Docker ja existia
+  if ! grep -q "DOCKER_MIN_API_VERSION" /etc/systemd/system/docker.service.d/override.conf 2>/dev/null; then
+    _configure_docker_min_api
+    feedback "OK" "Docker MIN_API_VERSION configurado"
+  else
+    feedback "SKIP" "Docker MIN_API_VERSION (ja configurado)"
+  fi
   install_if_missing "jq" "_install_jq" "jq"
   install_if_missing "htpasswd" "_install_apache2_utils" "apache2-utils (htpasswd)"
   install_if_missing "git" "_install_git" "Git"

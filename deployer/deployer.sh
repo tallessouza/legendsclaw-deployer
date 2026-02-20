@@ -37,6 +37,7 @@ show_menu() {
   echo -e "║  ${D_GREEN}[11] Elicitation Schema — Tabelas e Seeds${D_CYAN} ║"
   echo -e "║  ${D_GREEN}[12] Seguranca (3 Layers)${D_CYAN}                   ║"
   echo -e "║  ${D_GREEN}[13] Bridge — Claude Code Integration${D_CYAN}      ║"
+  echo -e "║  ${D_GREEN}[14] Validacao Final — Teste End-to-End${D_CYAN}    ║"
   echo -e "║  ${D_GRAY}[00] Sair${D_CYAN}                                    ║"
   echo "╚══════════════════════════════════════════════╝"
   echo -e "${D_NC}"
@@ -94,6 +95,10 @@ main() {
         ;;
       13)
         bash "${SCRIPT_DIR}/ferramentas/13-bridge.sh"
+        read -rp "Pressione ENTER para voltar ao menu..."
+        ;;
+      14)
+        bash "${SCRIPT_DIR}/ferramentas/14-validacao-final.sh"
         read -rp "Pressione ENTER para voltar ao menu..."
         ;;
       00|0)
