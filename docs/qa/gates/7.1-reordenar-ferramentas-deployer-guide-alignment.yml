@@ -1,0 +1,27 @@
+schema: 1
+story: '7.1'
+gate: CONCERNS
+status_reason: 'Story bem definida e verificada contra codebase. 1 concern: cascade em 03-evolution.sh chama 02-postgres.sh diretamente — remoção do arquivo quebra a cascade sem tratamento explícito.'
+reviewer: 'Quinn'
+review_type: 'pre-implementation'
+updated: '2026-02-20T00:00:00Z'
+top_issues:
+  - id: 'ARCH-001'
+    severity: medium
+    finding: 'Cascade em 03-evolution.sh:222 executa `bash "${SCRIPT_DIR}/ferramentas/02-postgres.sh"`. Ao remover 02-postgres.sh (AC2), esta chamada falha. Task 3.1 menciona "verificar cascade funcional" mas não explicita que a chamada ao arquivo removido precisa ser substituída por lógica inline ou alternativa.'
+    suggested_action: 'Task 3 deve incluir subtask explícita: substituir chamada a 02-postgres.sh em 13-evolution.sh por lógica de instalação inline (copiar bloco de deploy do 02-postgres.sh para dentro do cascade). Alternativa: manter 02-postgres.sh como lib interna (não exposta no menu).'
+  - id: 'TEST-001'
+    severity: low
+    finding: 'Existem ~20 arquivos .bats individuais por ferramenta em tests/deployer/ que referenciam nomes antigos. AC6 menciona apenas lib-deploy.bats mas os testes individuais também precisam de rename.'
+    suggested_action: 'Adicionar nota em Task 6 sobre renomear test files individuais para acompanhar nova numeração, ou documentar que serão endereçados em story separada.'
+waiver: { active: false }
+
+# Pre-Implementation Verification Summary
+verification:
+  mapping_accuracy: '100% - All 14 ferramentas match Dev Notes mapping table'
+  postgres_cascade: 'Functional in 03-evolution.sh but calls 02-postgres.sh directly'
+  postgres_common_functions: 'All 3 functions already in common.sh (verificar_container_postgres, pegar_senha_postgres, criar_banco_postgres_da_stack)'
+  elicitation_schema: 'Confirmed Supabase REST API only - no local Postgres dependency'
+  error_handling: 'Story 6.1 already added set -euo pipefail, setup_trap, log_init to all ferramentas'
+  test_impact: 'lib-deploy.bats tests lib functions, not ferramenta names - minimal impact'
+  feasibility: 'HIGH - all ACs achievable with current codebase state'
