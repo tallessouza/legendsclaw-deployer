@@ -359,10 +359,11 @@ hint_skills() {
 }
 
 # Hint de debug e proximos passos para Elicitation skill
-# Uso: hint_elicitation "$nome_agente" "$tables_status"
+# Uso: hint_elicitation "$nome_agente" "$tables_status" "$llm_enabled"
 hint_elicitation() {
   local nome_agente="${1:-meu-agente}"
   local tables_status="${2:-UNKNOWN}"
+  local llm_enabled="${3:-false}"
 
   echo ""
   echo -e "${UI_BOLD:-\033[1m}=============================================="
@@ -387,10 +388,59 @@ hint_elicitation() {
     echo ""
   fi
 
+  if [[ "$llm_enabled" == "true" ]]; then
+    echo "  LLM Extraction (habilitado):"
+    echo "     Tier standard: anthropic/claude-3.5-haiku via OpenRouter"
+    echo "     Tier budget: deepseek/deepseek-chat (follow-ups)"
+    echo "     Testar: curl -H 'Authorization: Bearer \$OPENROUTER_API_KEY' \\"
+    echo "       https://openrouter.ai/api/v1/models"
+    echo ""
+  else
+    echo "  LLM Extraction (desabilitado):"
+    echo "     Usando extracao basica (regex). Para habilitar:"
+    echo "     Execute Ferramenta [08] LLM Router (Story 3.2)"
+    echo ""
+  fi
+
+  echo "  Memory Manager:"
+  echo "     Arquivos exportados para: ~/.clawd/memory/elicitation/"
+  echo "     Verificar: ls -la ~/.clawd/memory/elicitation/"
+  echo ""
+
   echo "  Config: apps/${nome_agente}/skills/config.js"
   echo "  Skill:  apps/${nome_agente}/skills/elicitation/"
   echo ""
-  echo "  Proximo: criar tabelas e templates Supabase (Story 4.3)"
+  echo "=============================================="
+  echo ""
+}
+
+# Hint de debug e proximos passos para Elicitation Schema
+# Uso: hint_elicitation_schema
+hint_elicitation_schema() {
+  echo ""
+  echo -e "${UI_BOLD:-\033[1m}=============================================="
+  echo "  HINT: ELICITATION SCHEMA — DEBUG E PROXIMOS PASSOS"
+  echo -e "==============================================${UI_NC:-\033[0m}"
+  echo ""
+  echo "  1. Aplicar migration no Supabase:"
+  echo "     Dashboard → SQL Editor → colar deployer/migrations/001-elicitation-tables.sql → Run"
+  echo ""
+  echo "  2. Aplicar seed:"
+  echo "     Dashboard → SQL Editor → colar deployer/seeds/001-onboarding-founder.sql → Run"
+  echo ""
+  echo "  3. Verificar no Table Editor:"
+  echo "     Confirme 3 tabelas: elicitation_templates, elicitation_sessions, elicitation_results"
+  echo "     Confirme 1 registro em elicitation_templates: onboarding-founder"
+  echo ""
+  echo "  4. Verificar RLS habilitado:"
+  echo "     Table Editor → cada tabela → RLS deve estar 'Enabled'"
+  echo ""
+  echo "  5. Testar via REST:"
+  echo "     curl -s -H 'apikey: \$SUPABASE_SERVICE_ROLE_KEY' \\"
+  echo "       -H 'Authorization: Bearer \$SUPABASE_SERVICE_ROLE_KEY' \\"
+  echo "       \$SUPABASE_URL/rest/v1/elicitation_templates"
+  echo ""
+  echo "  Proximo: integrar LLM Router e Memory (Story 4.4)"
   echo ""
   echo "=============================================="
   echo ""
