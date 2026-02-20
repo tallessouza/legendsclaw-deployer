@@ -1,6 +1,7 @@
 storyId: "5.2"
 storyTitle: "Ferramenta Seguranca — 3 Layers"
 verdict: PASS
+story_status: Done
 reviewer: "@qa"
 date: "2026-02-20"
 score: "7/7"
