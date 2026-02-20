@@ -1,0 +1,410 @@
+workflow:
+  name: Generate Standalone Installer
+  id: wf-generate-installer
+  version: "1.0.0"
+  description: >
+    Gera um script bash standalone que instala apps via Docker Swarm + Portainer,
+    seguindo RIGOROSAMENTE os patterns do SetupOrion v2.8.0.
+    O bootstrap e utilitários são COPIADOS do Orion. Só as ferramentas novas são geradas.
+  trigger: "*generate"
+  orchestrator: "@orion-chief"
+  elicit: true
+
+  inputs:
+    required:
+      - name: apps
+        type: list
+        description: "Lista de apps para incluir no installer"
+        example: ["openclaw", "evolution", "conectar_whatsapp"]
+
+      - name: script_name
+        type: string
+        description: "Nome do script gerado"
+        example: "SetupOpenClaw"
+
+    optional:
+      - name: base_orion_path
+        type: path
+        description: "Path do SetupOrion para copiar bootstrap/utilitários"
+        default: "squads/openclaw-deployer/data/orion-scripts/SetupOrion-repo"
+
+      - name: guide_path
+        type: path
+        description: "Path de guia funcional para considerar na geração"
+
+  # ═══════════════════════════════════════════════════════════════════
+  # PHASES
+  # ═══════════════════════════════════════════════════════════════════
+
+  phases:
+    # ─────────────────────────────────────────────────────────────────
+    # PHASE 1: ANÁLISE
+    # ─────────────────────────────────────────────────────────────────
+    - id: phase_1
+      name: "ANÁLISE"
+      purpose: "Entender cada app e mapear dependências"
+      agent: "@orion-chief"
+      duration: "10-15 min"
+
+      steps:
+        - id: s1_1
+          name: "Mapear Apps"
+          action: |
+            Para cada app solicitada:
+            1. Qual imagem Docker?
+            2. Qual porta principal?
+            3. Quais env vars obrigatórias?
+            4. Quais dependências? (Postgres, Redis, etc.)
+            5. Quantos vCPU/RAM mínimos?
+            6. Tem health check endpoint?
+
+        - id: s1_2
+          name: "Mapear Dependências"
+          action: |
+            Construir grafo de dependências:
+            openclaw → [postgres, redis_embutido]
+            evolution → [redis_embutido, postgres|pgvector]
+            conectar_whatsapp → [evolution, openclaw]
+
+            Identificar ordem de instalação:
+            1. Stack base (Traefik + Portainer)
+            2. Postgres/PgVector (dependência compartilhada)
+            3. OpenClaw
+            4. Evolution API
+            5. Conectar WhatsApp (orchestration)
+
+        - id: s1_3
+          name: "Identificar código para COPIAR do Orion"
+          action: |
+            Ler SetupOrion e identificar funções para copiar:
+            COPIAR DIRETO:
+            - Cores (amarelo, verde, etc.)
+            - UI (nome_xxx, instalando_msg, etc.)
+            - recursos()
+            - dados()
+            - stack_editavel()
+            - pull()
+            - wait_stack()
+            - validar_senha()
+            - verificar_stack()
+            - verificar_docker_e_portainer_traefik()
+            - criar_banco_postgres_da_stack()
+            - pegar_senha_postgres()
+            - ferramenta_traefik_e_portainer() (ou adaptar)
+
+      checkpoint:
+        id: CP1
+        name: "Análise Completa"
+        blocking: true
+        criteria:
+          - "Todas as apps mapeadas com imagem, porta, env vars"
+          - "Grafo de dependências completo"
+          - "Ordem de instalação definida"
+          - "Lista de funções para copiar do Orion"
+        present_to_user: true
+
+    # ─────────────────────────────────────────────────────────────────
+    # PHASE 2: COPIAR BASE DO ORION
+    # ─────────────────────────────────────────────────────────────────
+    - id: phase_2
+      name: "COPIAR BASE"
+      purpose: "Extrair e copiar bootstrap + utilitários do SetupOrion"
+      agent: "@script-generator"
+      duration: "15-20 min"
+
+      steps:
+        - id: s2_1
+          name: "Extrair Bootstrap"
+          action: |
+            Do Setup.sh (camada 1), copiar:
+            - Verificação de OS
+            - Verificação de root
+            - 15 passos de preparação de ambiente
+            Adaptar para contexto OpenClaw (mensagens, ASCII art)
+
+        - id: s2_2
+          name: "Extrair Utilitários"
+          action: |
+            Do SetupOrion (camada 2), copiar funções:
+            - recursos()
+            - dados()
+            - stack_editavel()
+            - pull()
+            - wait_stack()
+            - validar_senha()
+            - verificar_stack()
+            - verificar_docker_e_portainer_traefik()
+            - verificar_container_postgres()
+            - pegar_senha_postgres()
+            - criar_banco_postgres_da_stack()
+            - conferindo_as_info()
+            - instalando_msg(), instalado_msg(), erro_msg()
+            - requisitar_outra_instalacao()
+
+        - id: s2_3
+          name: "Extrair Stack Base"
+          action: |
+            Copiar ferramenta_traefik_e_portainer() com os 9 passos:
+            1. Coletar dados (domínio, email, user/senha)
+            2. Hostname + /etc/hosts
+            3. Docker Swarm init (retry 3x)
+            4. Overlay network
+            5. Traefik YAML (v3.5.3)
+            6. Wait Traefik
+            7. Portainer YAML
+            8. Wait Portainer
+            9. Criar conta admin via API (retry 4x)
+
+      checkpoint:
+        id: CP2
+        name: "Base Copiada"
+        blocking: true
+        criteria:
+          - "Bootstrap funcional (bash -n passa)"
+          - "Utilitários copiados sem modificação de lógica"
+          - "Stack base (Traefik + Portainer) funcional"
+        veto_conditions:
+          - "Lógica de utilitário modificada → VETO (copiar, não adaptar)"
+
+    # ─────────────────────────────────────────────────────────────────
+    # PHASE 3: GERAR FERRAMENTAS NOVAS
+    # ─────────────────────────────────────────────────────────────────
+    - id: phase_3
+      name: "GERAR FERRAMENTAS"
+      purpose: "Criar ferramenta_xxx() para cada app nova"
+      agent: "@script-generator"
+      duration: "30-45 min"
+      specialist: "@stack-architect"
+
+      steps:
+        - id: s3_1
+          name: "Gerar ferramenta_openclaw()"
+          action: |
+            Seguir 8-step lifecycle:
+            1. Gate: recursos 2 4
+            2. Estado: dados
+            3. Inputs: domínio, email, API keys do LLM
+            4. Deps: verificar_container_postgres → cascade
+            5. YAML: @stack-architect gera com Traefik labels
+            6. Deploy: stack_editavel
+            7. Verify: pull + wait_stack
+            8. Finalizar: dados_openclaw + credenciais
+          guide_reference: "Usar guide_path se fornecido para env vars e config"
+
+        - id: s3_2
+          name: "Gerar ferramenta_evolution()"
+          action: |
+            Seguir 8-step lifecycle:
+            1. Gate: recursos 1 1
+            2. Estado: dados
+            3. Inputs: domínio, API key global
+            4. Deps: verificar_container_postgres (ou pgvector)
+            5. YAML: Evolution API + Redis embutido (pattern Orion)
+            6. Deploy: stack_editavel
+            7. Verify: pull + wait_stack
+            8. Finalizar: dados_evolution + credenciais
+          note: "Verificar se Orion já tem essa ferramenta — se sim, COPIAR e adaptar"
+
+        - id: s3_3
+          name: "Gerar ferramenta_conectar_whatsapp()"
+          action: |
+            Ferramenta de orchestration (conecta Evolution + OpenClaw):
+            1. Gate: recursos 1 1 (leve)
+            2. Estado: dados + ler dados_evolution + dados_openclaw
+            3. Inputs: número WhatsApp, nome da instância
+            4. Deps: verificar se Evolution e OpenClaw estão rodando
+            5. API calls:
+               - POST /instance/create na Evolution
+               - GET QR code e exibir
+               - Aguardar CONNECTION_UPDATE (polling)
+               - Configurar webhook da Evolution → OpenClaw
+            6. Sem YAML (é orchestration, não deploy)
+            7. Verify: enviar mensagem teste
+            8. Finalizar: dados_whatsapp + credenciais
+          note: "Não gera YAML — usa API da Evolution + OpenClaw"
+
+      checkpoint:
+        id: CP3
+        name: "Ferramentas Geradas"
+        blocking: true
+        criteria:
+          - "Cada ferramenta tem 8 steps completos"
+          - "Loop confirmado em todas"
+          - "Dependências com cascade"
+          - "Deploy via stack_editavel (exceto orchestration)"
+        veto_conditions:
+          - "Ferramenta sem loop confirmado → VETO"
+          - "Deploy sem Portainer API → VETO"
+          - "Step faltando → VETO"
+
+    # ─────────────────────────────────────────────────────────────────
+    # PHASE 4: MONTAR SCRIPT FINAL
+    # ─────────────────────────────────────────────────────────────────
+    - id: phase_4
+      name: "MONTAR SCRIPT"
+      purpose: "Assemblar todas as partes em um script standalone"
+      agent: "@script-generator"
+      duration: "10-15 min"
+
+      steps:
+        - id: s4_1
+          name: "Assemblar Script"
+          action: |
+            Ordem do script final:
+            #!/bin/bash
+            # ═══ HEADER ═══
+            # Nome, versão, créditos
+
+            # ═══ CORES ═══
+            amarelo="\e[33m" ... (copiado do Orion)
+
+            # ═══ UI FUNCTIONS ═══
+            nome_openclaw(), instalando_msg(), etc.
+
+            # ═══ UTILITÁRIOS ═══
+            recursos(), dados(), stack_editavel(), pull(),
+            wait_stack(), validar_senha(), etc. (copiado do Orion)
+
+            # ═══ STACK BASE ═══
+            ferramenta_traefik_e_portainer() (copiado do Orion)
+
+            # ═══ FERRAMENTAS ═══
+            ferramenta_openclaw() (gerado)
+            ferramenta_evolution() (gerado ou copiado)
+            ferramenta_conectar_whatsapp() (gerado)
+
+            # ═══ MENU ═══
+            while true; do
+              menu
+              read -p "Opção: " opcao
+              case $opcao in
+                1) ferramenta_traefik_e_portainer ;;
+                2) ferramenta_openclaw ;;
+                3) ferramenta_evolution ;;
+                4) ferramenta_conectar_whatsapp ;;
+                0) exit ;;
+              esac
+            done
+
+        - id: s4_2
+          name: "Gerar ASCII Art"
+          action: "Criar nome_openclaw(), nome_evolution() com ASCII art"
+
+      checkpoint:
+        id: CP4
+        name: "Script Montado"
+        blocking: false
+
+    # ─────────────────────────────────────────────────────────────────
+    # PHASE 5: TESTAR
+    # ─────────────────────────────────────────────────────────────────
+    - id: phase_5
+      name: "TESTAR"
+      purpose: "Validar script gerado"
+      agent: "@troubleshooter"
+      duration: "10-15 min"
+
+      steps:
+        - id: s5_1
+          name: "Shellcheck"
+          command: "shellcheck --severity=warning {script_name}.sh"
+          pass: "0 errors"
+          warn: "warnings documentados"
+
+        - id: s5_2
+          name: "Syntax Check"
+          command: "bash -n {script_name}.sh"
+          pass: "exit 0"
+
+        - id: s5_3
+          name: "Dry Run Validation"
+          action: |
+            Verificar com variáveis de teste:
+            - Todas as funções existem
+            - heredocs geram YAML válido
+            - Stack names únicos
+            - Volumes não conflitam
+            - Portas não conflitam
+
+        - id: s5_4
+          name: "Checklist de Qualidade"
+          checklist: "checklists/ferramenta-quality-gate.md"
+
+      checkpoint:
+        id: CP5
+        name: "Testes Passam"
+        blocking: true
+        criteria:
+          - "shellcheck: 0 errors"
+          - "bash -n: pass"
+          - "dry run: pass"
+          - "quality gate: pass"
+        veto_conditions:
+          - "shellcheck error → VETO (fix antes de entregar)"
+
+    # ─────────────────────────────────────────────────────────────────
+    # PHASE 6: HANDOFF
+    # ─────────────────────────────────────────────────────────────────
+    - id: phase_6
+      name: "HANDOFF"
+      purpose: "Entregar script e documentar"
+      agent: "@orion-chief"
+      duration: "5 min"
+
+      steps:
+        - id: s6_1
+          name: "Salvar Script"
+          output: "squads/orion-scripter/output/{script_name}.sh"
+
+        - id: s6_2
+          name: "Resumo"
+          present: |
+            ═══════════════════════════════════════════════════════════════
+            ⚡ SCRIPT GERADO: {script_name}.sh
+            ═══════════════════════════════════════════════════════════════
+
+            Ferramentas: {count}
+            Linhas: {total_lines}
+            Base copiada do Orion: {orion_lines} linhas
+            Código novo gerado: {new_lines} linhas
+
+            Para usar:
+            bash {script_name}.sh
+
+            Para instalar tudo:
+            [01] Traefik + Portainer (base)
+            [02] OpenClaw Gateway
+            [03] Evolution API
+            [04] Conectar WhatsApp
+
+            ═══════════════════════════════════════════════════════════════
+
+  # ═══════════════════════════════════════════════════════════════════
+  # TRANSITIONS
+  # ═══════════════════════════════════════════════════════════════════
+
+  transitions:
+    - from: phase_1
+      to: phase_2
+      condition: "Análise aprovada pelo user"
+
+    - from: phase_2
+      to: phase_3
+      condition: "Base copiada e validada"
+
+    - from: phase_3
+      to: phase_4
+      condition: "Todas ferramentas passam quality gate"
+
+    - from: phase_4
+      to: phase_5
+      condition: "Script montado"
+
+    - from: phase_5
+      to: phase_6
+      condition: "Todos testes passam"
+
+  error_handling:
+    on_shellcheck_fail: "Fix automático de errors, documentar warnings"
+    on_dry_run_fail: "Identificar função com bug, fix, re-test"
+    on_veto: "Mostrar qual step está faltando, fix, re-validate"

@@ -1,0 +1,3 @@
+# Background Context
+
+O projeto nasceu da preparação técnica para a Imersão AIOS Squads (Florianópolis, ~40 participantes, ticket R$100k). Na reunião de 19/02/2026, o time definiu que cada cliente sairá com uma VPS própria rodando OpenClaw whitelabel conectado ao WhatsApp — "o Jarvis dele". A tentativa com Railway (PaaS) não funcionou como esperado, então o caminho é VPS real (Hetzner) com Docker Swarm, seguindo o padrão já documentado no guide.md e inspirado nos patterns comprovados do SetupOrion (44k linhas bash, 80+ apps). O LLM Router do Pedro já provou reduzir custos drasticamente, e o pipeline de onboarding (environment bootstrap → deploy → elicitation) precisa estar operacional antes da imersão.

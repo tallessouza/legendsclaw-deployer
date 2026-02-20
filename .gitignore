@@ -49,3 +49,23 @@ temp/
 # VSCode
 .vscode/
 docs/referencia/orion-scripts/SetupOrion-repo
+
+# ========================================
+# AIOS Integration Section
+# Added by AIOS Documentation Integrity System
+# Date: 2026-02-20
+# ========================================
+
+# AIOS Local Configuration
+.aios-core/local/
+.aios-core/*.local.yaml
+.aios-core/logs/
+.aios-core/cache/
+
+# AIOS Generated (optional - uncomment if needed)
+# .aios-core/generated/
+
+# ========================================
+# End of AIOS Integration Section
+# ========================================
+__pycache__/

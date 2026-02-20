@@ -1,0 +1,238 @@
+# Orion Patterns Reference
+# Extraído do SetupOrion v2.8.0 (44.726 linhas)
+# Source: squads/openclaw-deployer/data/orion-script-racional.md
+
+patterns:
+  # ═══════════════════════════════════════════════════════════════════
+  # FUNÇÕES PARA COPIAR (não recriar)
+  # ═══════════════════════════════════════════════════════════════════
+  copy_from_orion:
+    source: "squads/openclaw-deployer/data/orion-scripts/SetupOrion-repo/SetupOrion"
+    note: "Arquivo tem ~44K linhas. Usar grep para encontrar funções."
+
+    utilities:
+      - name: "recursos"
+        purpose: "Gate de hardware (vCPU + RAM)"
+        signature: "recursos() { vcpu_requerido=$1; ram_requerido=$2; ... }"
+
+      - name: "dados"
+        purpose: "Carregar estado global (nome_servidor, nome_rede_interna)"
+        signature: "dados() { nome_servidor=$(grep ...); nome_rede_interna=$(grep ...); }"
+
+      - name: "stack_editavel"
+        purpose: "Deploy via Portainer API"
+        signature: "stack_editavel() { TOKEN=...; ENDPOINT_ID=...; curl POST /api/stacks; }"
+
+      - name: "pull"
+        purpose: "Pull imagens com retry + rate limit handling"
+        signature: "pull() { for image in \"$@\"; do while true; do docker pull ...; done; done; }"
+
+      - name: "wait_stack"
+        purpose: "Polling até serviços ficarem 1/1"
+        signature: "wait_stack() { for service in \"$@\"; do ... docker service ls ...; done; }"
+
+      - name: "validar_senha"
+        purpose: "Validar complexidade de senha"
+        signature: "validar_senha() { senha=$1; tamanho_minimo=$2; ... }"
+
+      - name: "verificar_stack"
+        purpose: "Checar se stack já existe antes de deploy"
+        signature: "verificar_stack() { docker stack ls | grep ...; }"
+
+      - name: "verificar_docker_e_portainer_traefik"
+        purpose: "Pré-condição: Docker + Portainer + Traefik instalados"
+
+      - name: "verificar_container_postgres"
+        purpose: "Checar se Postgres está rodando"
+
+      - name: "pegar_senha_postgres"
+        purpose: "Ler senha do postgres.yaml"
+
+      - name: "criar_banco_postgres_da_stack"
+        purpose: "Criar banco no Postgres via docker exec"
+
+      - name: "ferramenta_traefik_e_portainer"
+        purpose: "Setup base completo (9 passos)"
+
+    ui_functions:
+      - "nome_xxx() — ASCII art do nome da app"
+      - "instalando_msg() — Banner 'Instalando...'"
+      - "instalado_msg() — Banner 'Instalado com sucesso!'"
+      - "erro_msg() — Banner 'Ops! Algo deu errado'"
+      - "preencha_as_info() — Label 'Preencha as informações'"
+      - "conferindo_as_info() — Label 'Confira as informações'"
+      - "guarde_os_dados_msg() — 'Guarde os dados abaixo!'"
+      - "creditos_msg() — Créditos"
+      - "requisitar_outra_instalacao() — Perguntar se quer instalar mais"
+
+    colors:
+      - "amarelo=\"\\e[33m\""
+      - "verde=\"\\e[32m\""
+      - "branco=\"\\e[97m\""
+      - "bege=\"\\e[93m\""
+      - "vermelho=\"\\e[91m\""
+      - "reset=\"\\e[0m\""
+
+  # ═══════════════════════════════════════════════════════════════════
+  # PATTERNS PARA SEGUIR (ao gerar ferramentas novas)
+  # ═══════════════════════════════════════════════════════════════════
+  lifecycle_8_steps:
+    - step: 1
+      name: "Gate de Recursos"
+      code: "recursos $VCPU $RAM"
+      notes: "Avisa mas NÃO bloqueia. User decide."
+
+    - step: 2
+      name: "Carregar Estado"
+      code: "dados"
+      notes: "Lê nome_servidor e nome_rede_interna."
+
+    - step: 3
+      name: "Coleta de Inputs"
+      code: |
+        while true; do
+          echo -e "Passo 1/$N"
+          echo -en "Texto: " && read -r variavel
+          # ... mais inputs ...
+          conferindo_as_info
+          echo "Label: $variavel"
+          read -p "Correto? (Y/N): " confirmacao
+          [[ "$confirmacao" =~ ^[Yy]$ ]] && break
+        done
+      notes: "SEMPRE numerar passos. SEMPRE mostrar tudo antes de confirmar."
+
+    - step: 4
+      name: "Resolver Dependências"
+      code: |
+        verificar_container_postgres
+        if [ $? -eq 0 ]; then
+          pegar_senha_postgres
+          criar_banco_postgres_da_stack "$BANCO_NAME"
+        else
+          ferramenta_postgres
+          pegar_senha_postgres
+          criar_banco_postgres_da_stack "$BANCO_NAME"
+        fi
+      notes: "Cascade automático. Se dep não existe, instala recursivamente."
+
+    - step: 5
+      name: "Gerar YAML"
+      code: |
+        cat > app.yaml << EOL
+        version: "3.7"
+        services:
+          ...
+        EOL
+      notes: "Heredoc com variáveis bash. Sempre Traefik labels + overlay network."
+
+    - step: 6
+      name: "Deploy"
+      code: |
+        STACK_NAME="app"
+        stack_editavel
+      notes: "SEMPRE via Portainer API. NUNCA docker stack deploy direto."
+
+    - step: 7
+      name: "Verificar"
+      code: |
+        pull $imagem1 $imagem2
+        wait_stack "app_service1" "app_service2"
+      notes: "Pull com retry. Wait com polling 30s."
+
+    - step: 8
+      name: "Finalizar"
+      code: |
+        telemetria "App" "finalizado"
+        cat > dados_vps/dados_app << EOF
+        Domínio: https://$url
+        Usuário: $user
+        Senha: $senha
+        EOF
+        instalado_msg
+        guarde_os_dados_msg
+        creditos_msg
+        requisitar_outra_instalacao
+      notes: "Salvar credenciais em plaintext. Exibir para o user."
+
+  # ═══════════════════════════════════════════════════════════════════
+  # YAML PATTERNS
+  # ═══════════════════════════════════════════════════════════════════
+  yaml_patterns:
+    traefik_labels:
+      - "traefik.enable=1"
+      - "traefik.http.routers.{app}.rule=Host(\\`$dominio\\`)"
+      - "traefik.http.routers.{app}.entrypoints=websecure"
+      - "traefik.http.routers.{app}.tls.certresolver=letsencryptresolver"
+      - "traefik.http.services.{app}.loadbalancer.server.port=$porta"
+
+    volume_pattern: |
+      volumes:
+        app_data:
+          external: true
+          name: app_data
+
+    network_pattern: |
+      networks:
+        $nome_rede_interna:
+          external: true
+          name: $nome_rede_interna
+
+    resource_limits: |
+      deploy:
+        resources:
+          limits:
+            cpus: "1"
+            memory: 1024M
+
+    redis_embutido: |
+      app_redis:
+        image: redis:latest
+        command: ["redis-server", "--appendonly", "yes", "--port", "6379"]
+        volumes:
+          - app_redis:/data
+        networks:
+          - $nome_rede_interna
+        deploy:
+          resources:
+            limits:
+              cpus: "1"
+              memory: 512M
+
+  # ═══════════════════════════════════════════════════════════════════
+  # STATE PATTERNS
+  # ═══════════════════════════════════════════════════════════════════
+  state_patterns:
+    directory: "~/dados_vps/"
+    file_per_app: "dados_{app}"
+    format: "Chave: valor"
+    read_pattern: "grep \"Chave:\" arquivo | awk -F': ' '{print $2}'"
+    credential_source: "O YAML gerado é a fonte de verdade das credenciais"
+
+  # ═══════════════════════════════════════════════════════════════════
+  # MENU PATTERN
+  # ═══════════════════════════════════════════════════════════════════
+  menu_pattern: |
+    while true; do
+      clear
+      echo "═══════════════════════════════════════════"
+      echo "  SetupOpenClaw v1.0"
+      echo "═══════════════════════════════════════════"
+      echo ""
+      echo "  [01] Traefik + Portainer (base)"
+      echo "  [02] OpenClaw Gateway"
+      echo "  [03] Evolution API"
+      echo "  [04] Conectar WhatsApp"
+      echo ""
+      echo "  [00] Sair"
+      echo ""
+      read -p "Opção: " opcao
+
+      case $opcao in
+        01|1) ferramenta_traefik_e_portainer ;;
+        02|2) ferramenta_openclaw ;;
+        03|3) ferramenta_evolution ;;
+        04|4) ferramenta_conectar_whatsapp ;;
+        00|0) exit ;;
+        *) ;;
+      esac
+    done

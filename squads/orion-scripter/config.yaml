@@ -1,0 +1,60 @@
+squad:
+  name: Orion Scripter
+  id: orion-scripter
+  version: "1.0.0"
+  description: >
+    Gera scripts bash determinísticos seguindo a metodologia SetupOrion (44K linhas).
+    Especialista em criar instaladores standalone com 8-step lifecycle, deploy via
+    Portainer API, dependency cascade, loop confirmado e retry em tudo.
+  slashPrefix: orionScripter
+  entry_agent: orion-chief
+  trigger: "*generate"
+  domain: infrastructure_automation
+  keywords:
+    - bash
+    - installer
+    - docker-swarm
+    - portainer
+    - traefik
+    - deterministic
+    - orion
+    - ferramenta
+
+  agents:
+    - orion-chief
+    - script-generator
+    - stack-architect
+    - troubleshooter
+
+  workflows:
+    - wf-generate-installer
+
+  tasks:
+    - generate-ferramenta
+    - generate-stack-yaml
+    - generate-bootstrap
+    - generate-utilities
+    - test-script
+    - troubleshoot
+    - dry-run
+
+  checklists:
+    - ferramenta-quality-gate
+    - script-validation
+
+  templates:
+    - ferramenta-tmpl.sh
+    - stack-yaml-tmpl.yaml
+    - bootstrap-tmpl.sh
+
+  data:
+    orion_racional: data/orion-script-racional.md
+    orion_patterns: data/orion-patterns.yaml
+
+  commands:
+    "*generate": "Gerar script installer standalone (workflow completo)"
+    "*ferramenta {app}": "Gerar função ferramenta_xxx() para uma app"
+    "*stack {app}": "Gerar YAML Docker Swarm para uma app"
+    "*test": "Testar script gerado (dry-run + validação)"
+    "*troubleshoot": "Diagnosticar problemas no script/deploy"
+    "*help": "Mostrar comandos disponíveis"
