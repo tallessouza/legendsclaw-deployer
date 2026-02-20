@@ -50,17 +50,7 @@ main() {
   step_ok "Estado carregado"
 
   # =========================================================================
-  # STEP 3: HINTS (AC: 4) — Apenas VPS
-  # =========================================================================
-  if [[ "$ambiente" == "vps" ]]; then
-    hint_dns "api.exemplo.com"
-    step_ok "Hints de DNS exibidos"
-  else
-    step_skip "Hints de DNS (modo local — nao necessario)"
-  fi
-
-  # =========================================================================
-  # STEP 4: INPUT COLLECTION (AC: 3) — Loop confirmado
+  # STEP 3-4: INPUT COLLECTION + HINTS (AC: 3, 4) — Loop confirmado
   # =========================================================================
   local url_evolution=""
 
@@ -86,6 +76,14 @@ main() {
       break
     fi
   done
+
+  # Hint DNS com o dominio real coletado (apenas VPS)
+  if [[ "$ambiente" == "vps" ]]; then
+    hint_dns "$url_evolution"
+    step_ok "Hints de DNS exibidos para ${url_evolution}"
+  else
+    step_skip "Hints de DNS (modo local — nao necessario)"
+  fi
 
   step_ok "Inputs coletados e confirmados"
 
@@ -135,7 +133,7 @@ version: "3.7"
 services:
 
   evolution_api:
-    image: evoapicloud/evolution-api:latest
+    image: evoapicloud/evolution-api:v2.2.3
     volumes:
       - evolution_instances:/evolution/instances
     networks:
@@ -216,7 +214,7 @@ services:
         - traefik.http.services.evolution.loadbalancer.passHostHeader=true
 
   evolution_redis:
-    image: redis:latest
+    image: redis:7-alpine
     command: ["redis-server", "--appendonly", "yes", "--port", "6379"]
     volumes:
       - evolution_redis:/data
@@ -251,7 +249,7 @@ version: "3.7"
 services:
 
   evolution_api:
-    image: evoapicloud/evolution-api:latest
+    image: evoapicloud/evolution-api:v2.2.3
     volumes:
       - evolution_instances:/evolution/instances
     ports:
@@ -319,7 +317,7 @@ services:
       - evolution_redis
 
   evolution_redis:
-    image: redis:latest
+    image: redis:7-alpine
     command: ["redis-server", "--appendonly", "yes", "--port", "6379"]
     volumes:
       - evolution_redis:/data
@@ -330,7 +328,8 @@ volumes:
 EOL
   fi
 
-  step_ok "~/evolution.yaml gerado (Evolution API + Redis, modo ${ambiente})"
+  chmod 600 "$HOME/evolution.yaml"
+  step_ok "~/evolution.yaml gerado (Evolution API + Redis, modo ${ambiente}, chmod 600)"
 
   # =========================================================================
   # STEP 8: DEPLOY (AC: 10)
@@ -343,8 +342,8 @@ EOL
 
   # Pull images
   echo "  Baixando imagens..."
-  pull "redis:latest" || true
-  pull "evoapicloud/evolution-api:latest" || true
+  pull "redis:7-alpine" || true
+  pull "evoapicloud/evolution-api:v2.2.3" || true
 
   deploy_stack "evolution" "$HOME/evolution.yaml"
   step_ok "Evolution API deployada (modo ${ambiente})"

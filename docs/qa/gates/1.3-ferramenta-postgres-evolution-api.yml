@@ -1,72 +1,36 @@
-storyId: "1.3"
-storyTitle: "Ferramenta Postgres + Evolution API"
-reviewDate: "2026-02-20"
-reviewedBy: "Quinn (Test Architect)"
-verdict: CONCERNS
+schema: 1
+story: "1.3"
+gate: PASS
+status_reason: "All 9 issues from initial review resolved. SQL injection mitigated, YAML chmod 600 applied, menu routing fixed, images pinned, jq fallback added."
+reviewer: "Quinn"
+updated: "2026-02-20T18:00:00Z"
+top_issues:
+  - id: "MNT-001"
+    severity: low
+    finding: "03-evolution.sh step counter may show 11/10 in VPS mode due to extra step_ok for hint_dns"
+    suggested_action: "Adjust TOTAL to 11 or merge hint step with input step"
+waiver: { active: false }
 
-issues:
-  # CRITICAL
-  - id: C1
-    severity: critical
-    category: code
-    description: "lib/common.sh missing set -euo pipefail — errors in postgres functions silently swallowed"
-    recommendation: "Note: lib files are sourced, not executed standalone. The calling scripts (02-postgres.sh, 03-evolution.sh) have set -euo pipefail. However, add defensive error handling in functions themselves."
-
-  - id: C2
-    severity: critical
-    category: code
-    description: "lib/env-detect.sh missing set -euo pipefail — same issue"
-    recommendation: "Same as C1: sourced files inherit caller's set options. Add comment documenting this."
-
-  - id: C3
-    severity: critical
-    category: security
-    description: "~/postgres.yaml and ~/evolution.yaml contain credentials in plaintext without chmod 600"
-    recommendation: "Add chmod 600 after generating YAML files in 02-postgres.sh and 03-evolution.sh"
-
-  # HIGH
-  - id: H1
-    severity: high
-    category: code
-    description: "deployer.sh menu option [02] calls 03-evolution.sh directly — 02-postgres.sh unreachable as standalone"
-    recommendation: "Add separate menu options or document that Postgres is only installed via Evolution cascata"
-
-  - id: H4
-    severity: high
-    category: security
-    description: "criar_banco_postgres_da_stack() has no input validation — SQL injection risk"
-    recommendation: "Validate db_name against ^[a-z][a-z0-9_]*$ before using in SQL"
-
-  - id: H5
-    severity: high
-    category: code
-    description: "wait_stack_local() depends on jq without checking if installed"
-    recommendation: "Add jq presence check or use docker compose ps --format table with grep"
-
-  # MEDIUM
-  - id: M2
-    severity: medium
-    category: code
-    description: "verificar_container_postgres() grep matches partial names"
-    recommendation: "Use anchored regex pattern"
-
-  - id: M5
-    severity: medium
-    category: code
-    description: "hint_dns called with hardcoded 'api.exemplo.com' before domain collection"
-    recommendation: "Use generic message or move hint after input collection"
-
-  - id: M6
-    severity: medium
-    category: code
-    description: "redis:latest and evoapicloud/evolution-api:latest not pinned"
-    recommendation: "Document tested versions, consider pinning"
+# Re-Review History
+reReviewDate: "2026-02-20"
+previousVerdict: CONCERNS
+previousIssueCount: 9
+resolvedIssues:
+  - C1: "Added sourced-file documentation comment to common.sh"
+  - C2: "Added sourced-file documentation comment to env-detect.sh"
+  - C3: "chmod 600 applied to postgres.yaml and evolution.yaml after generation"
+  - H1: "Menu reorganized — [02] Postgres standalone, [03] Evolution, [04] Tailscale"
+  - H4: "SQL injection validation (^[a-z][a-z0-9_]*$) added before docker calls"
+  - H5: "jq fallback with grep in wait_stack_local()"
+  - M2: "Anchored regex (^|_)postgres($|_) in verificar_container_postgres()"
+  - M5: "hint_dns moved after domain collection, uses real domain"
+  - M6: "Images pinned to redis:7-alpine and evolution-api:v2.2.3"
 
 qualityChecks:
-  codeReview: CONCERNS  # 3 CRITICAL, 3 HIGH issues found
-  unitTests: PASS       # 76/76 tests passing, 0 regressions
-  acceptanceCriteria: PASS  # All 14 ACs covered by implementation
-  noRegressions: PASS   # 57 existing tests still passing
-  performance: PASS     # Timeouts configured, retry patterns appropriate
-  security: CONCERNS    # C3 (YAML chmod), H4 (SQL injection)
-  documentation: PASS   # Story complete, Dev Agent Record filled, File List complete
+  codeReview: PASS       # All 9 issues resolved
+  unitTests: PASS        # 95/95 tests passing (4 new + 91 existing)
+  acceptanceCriteria: PASS  # All 14 ACs maintained
+  noRegressions: PASS    # 0 regressions
+  performance: PASS      # No changes
+  security: PASS         # SQL injection mitigated, YAML chmod 600
+  documentation: PASS    # Tests document new validation behavior

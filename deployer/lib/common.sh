@@ -2,6 +2,8 @@
 # =============================================================================
 # Legendsclaw Deployer — Common Functions
 # dados(), recursos(), verificar_stack(), validar_senha()
+# NOTE: This file is sourced (not executed standalone).
+#       It inherits set -euo pipefail from the calling script.
 # =============================================================================
 
 STATE_DIR="$HOME/dados_vps"
@@ -81,11 +83,11 @@ validar_senha() {
 # Verifica se container Postgres esta rodando
 # Retorna: 0 se existe, 1 se nao existe
 verificar_container_postgres() {
-  if docker ps --format "{{.Names}}" 2>/dev/null | grep -q "postgres"; then
+  if docker ps --format "{{.Names}}" 2>/dev/null | grep -qE "(^|_)postgres($|_)"; then
     return 0
   fi
   # Fallback: checar no swarm
-  if docker service ls --format "{{.Name}}" 2>/dev/null | grep -q "postgres"; then
+  if docker service ls --format "{{.Name}}" 2>/dev/null | grep -qE "(^|_)postgres($|_)"; then
     return 0
   fi
   return 1
@@ -113,6 +115,12 @@ pegar_senha_postgres() {
 criar_banco_postgres_da_stack() {
   local db_name="$1"
   local container_id
+
+  # Validar nome do banco contra SQL injection
+  if ! [[ "$db_name" =~ ^[a-z][a-z0-9_]*$ ]]; then
+    echo "ERRO: Nome de banco invalido '${db_name}' (apenas [a-z][a-z0-9_]* permitido)"
+    return 1
+  fi
 
   # Encontrar container Postgres
   container_id=$(docker ps -q --filter "name=postgres" 2>/dev/null | head -1)

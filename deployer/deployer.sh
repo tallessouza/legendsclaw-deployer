@@ -25,10 +25,11 @@ show_menu() {
   echo "║         LEGENDSCLAW DEPLOYER v${DEPLOYER_VERSION}            ║"
   echo "╠══════════════════════════════════════════════╣"
   echo -e "║  ${D_GREEN}[01] Traefik + Portainer (base)${D_CYAN}             ║"
-  echo -e "║  ${D_GREEN}[02] Postgres + Evolution API${D_CYAN}               ║"
-  echo -e "║  ${D_GREEN}[03] Tailscale VPN${D_CYAN}                          ║"
-  echo -e "║  ${D_GRAY}[04] OpenClaw Gateway            [EM BREVE]${D_CYAN}  ║"
-  echo -e "║  ${D_GRAY}[05] N8N (Workflows)             [EM BREVE]${D_CYAN}  ║"
+  echo -e "║  ${D_GREEN}[02] PostgreSQL (standalone)${D_CYAN}                 ║"
+  echo -e "║  ${D_GREEN}[03] Evolution API (instala Postgres se faltar)${D_CYAN}║"
+  echo -e "║  ${D_GREEN}[04] Tailscale VPN${D_CYAN}                          ║"
+  echo -e "║  ${D_GRAY}[05] OpenClaw Gateway            [EM BREVE]${D_CYAN}  ║"
+  echo -e "║  ${D_GRAY}[06] N8N (Workflows)             [EM BREVE]${D_CYAN}  ║"
   echo -e "║  ${D_GRAY}[00] Sair${D_CYAN}                                    ║"
   echo "╚══════════════════════════════════════════════╝"
   echo -e "${D_NC}"
@@ -45,10 +46,14 @@ main() {
         read -rp "Pressione ENTER para voltar ao menu..."
         ;;
       02|2)
-        bash "${SCRIPT_DIR}/ferramentas/03-evolution.sh"
+        bash "${SCRIPT_DIR}/ferramentas/02-postgres.sh"
         read -rp "Pressione ENTER para voltar ao menu..."
         ;;
       03|3)
+        bash "${SCRIPT_DIR}/ferramentas/03-evolution.sh"
+        read -rp "Pressione ENTER para voltar ao menu..."
+        ;;
+      04|4)
         bash "${SCRIPT_DIR}/ferramentas/04-tailscale.sh"
         read -rp "Pressione ENTER para voltar ao menu..."
         ;;

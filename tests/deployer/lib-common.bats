@@ -94,6 +94,40 @@ teardown() {
 # -----------------------------------------------------------------------------
 # verificar_stack() — mocked
 # -----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
+# criar_banco_postgres_da_stack() — input validation
+# -----------------------------------------------------------------------------
+@test "criar_banco_postgres_da_stack rejects invalid db name with uppercase" {
+  run criar_banco_postgres_da_stack "Evolution"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"invalido"* ]]
+}
+
+@test "criar_banco_postgres_da_stack rejects db name with special chars" {
+  run criar_banco_postgres_da_stack "db; DROP TABLE users"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"invalido"* ]]
+}
+
+@test "criar_banco_postgres_da_stack rejects db name starting with number" {
+  run criar_banco_postgres_da_stack "1evolution"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"invalido"* ]]
+}
+
+@test "criar_banco_postgres_da_stack accepts valid db name" {
+  # Mock docker to simulate container not found (tests validation passes)
+  docker() { return 1; }
+  export -f docker
+  run criar_banco_postgres_da_stack "evolution"
+  # Will fail on "container not found" but NOT on validation
+  [[ "$output" == *"Container Postgres nao encontrado"* ]]
+  unset -f docker
+}
+
+# -----------------------------------------------------------------------------
+# verificar_stack() — mocked
+# -----------------------------------------------------------------------------
 @test "verificar_stack returns 1 when docker not available" {
   # Mock docker to not exist
   docker() { return 1; }

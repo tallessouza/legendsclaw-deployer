@@ -3,6 +3,8 @@
 # Legendsclaw Deployer — Environment Detection (Dual-Mode)
 # detectar_ambiente(), deploy_stack(), wait_stack_local()
 # Story 1.3: Supports local (docker compose) and VPS (docker stack deploy)
+# NOTE: This file is sourced (not executed standalone).
+#       It inherits set -euo pipefail from the calling script.
 # =============================================================================
 
 # Detecta se estamos em ambiente local ou VPS
@@ -49,8 +51,14 @@ wait_stack_local() {
 
     for service in "$@"; do
       local status
-      status=$(docker compose -p "$project" ps --format json 2>/dev/null \
-        | jq -r "select(.Service==\"${service}\") | .State" 2>/dev/null || echo "")
+      if command -v jq &>/dev/null; then
+        status=$(docker compose -p "$project" ps --format json 2>/dev/null \
+          | jq -r "select(.Service==\"${service}\") | .State" 2>/dev/null || echo "")
+      else
+        # Fallback sem jq: checar via docker compose ps com grep
+        status=$(docker compose -p "$project" ps 2>/dev/null \
+          | grep -E "${service}.*running" &>/dev/null && echo "running" || echo "")
+      fi
       if [[ "$status" != "running" ]]; then
         all_running=false
       fi

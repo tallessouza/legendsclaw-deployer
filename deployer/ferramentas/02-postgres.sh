@@ -144,7 +144,8 @@ volumes:
 EOL
   fi
 
-  step_ok "~/postgres.yaml gerado (PgVector pg16, modo ${ambiente})"
+  chmod 600 "$HOME/postgres.yaml"
+  step_ok "~/postgres.yaml gerado (PgVector pg16, modo ${ambiente}, chmod 600)"
 
   # =========================================================================
   # STEP 6: DEPLOY (AC: 6)
