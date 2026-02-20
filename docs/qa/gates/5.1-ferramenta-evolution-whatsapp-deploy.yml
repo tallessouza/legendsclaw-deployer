@@ -1,0 +1,16 @@
+schema: 1
+story: '5.1'
+gate: CONCERNS
+status_reason: 'All acceptance criteria met with backward compatibility preserved. Minor concerns on test depth and API key exposure in debug hints.'
+reviewer: 'Quinn'
+updated: '2026-02-20T23:45:00Z'
+top_issues:
+  - id: 'TEST-001'
+    severity: medium
+    finding: 'Tests are mostly static (grep on source code). No functional tests with mocked curl to validate _evolution_curl retry behavior, HTTP code parsing, or error handling paths.'
+    suggested_action: 'Add functional tests mocking curl responses (200, 500, timeout) to validate retry logic and error handling in evolution-api.sh.'
+  - id: 'SEC-001'
+    severity: low
+    finding: 'hint_evolution_debug outputs raw API key in curl examples. If terminal output is shared/logged, key could leak.'
+    suggested_action: 'Use mask_key in hint_evolution_debug output, or add warning about not sharing terminal output.'
+waiver: { active: false }

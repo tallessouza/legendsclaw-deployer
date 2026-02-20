@@ -446,6 +446,165 @@ hint_elicitation_schema() {
   echo ""
 }
 
+# Hint de preparacao WhatsApp pre-pareamento
+# Uso: hint_whatsapp_prep
+hint_whatsapp_prep() {
+  echo ""
+  echo -e "${UI_BOLD:-\033[1m}=============================================="
+  echo "  HINT: PREPARACAO WHATSAPP"
+  echo -e "==============================================${UI_NC:-\033[0m}"
+  echo ""
+  echo "  Antes do pareamento, certifique-se:"
+  echo ""
+  echo "  1. Chip eSIM ativo e com creditos"
+  echo "  2. WhatsApp instalado no telefone"
+  echo "  3. Desabilitar verificacao em 2 etapas (temporariamente)"
+  echo "  4. NAO estar logado em WhatsApp Web em outro lugar"
+  echo "  5. Manter recargas periodicas para manter numero ativo"
+  echo ""
+  echo "  O numero sera pareado via QR Code apos o deploy."
+  echo ""
+  echo "=============================================="
+  echo ""
+}
+
+# Hint de pareamento WhatsApp via QR Code
+# Uso: hint_whatsapp_qr "$manager_url" "$instance_name"
+hint_whatsapp_qr() {
+  local manager_url="${1:-https://api.exemplo.com}"
+  local instance_name="${2:-legendsclaw}"
+
+  echo ""
+  echo -e "${UI_BOLD:-\033[1m}=============================================="
+  echo "  HINT: PAREAMENTO WHATSAPP — QR CODE"
+  echo -e "==============================================${UI_NC:-\033[0m}"
+  echo ""
+  echo "  Step 1: Abrir Manager Evolution no navegador:"
+  echo "    ${manager_url}/manager"
+  echo ""
+  echo "  Step 2: Clicar na instancia '${instance_name}'"
+  echo ""
+  echo "  Step 3: Escanear QR Code com WhatsApp no celular"
+  echo "    (WhatsApp > Dispositivos conectados > Conectar dispositivo)"
+  echo ""
+  echo "  Step 4: Aguardar confirmacao de conexao (status: open)"
+  echo "    O QR Code expira em ~60 segundos."
+  echo "    Se expirar, recarregue a pagina e escaneie novamente."
+  echo ""
+  echo "  Step 5: Enviar mensagem de teste para confirmar"
+  echo ""
+  echo "=============================================="
+  echo ""
+}
+
+# Hint de debug Evolution API
+# Uso: hint_evolution_debug "$dominio" "$apikey" "$instance_name" "$stack_name"
+hint_evolution_debug() {
+  local dominio="${1:-api.exemplo.com}"
+  local apikey="${2:-SUA_API_KEY}"
+  local instance_name="${3:-legendsclaw}"
+  local stack_name="${4:-evolution}"
+
+  echo ""
+  echo -e "${UI_BOLD:-\033[1m}=============================================="
+  echo "  HINT: EVOLUTION API — DEBUG"
+  echo -e "==============================================${UI_NC:-\033[0m}"
+  echo ""
+  echo "  Manager URL:"
+  echo "    https://${dominio}/manager"
+  echo ""
+  echo "  Listar instancias:"
+  echo "    curl -s -H 'apikey: ${apikey}' \\"
+  echo "      https://${dominio}/instance/fetchInstances"
+  echo ""
+  echo "  Ver status instancia:"
+  echo "    curl -s -H 'apikey: ${apikey}' \\"
+  echo "      https://${dominio}/instance/connectionState/${instance_name}"
+  echo ""
+  echo "  Logs Docker:"
+  echo "    docker service logs ${stack_name}_api --tail 100 -f"
+  echo ""
+  echo "  Restart service:"
+  echo "    docker service update --force ${stack_name}_api"
+  echo ""
+  echo "=============================================="
+  echo ""
+}
+
+# Hint de seguranca blocklist — verificacao Layer 1
+# Uso: hint_seguranca_blocklist "$nome_agente"
+hint_seguranca_blocklist() {
+  local nome_agente="${1:-meu-agente}"
+
+  echo ""
+  echo -e "${UI_BOLD:-\033[1m}=============================================="
+  echo "  HINT: SEGURANCA LAYER 1 — BLOCKLIST"
+  echo -e "==============================================${UI_NC:-\033[0m}"
+  echo ""
+  echo "  Ver regras:"
+  echo "    cat apps/${nome_agente}/skills/lib/blocklist.yaml"
+  echo ""
+  echo "  Testar matching:"
+  echo "    grep \"rm -rf\" apps/${nome_agente}/skills/lib/blocklist.yaml"
+  echo ""
+  echo "  Editar regras:"
+  echo "    nano apps/${nome_agente}/skills/lib/blocklist.yaml"
+  echo ""
+  echo "  Nota: teste de bloqueio em tempo real requer"
+  echo "  Bridge.js (Story 5.3)"
+  echo ""
+  echo "=============================================="
+  echo ""
+}
+
+# Hint de seguranca sandbox — verificacao Layer 2
+# Uso: hint_seguranca_sandbox
+hint_seguranca_sandbox() {
+  echo ""
+  echo -e "${UI_BOLD:-\033[1m}=============================================="
+  echo "  HINT: SEGURANCA LAYER 2 — SANDBOX"
+  echo -e "==============================================${UI_NC:-\033[0m}"
+  echo ""
+  echo "  Verificar container:"
+  echo "    docker ps --filter name=sandbox"
+  echo ""
+  echo "  Testar isolamento de rede (deve falhar):"
+  echo "    docker exec sandbox ping -c1 8.8.8.8"
+  echo ""
+  echo "  Verificar read-only (deve falhar):"
+  echo "    docker exec sandbox touch /tmp/test"
+  echo ""
+  echo "  Ver limites de recursos:"
+  echo "    docker stats sandbox --no-stream"
+  echo ""
+  echo "=============================================="
+  echo ""
+}
+
+# Hint de seguranca logging — verificacao Layer 3
+# Uso: hint_seguranca_logging
+hint_seguranca_logging() {
+  echo ""
+  echo -e "${UI_BOLD:-\033[1m}=============================================="
+  echo "  HINT: SEGURANCA LAYER 3 — LOGGING"
+  echo -e "==============================================${UI_NC:-\033[0m}"
+  echo ""
+  echo "  Ver logs em tempo real:"
+  echo "    journalctl -f -t legendsclaw"
+  echo ""
+  echo "  Verificar retencao:"
+  echo "    journalctl --disk-usage"
+  echo ""
+  echo "  Ver rotacao:"
+  echo "    ls -la /var/log/legendsclaw/"
+  echo ""
+  echo "  Testar logrotate:"
+  echo "    sudo logrotate -f /etc/logrotate.d/legendsclaw"
+  echo ""
+  echo "=============================================="
+  echo ""
+}
+
 hint_llm_router() {
   local nome_agente="${1:-meu-agente}"
 
