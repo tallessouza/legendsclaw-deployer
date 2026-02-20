@@ -25,11 +25,10 @@ show_menu() {
   echo "║         LEGENDSCLAW DEPLOYER v${DEPLOYER_VERSION}            ║"
   echo "╠══════════════════════════════════════════════╣"
   echo -e "║  ${D_GREEN}[01] Traefik + Portainer (base)${D_CYAN}             ║"
-  echo -e "║  ${D_GRAY}[02] Tailscale VPN              [EM BREVE]${D_CYAN}  ║"
-  echo -e "║  ${D_GRAY}[03] OpenClaw Gateway            [EM BREVE]${D_CYAN}  ║"
-  echo -e "║  ${D_GRAY}[04] Evolution API (WhatsApp)    [EM BREVE]${D_CYAN}  ║"
+  echo -e "║  ${D_GREEN}[02] Postgres + Evolution API${D_CYAN}               ║"
+  echo -e "║  ${D_GREEN}[03] Tailscale VPN${D_CYAN}                          ║"
+  echo -e "║  ${D_GRAY}[04] OpenClaw Gateway            [EM BREVE]${D_CYAN}  ║"
   echo -e "║  ${D_GRAY}[05] N8N (Workflows)             [EM BREVE]${D_CYAN}  ║"
-  echo -e "║  ${D_GRAY}[06] PostgreSQL / PgVector       [EM BREVE]${D_CYAN}  ║"
   echo -e "║  ${D_GRAY}[00] Sair${D_CYAN}                                    ║"
   echo "╚══════════════════════════════════════════════╝"
   echo -e "${D_NC}"
@@ -43,6 +42,14 @@ main() {
     case "$opcao" in
       01|1)
         bash "${SCRIPT_DIR}/ferramentas/01-base.sh"
+        read -rp "Pressione ENTER para voltar ao menu..."
+        ;;
+      02|2)
+        bash "${SCRIPT_DIR}/ferramentas/03-evolution.sh"
+        read -rp "Pressione ENTER para voltar ao menu..."
+        ;;
+      03|3)
+        bash "${SCRIPT_DIR}/ferramentas/04-tailscale.sh"
         read -rp "Pressione ENTER para voltar ao menu..."
         ;;
       00|0)

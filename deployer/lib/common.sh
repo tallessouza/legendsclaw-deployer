@@ -78,6 +78,65 @@ validar_senha() {
   return 0
 }
 
+# Verifica se container Postgres esta rodando
+# Retorna: 0 se existe, 1 se nao existe
+verificar_container_postgres() {
+  if docker ps --format "{{.Names}}" 2>/dev/null | grep -q "postgres"; then
+    return 0
+  fi
+  # Fallback: checar no swarm
+  if docker service ls --format "{{.Name}}" 2>/dev/null | grep -q "postgres"; then
+    return 0
+  fi
+  return 1
+}
+
+# Le senha do Postgres do YAML gerado ou do arquivo de estado
+# Popula variavel global: senha_postgres
+pegar_senha_postgres() {
+  # Primeiro tenta do arquivo de estado
+  senha_postgres=$(grep "Senha:" "$STATE_DIR/dados_postgres" 2>/dev/null | awk -F': ' '{print $2}')
+  if [[ -n "$senha_postgres" ]]; then
+    return 0
+  fi
+  # Fallback: ler do YAML
+  senha_postgres=$(grep "POSTGRES_PASSWORD" "$HOME/postgres.yaml" 2>/dev/null | head -1 | sed 's/.*=//; s/^[[:space:]]*//')
+  if [[ -n "$senha_postgres" ]]; then
+    return 0
+  fi
+  echo "ERRO: Senha do Postgres nao encontrada"
+  return 1
+}
+
+# Cria banco de dados no Postgres via docker exec
+# Uso: criar_banco_postgres_da_stack "evolution"
+criar_banco_postgres_da_stack() {
+  local db_name="$1"
+  local container_id
+
+  # Encontrar container Postgres
+  container_id=$(docker ps -q --filter "name=postgres" 2>/dev/null | head -1)
+  if [[ -z "$container_id" ]]; then
+    echo "ERRO: Container Postgres nao encontrado"
+    return 1
+  fi
+
+  # Verificar se banco ja existe
+  if docker exec "$container_id" psql -U postgres -lqt 2>/dev/null | cut -d\| -f1 | grep -qw "$db_name"; then
+    echo "Banco '${db_name}' ja existe"
+    return 0
+  fi
+
+  # Criar banco
+  if docker exec "$container_id" psql -U postgres -c "CREATE DATABASE ${db_name};" 2>/dev/null; then
+    echo "Banco '${db_name}' criado com sucesso"
+    return 0
+  else
+    echo "ERRO: Falha ao criar banco '${db_name}'"
+    return 1
+  fi
+}
+
 # Exibe resumo de dados coletados para confirmacao
 # Uso: conferindo_as_info "campo1=valor1" "campo2=valor2" ...
 conferindo_as_info() {
