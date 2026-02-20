@@ -28,7 +28,7 @@ show_menu() {
   echo -e "║  ${D_GREEN}[02] PostgreSQL (standalone)${D_CYAN}                 ║"
   echo -e "║  ${D_GREEN}[03] Evolution API (instala Postgres se faltar)${D_CYAN}║"
   echo -e "║  ${D_GREEN}[04] Tailscale VPN${D_CYAN}                          ║"
-  echo -e "║  ${D_GRAY}[05] OpenClaw Gateway            [EM BREVE]${D_CYAN}  ║"
+  echo -e "║  ${D_GREEN}[05] OpenClaw Gateway${D_CYAN}                       ║"
   echo -e "║  ${D_GRAY}[06] N8N (Workflows)             [EM BREVE]${D_CYAN}  ║"
   echo -e "║  ${D_GRAY}[00] Sair${D_CYAN}                                    ║"
   echo "╚══════════════════════════════════════════════╝"
@@ -55,6 +55,10 @@ main() {
         ;;
       04|4)
         bash "${SCRIPT_DIR}/ferramentas/04-tailscale.sh"
+        read -rp "Pressione ENTER para voltar ao menu..."
+        ;;
+      05|5)
+        bash "${SCRIPT_DIR}/ferramentas/05-openclaw.sh"
         read -rp "Pressione ENTER para voltar ao menu..."
         ;;
       00|0)

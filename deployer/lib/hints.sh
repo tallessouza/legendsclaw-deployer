@@ -134,3 +134,67 @@ hint_tailscale_desktop() {
   echo "=============================================="
   echo ""
 }
+
+# Hint de DNS para OpenClaw Gateway
+# Uso: hint_dns_openclaw "$dominio"
+hint_dns_openclaw() {
+  local dominio="${1:-gw.exemplo.com}"
+  local ip_vps
+  ip_vps=$(curl -s https://ifconfig.me 2>/dev/null || echo "SEU_IP_VPS")
+
+  echo ""
+  echo -e "${UI_BOLD:-\033[1m}=============================================="
+  echo "  HINT: DNS PARA OPENCLAW GATEWAY"
+  echo -e "==============================================${UI_NC:-\033[0m}"
+  echo ""
+  echo "  Configure o registro DNS tipo A:"
+  echo ""
+  echo "  Tipo   Nome                        Valor"
+  echo "  ----   ----                        -----"
+  echo "  A      ${dominio}    ${ip_vps}"
+  echo ""
+  echo "  Propagacao DNS pode levar 5-30 minutos."
+  echo "  Verifique com: dig ${dominio} +short"
+  echo ""
+  echo "=============================================="
+  echo ""
+}
+
+# Hint de troubleshooting para OpenClaw Gateway
+# Uso: hint_troubleshoot_openclaw "$porta" "$dominio"
+hint_troubleshoot_openclaw() {
+  local porta="${1:-18789}"
+  local dominio="${2:-}"
+
+  echo ""
+  echo -e "${UI_BOLD:-\033[1m}=============================================="
+  echo "  HINT: TROUBLESHOOTING OPENCLAW"
+  echo -e "==============================================${UI_NC:-\033[0m}"
+  echo ""
+  echo "  Verificar status do servico:"
+  echo "    systemctl status openclaw"
+  echo ""
+  echo "  Ver logs em tempo real:"
+  echo "    journalctl -u openclaw -f"
+  echo ""
+  echo "  Verificar porta:"
+  echo "    ss -tlnp | grep ${porta}"
+  echo ""
+  echo "  Health check manual:"
+  echo "    curl http://localhost:${porta}/health"
+  echo ""
+  echo "  Verificar conectividade Tailscale:"
+  echo "    tailscale status"
+  if [[ -n "$dominio" ]]; then
+    echo "    curl https://${dominio}/health"
+  fi
+  echo ""
+  echo "  Reiniciar servico:"
+  echo "    systemctl restart openclaw"
+  echo ""
+  echo "  Verificar diagnostico:"
+  echo "    cd /opt/openclaw && pnpm openclaw doctor"
+  echo ""
+  echo "=============================================="
+  echo ""
+}
