@@ -52,6 +52,7 @@ mask_key() {
 # STEP 1: LOGGING + STEP INIT (dinamico — sera recalculado apos selecao)
 # =============================================================================
 log_init "skills"
+setup_trap
 # Temporario — sera recalculado apos selecao
 step_init 14
 

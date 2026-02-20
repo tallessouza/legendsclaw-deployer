@@ -2,11 +2,58 @@
 # =============================================================================
 # Legendsclaw Deployer — Common Functions
 # dados(), recursos(), verificar_stack(), validar_senha()
+# cleanup_on_fail(), setup_trap()
 # NOTE: This file is sourced (not executed standalone).
 #       It inherits set -euo pipefail from the calling script.
+# IMPORTANT: Every ferramentas script MUST call setup_trap() after log_init().
 # =============================================================================
 
 STATE_DIR="$HOME/dados_vps"
+
+# --- Trap Handler & Cleanup ---
+
+# Rollback command — set by ferramentas at critical points.
+# If set and script fails, user is offered the rollback option.
+# Usage: ROLLBACK_CMD="docker swarm leave --force"
+#        ROLLBACK_DESC="Desfazer Docker Swarm init"
+ROLLBACK_CMD=""
+ROLLBACK_DESC=""
+
+# Cleanup function called on script exit.
+# If exit code != 0, shows error feedback with log path and summary.
+# If ROLLBACK_CMD is set, offers interactive rollback.
+# Usage: Called automatically via trap (see setup_trap)
+cleanup_on_fail() {
+  local exit_code=$?
+  if [[ $exit_code -ne 0 ]]; then
+    echo "" >&2
+    echo -e "${UI_RED:-\033[0;31m}Ferramenta falhou (exit code: $exit_code)${UI_NC:-\033[0m}" >&2
+    echo -e "${UI_RED:-\033[0;31m}Log: ${LOG_FILE:-'nao disponivel'}${UI_NC:-\033[0m}" >&2
+    log "FAIL: Ferramenta encerrada com exit code $exit_code" 2>/dev/null || true
+    resumo_final 2>/dev/null || true
+
+    # Offer rollback if configured
+    if [[ -n "${ROLLBACK_CMD}" ]]; then
+      echo "" >&2
+      echo -e "${UI_YELLOW:-\033[1;33m}Rollback disponivel: ${ROLLBACK_DESC:-$ROLLBACK_CMD}${UI_NC:-\033[0m}" >&2
+      read -rp "Deseja executar rollback? (s/n): " rollback_choice </dev/tty || rollback_choice="n"
+      if [[ "$rollback_choice" =~ ^[Ss]$ ]]; then
+        echo "Executando rollback: $ROLLBACK_CMD"
+        eval "$ROLLBACK_CMD" 2>/dev/null || echo "AVISO: Rollback falhou" >&2
+        log "ROLLBACK executado: $ROLLBACK_CMD" 2>/dev/null || true
+      fi
+    fi
+  fi
+  log_finish 2>/dev/null || true
+}
+
+# Registers standard trap handlers for the calling script.
+# Must be called AFTER log_init() and source of ui.sh/logger.sh.
+# Usage: setup_trap
+setup_trap() {
+  trap 'cleanup_on_fail' EXIT
+  trap 'echo "Interrompido pelo usuario"; exit 130' INT TERM
+}
 
 # Carrega estado do filesystem (~/dados_vps/)
 # Popula variaveis globais: nome_servidor, nome_rede

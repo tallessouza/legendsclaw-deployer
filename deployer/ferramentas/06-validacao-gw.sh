@@ -20,6 +20,7 @@ source "${LIB_DIR}/env-detect.sh"
 # STEP 1: LOGGING + STEP INIT
 # =============================================================================
 log_init "validation-gw"
+setup_trap
 
 # Verificar bash >= 4.0 (necessario para associative arrays)
 if [[ "${BASH_VERSINFO[0]}" -lt 4 ]]; then

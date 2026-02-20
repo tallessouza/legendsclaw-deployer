@@ -136,3 +136,77 @@ teardown() {
   [ "$status" -eq 1 ]
   unset -f docker
 }
+
+# -----------------------------------------------------------------------------
+# cleanup_on_fail() — Story 6.1
+# -----------------------------------------------------------------------------
+@test "cleanup_on_fail is defined in common.sh" {
+  type cleanup_on_fail
+}
+
+@test "setup_trap is defined in common.sh" {
+  type setup_trap
+}
+
+@test "ROLLBACK_CMD variable exists (empty by default)" {
+  [ -z "$ROLLBACK_CMD" ]
+}
+
+@test "ROLLBACK_DESC variable exists (empty by default)" {
+  [ -z "$ROLLBACK_DESC" ]
+}
+
+# -----------------------------------------------------------------------------
+# Trap handler pattern verification — Story 6.1
+# All ferramentas must source common.sh and call setup_trap
+# -----------------------------------------------------------------------------
+@test "all ferramentas source common.sh" {
+  local ferramentas_dir
+  ferramentas_dir="$(cd "$(dirname "$BATS_TEST_FILENAME")/../../deployer/ferramentas" && pwd)"
+  for script in "$ferramentas_dir"/*.sh; do
+    grep -q 'source.*common\.sh' "$script" || {
+      echo "MISSING source common.sh in $(basename "$script")"
+      return 1
+    }
+  done
+}
+
+@test "all ferramentas call setup_trap" {
+  local ferramentas_dir
+  ferramentas_dir="$(cd "$(dirname "$BATS_TEST_FILENAME")/../../deployer/ferramentas" && pwd)"
+  for script in "$ferramentas_dir"/*.sh; do
+    grep -q 'setup_trap' "$script" || {
+      echo "MISSING setup_trap in $(basename "$script")"
+      return 1
+    }
+  done
+}
+
+@test "all ferramentas have set -euo pipefail" {
+  local ferramentas_dir
+  ferramentas_dir="$(cd "$(dirname "$BATS_TEST_FILENAME")/../../deployer/ferramentas" && pwd)"
+  for script in "$ferramentas_dir"/*.sh; do
+    grep -q 'set -euo pipefail' "$script" || {
+      echo "MISSING set -euo pipefail in $(basename "$script")"
+      return 1
+    }
+  done
+}
+
+@test "deployer.sh uses run_ferramenta for exit code checking" {
+  local deployer
+  deployer="$(cd "$(dirname "$BATS_TEST_FILENAME")/../../deployer" && pwd)/deployer.sh"
+  grep -q 'run_ferramenta' "$deployer"
+}
+
+@test "deployer.sh run_ferramenta checks exit code with if bash" {
+  local deployer
+  deployer="$(cd "$(dirname "$BATS_TEST_FILENAME")/../../deployer" && pwd)/deployer.sh"
+  grep -q 'if bash' "$deployer"
+}
+
+@test "setup.sh has trap handler" {
+  local setup
+  setup="$(cd "$(dirname "$BATS_TEST_FILENAME")/../../deployer" && pwd)/setup.sh"
+  grep -q 'trap.*EXIT' "$setup"
+}

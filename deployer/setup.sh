@@ -35,6 +35,24 @@ COUNT_OK=0
 COUNT_SKIP=0
 COUNT_FAIL=0
 
+# --- Trap Handler ---
+cleanup_on_fail_bootstrap() {
+  local exit_code=$?
+  if [[ $exit_code -ne 0 ]]; then
+    echo "" >&2
+    echo -e "${RED}Bootstrap falhou no step ${CURRENT_STEP}/${TOTAL_STEPS} (exit code: $exit_code)${NC}" >&2
+    echo -e "${RED}Log: ${LOG_FILE}${NC}" >&2
+    echo "[$(date '+%H:%M:%S')] FAIL: Bootstrap encerrado com exit code $exit_code no step $CURRENT_STEP" >> "$LOG_FILE" 2>/dev/null || true
+    echo ""
+    echo -e "${BOLD}RESUMO${NC}"
+    echo -e "  ${GREEN}OK${NC}:   ${COUNT_OK}"
+    echo -e "  ${YELLOW}SKIP${NC}: ${COUNT_SKIP}"
+    echo -e "  ${RED}FAIL${NC}: ${COUNT_FAIL}"
+  fi
+}
+trap 'cleanup_on_fail_bootstrap' EXIT
+trap 'echo "Interrompido pelo usuario"; exit 130' INT TERM
+
 # -----------------------------------------------------------------------------
 # Sistema de Feedback Visual (Pattern SetupOrion N/M)
 # -----------------------------------------------------------------------------

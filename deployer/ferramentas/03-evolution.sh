@@ -27,6 +27,7 @@ readonly TOTAL=14
 
 main() {
   log_init "$FERRAMENTA"
+  setup_trap
   step_init "$TOTAL"
 
   local ambiente

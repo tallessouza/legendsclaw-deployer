@@ -7,6 +7,7 @@
 | 3 | Whitelabel Identity + LLM Router | Persona + 4-tier routing |
 | 4 | Skills Layer + Elicitation | Skills existentes + skill elicitation completa |
 | 5 | WhatsApp + Security + Validation | Evolution API + 3 layers segurança + teste E2E |
+| 6 | Deployer Hardening | Orion compliance: trap handlers, secrets, health checks |
 
 ## Mapeamento guide.md → Epics
 

@@ -23,6 +23,7 @@ readonly TOTAL=13
 
 main() {
   log_init "$FERRAMENTA"
+  setup_trap
   step_init "$TOTAL"
 
   echo -e "${UI_CYAN}${UI_BOLD}[01] Traefik + Portainer + Docker Swarm${UI_NC}"
@@ -119,6 +120,8 @@ main() {
     done
 
     if $swarm_ok; then
+      ROLLBACK_CMD="docker swarm leave --force 2>/dev/null || true"
+      ROLLBACK_DESC="Desfazer Docker Swarm init"
       step_ok "Docker Swarm inicializado (advertise: ${ip_vps})"
     else
       step_fail "Docker Swarm — falha apos 3 tentativas"

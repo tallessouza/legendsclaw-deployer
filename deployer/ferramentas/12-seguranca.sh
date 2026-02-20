@@ -26,6 +26,7 @@ readonly TOTAL=11
 # STEP 1: LOGGING + RESOURCE GATE
 # =============================================================================
 log_init "$FERRAMENTA"
+setup_trap
 step_init "$TOTAL"
 
 if ! recursos 0 0; then

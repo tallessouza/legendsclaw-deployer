@@ -23,6 +23,7 @@ readonly TOTAL=8
 
 main() {
   log_init "$FERRAMENTA"
+  setup_trap
   step_init "$TOTAL"
 
   local ambiente
@@ -156,6 +157,8 @@ EOL
   fi
 
   deploy_stack "postgres" "$HOME/postgres.yaml"
+  ROLLBACK_CMD="docker stack rm postgres 2>/dev/null || docker compose -f $HOME/postgres.yaml down 2>/dev/null || true; rm -f $HOME/postgres.yaml"
+  ROLLBACK_DESC="Remover stack Postgres e YAML gerado"
   step_ok "Postgres deployado (modo ${ambiente})"
 
   # =========================================================================

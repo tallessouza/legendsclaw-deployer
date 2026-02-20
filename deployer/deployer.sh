@@ -16,7 +16,21 @@ readonly D_GREEN='\033[0;32m'
 readonly D_YELLOW='\033[1;33m'
 readonly D_GRAY='\033[0;90m'
 readonly D_BOLD='\033[1m'
+readonly D_RED='\033[0;31m'
 readonly D_NC='\033[0m'
+
+# Executa uma ferramenta e verifica exit code
+# Uso: run_ferramenta "ferramentas/01-base.sh"
+run_ferramenta() {
+  local script="$1"
+  if bash "${SCRIPT_DIR}/${script}"; then
+    read -rp "Pressione ENTER para voltar ao menu..."
+  else
+    echo ""
+    echo -e "${D_RED}Ferramenta falhou. Verifique o log em ~/legendsclaw-logs/${D_NC}"
+    read -rp "Pressione ENTER para voltar ao menu..."
+  fi
+}
 
 show_menu() {
   clear
@@ -49,58 +63,19 @@ main() {
     read -rp "Escolha uma opcao: " opcao
 
     case "$opcao" in
-      01|1)
-        bash "${SCRIPT_DIR}/ferramentas/01-base.sh"
-        read -rp "Pressione ENTER para voltar ao menu..."
-        ;;
-      02|2)
-        bash "${SCRIPT_DIR}/ferramentas/02-postgres.sh"
-        read -rp "Pressione ENTER para voltar ao menu..."
-        ;;
-      03|3)
-        bash "${SCRIPT_DIR}/ferramentas/03-evolution.sh"
-        read -rp "Pressione ENTER para voltar ao menu..."
-        ;;
-      04|4)
-        bash "${SCRIPT_DIR}/ferramentas/04-tailscale.sh"
-        read -rp "Pressione ENTER para voltar ao menu..."
-        ;;
-      05|5)
-        bash "${SCRIPT_DIR}/ferramentas/05-openclaw.sh"
-        read -rp "Pressione ENTER para voltar ao menu..."
-        ;;
-      07|7)
-        bash "${SCRIPT_DIR}/ferramentas/07-whitelabel.sh"
-        read -rp "Pressione ENTER para voltar ao menu..."
-        ;;
-      08|8)
-        bash "${SCRIPT_DIR}/ferramentas/08-llm-router.sh"
-        read -rp "Pressione ENTER para voltar ao menu..."
-        ;;
-      09|9)
-        bash "${SCRIPT_DIR}/ferramentas/09-skills.sh"
-        read -rp "Pressione ENTER para voltar ao menu..."
-        ;;
-      10)
-        bash "${SCRIPT_DIR}/ferramentas/10-elicitation.sh"
-        read -rp "Pressione ENTER para voltar ao menu..."
-        ;;
-      11)
-        bash "${SCRIPT_DIR}/ferramentas/11-elicitation-schema.sh"
-        read -rp "Pressione ENTER para voltar ao menu..."
-        ;;
-      12)
-        bash "${SCRIPT_DIR}/ferramentas/12-seguranca.sh"
-        read -rp "Pressione ENTER para voltar ao menu..."
-        ;;
-      13)
-        bash "${SCRIPT_DIR}/ferramentas/13-bridge.sh"
-        read -rp "Pressione ENTER para voltar ao menu..."
-        ;;
-      14)
-        bash "${SCRIPT_DIR}/ferramentas/14-validacao-final.sh"
-        read -rp "Pressione ENTER para voltar ao menu..."
-        ;;
+      01|1)  run_ferramenta "ferramentas/01-base.sh" ;;
+      02|2)  run_ferramenta "ferramentas/02-postgres.sh" ;;
+      03|3)  run_ferramenta "ferramentas/03-evolution.sh" ;;
+      04|4)  run_ferramenta "ferramentas/04-tailscale.sh" ;;
+      05|5)  run_ferramenta "ferramentas/05-openclaw.sh" ;;
+      07|7)  run_ferramenta "ferramentas/07-whitelabel.sh" ;;
+      08|8)  run_ferramenta "ferramentas/08-llm-router.sh" ;;
+      09|9)  run_ferramenta "ferramentas/09-skills.sh" ;;
+      10)    run_ferramenta "ferramentas/10-elicitation.sh" ;;
+      11)    run_ferramenta "ferramentas/11-elicitation-schema.sh" ;;
+      12)    run_ferramenta "ferramentas/12-seguranca.sh" ;;
+      13)    run_ferramenta "ferramentas/13-bridge.sh" ;;
+      14)    run_ferramenta "ferramentas/14-validacao-final.sh" ;;
       00|0)
         echo "Ate mais!"
         exit 0
