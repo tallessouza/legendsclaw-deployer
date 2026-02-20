@@ -1,0 +1,48 @@
+schema: 1
+story: '4.1'
+gate: CONCERNS
+status_reason: 'Implementacao solida com 61 testes e 411 total sem regressao. Issues menores de qualidade de teste e step_init dinamico nao efetivamente recalculado.'
+reviewer: 'Quinn'
+updated: '2026-02-20T23:00:00Z'
+
+checks:
+  - name: "Code Review"
+    result: PASS
+    notes: "913 linhas, 14-step lifecycle completo. set -euo pipefail, source correto (sem deploy.sh). mask_key() para seguranca. upsert_skills_env_block() com cleanup de bloco existente. Backup com cp -p antes de sobrescrever config.js e index.js. is_skill_selected() reutilizado em todo o script. Health checks nao-bloqueantes (step_fail sem exit)."
+
+  - name: "Unit Tests"
+    result: CONCERNS
+    notes: "61 testes novos, todos passando. 411 total sem regressao. CONCERN: Varios testes sao 'declarativos' — criam arquivos e verificam que existem, sem testar o script real (ex: testes de subdiretorios, config.js, index.js). Testes de failure scenarios (npm install, dados_whitelabel ausente) verificam condicoes mas nao executam o script. Cobertura funcional real e menor do que o numero de testes sugere. Aceitavel para scripts interativos bash (dificeis de testar end-to-end)."
+
+  - name: "Acceptance Criteria"
+    result: PASS
+    notes: "9/9 ACs atendidos. AC1: tabela de skills exibida. AC2: multi-selecao por numero + 'all'. AC3: coleta de inputs com hints por skill. AC4: config.js e index.js atualizados. AC5: npm install executado. AC6: health check por skill com curl. AC7: hints de debug por skill. AC8: dados_skills salvo. AC9: logs salvos."
+
+  - name: "No Regressions"
+    result: PASS
+    notes: "411 testes total, todos passando. Baseline era 350 (Story 3.2 tinha 350). Delta: +61 novos."
+
+  - name: "Performance"
+    result: PASS
+    notes: "N/A — script interativo. curl com --max-time 10 para health checks. npm install pode demorar mas e nao-bloqueante em caso de falha."
+
+  - name: "Security"
+    result: PASS
+    notes: "Keys mascaradas via mask_key() em conferindo_as_info. chmod 600 em .env e dados_skills. Keys nunca em config.js direto (process.env.* refs). Input validation com formato (pk_, eyJ, https://, hooks.slack.com). Upsert remove variaveis existentes antes de append."
+
+  - name: "Documentation"
+    result: PASS
+    notes: "File List completo com 5 arquivos. Change Log atualizado. Checkboxes 11/11 marcados."
+
+top_issues:
+  - id: 'TEST-001'
+    severity: low
+    finding: 'step_init declarado como dinamico (decisao 3B) mas STEP_TOTAL fixado em 14 na linha 167 — nao e recalculado apos selecao'
+    suggested_action: 'Funcional (14 steps e o total correto independente de selecao), mas o comentario na linha 164-167 e enganoso. Limpar comentario ou remover claim de dinamismo.'
+
+  - id: 'TEST-002'
+    severity: low
+    finding: 'Testes de failure/re-execution sao logicos (verificam condicoes) mas nao executam o script sob teste — cobertura funcional real e menor que 61 testes sugerem'
+    suggested_action: 'Aceitavel para scripts bash interativos. Documentar como limitacao conhecida se necessario.'
+
+waiver: { active: false }

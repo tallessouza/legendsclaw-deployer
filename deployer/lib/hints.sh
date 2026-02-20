@@ -292,6 +292,72 @@ hint_whitelabel() {
 
 # Hint de debug e proximos passos para LLM Router
 # Uso: hint_llm_router "$nome_agente"
+hint_skills() {
+  local nome_agente="${1:-meu-agente}"
+  shift || true
+  local skills=("$@")
+
+  echo ""
+  echo -e "${UI_BOLD:-\033[1m}=============================================="
+  echo "  HINT: SKILLS — DEBUG E PROXIMOS PASSOS"
+  echo -e "==============================================${UI_NC:-\033[0m}"
+  echo ""
+
+  local has_skill=false
+  for s in "${skills[@]}"; do
+    case "$s" in
+      clickup-ops)
+        has_skill=true
+        echo "  ClickUp:"
+        echo "    curl -s -H 'Authorization: \$CLICKUP_API_KEY' \\"
+        echo "      https://api.clickup.com/api/v2/team"
+        echo ""
+        ;;
+      n8n-trigger)
+        has_skill=true
+        echo "  N8N:"
+        echo "    curl -s -H 'X-N8N-API-KEY: \$N8N_API_KEY' \\"
+        echo "      \$N8N_WEBHOOK_URL/healthz"
+        echo ""
+        ;;
+      supabase-query)
+        has_skill=true
+        echo "  Supabase:"
+        echo "    curl -s -H 'apikey: \$SUPABASE_ANON_KEY' \\"
+        echo "      \$SUPABASE_URL/rest/v1/"
+        echo ""
+        ;;
+      allos-status)
+        has_skill=true
+        echo "  Gateway:"
+        echo "    curl -s \$AGENT_GATEWAY_URL/health"
+        echo ""
+        ;;
+      alerts)
+        has_skill=true
+        echo "  Slack:"
+        echo "    curl -X POST \$SLACK_ALERTS_WEBHOOK_URL \\"
+        echo "      -d '{\"text\":\"test\"}'"
+        echo ""
+        ;;
+      memory)
+        has_skill=true
+        echo "  Memory:"
+        echo "    ls ~/.clawd/memory/"
+        echo ""
+        ;;
+    esac
+  done
+
+  echo "  Config: apps/${nome_agente}/skills/config.js"
+  echo "  Index:  apps/${nome_agente}/skills/index.js"
+  echo ""
+  echo "  Proximo: configurar Elicitation skill (Story 4.2)"
+  echo ""
+  echo "=============================================="
+  echo ""
+}
+
 hint_llm_router() {
   local nome_agente="${1:-meu-agente}"
 
