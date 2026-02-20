@@ -1,0 +1,16 @@
+schema: 1
+story: '4.4'
+gate: CONCERNS
+status_reason: 'All ACs met with comprehensive tests (37 new, 0 regressions). Minor concern: followups field added to session JSONB without explicit schema documentation.'
+reviewer: 'Quinn'
+updated: '2026-02-20T23:00:00Z'
+top_issues:
+  - id: 'DOC-001'
+    severity: low
+    finding: 'followups field added to elicitation_sessions JSONB without schema documentation in Story 4.3 migration'
+    suggested_action: 'Document the followups field in a migration comment or Story 4.3 update for schema clarity'
+  - id: 'TEST-001'
+    severity: low
+    finding: 'AC7 (E2E test) deferred to manual execution — justified by external dependencies (Supabase + LLM Router)'
+    suggested_action: 'Execute E2E test manually when infrastructure is available, document results'
+waiver: { active: false }
