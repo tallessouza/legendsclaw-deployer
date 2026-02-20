@@ -198,3 +198,69 @@ hint_troubleshoot_openclaw() {
   echo "=============================================="
   echo ""
 }
+
+# Hint de validacao gateway — hints contextuais por tipo de erro
+# Uso: hint_validacao_gw "$tailscale_result" "$service_result" "$doctor_result" "$health_result" "$mensagem_result" "$porta"
+hint_validacao_gw() {
+  local tailscale_result="${1:-PASS}"
+  local service_result="${2:-PASS}"
+  local doctor_result="${3:-PASS}"
+  local health_result="${4:-PASS}"
+  local mensagem_result="${5:-PASS}"
+  local porta="${6:-18789}"
+
+  echo ""
+  echo -e "${UI_BOLD:-\033[1m}=============================================="
+  echo "  HINT: RESOLUCAO DE PROBLEMAS"
+  echo -e "==============================================${UI_NC:-\033[0m}"
+  echo ""
+
+  if [[ "$tailscale_result" == "FAIL" ]]; then
+    echo "  TAILSCALE DESCONECTADO:"
+    echo "    tailscale up"
+    echo "    tailscale status"
+    echo "    # Se auth expirada:"
+    echo "    tailscale up --reset"
+    echo ""
+  fi
+
+  if [[ "$service_result" == "FAIL" ]]; then
+    echo "  OPENCLAW SERVICE PARADO:"
+    echo "    systemctl start openclaw"
+    echo "    systemctl status openclaw"
+    echo "    journalctl -u openclaw --no-pager -n 50"
+    echo ""
+  fi
+
+  if [[ "$doctor_result" == "FAIL" ]]; then
+    echo "  OPENCLAW DOCTOR FALHOU:"
+    echo "    cd /opt/openclaw && pnpm openclaw doctor --verbose"
+    echo "    # Verificar dependencias:"
+    echo "    node --version  # deve ser >= 22"
+    echo "    pnpm --version"
+    echo ""
+  fi
+
+  if [[ "$health_result" == "FAIL" ]]; then
+    echo "  HEALTH CHECK FALHOU:"
+    echo "    # Verificar se porta esta escutando:"
+    echo "    ss -tlnp | grep ${porta}"
+    echo "    # Verificar logs:"
+    echo "    journalctl -u openclaw -f"
+    echo "    # Restart:"
+    echo "    systemctl restart openclaw"
+    echo ""
+  fi
+
+  if [[ "$mensagem_result" == "FAIL" ]]; then
+    echo "  TESTE DE MENSAGEM FALHOU:"
+    echo "    cd /opt/openclaw"
+    echo "    pnpm openclaw agent --message \"Teste\" --thinking high --verbose"
+    echo "    # Verificar configuracao de LLM providers"
+    echo "    # Verificar logs: journalctl -u openclaw -f"
+    echo ""
+  fi
+
+  echo "=============================================="
+  echo ""
+}

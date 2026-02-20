@@ -326,4 +326,12 @@ echo ""
 # Hints de troubleshooting
 hint_troubleshoot_openclaw "$porta_openclaw" "$dominio_openclaw"
 
-log_finish
+# Oferecer validacao end-to-end
+echo ""
+read -rp "Deseja executar a validacao end-to-end agora? [S/n]: " validar
+if [[ ! "$validar" =~ ^[Nn]$ ]]; then
+  log_finish
+  bash "${SCRIPT_DIR}/06-validacao-gw.sh"
+else
+  log_finish
+fi
