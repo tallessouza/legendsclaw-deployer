@@ -1,5 +1,0 @@
-# Session Digest Hook Configuration
-# TODO: Configure hook triggers and behavior
-name: session-digest
-trigger: SessionEnd
-enabled: false
