@@ -9,7 +9,7 @@ set -euo pipefail
 
 readonly INSTALL_VERSION="1.0.0"
 readonly INSTALL_DIR="/opt/legendsclaw"
-readonly REPO_URL="https://github.com/AIOSMaster/legendsclaw-deployer.git"
+readonly REPO_URL="https://github.com/tallessouza/legendsclaw-deployer.git"
 readonly TOTAL_STEPS=8
 readonly TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 readonly LOG_DIR="$HOME/legendsclaw-logs"
