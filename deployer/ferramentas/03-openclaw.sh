@@ -244,47 +244,49 @@ fi
 popd > /dev/null
 
 # =============================================================================
-# STEP 10: VERIFICAR PORTA LIVRE
+# STEP 10-12: DESATIVADOS — onboard ja instala daemon + systemd + inicia gw
+# O openclaw onboard --install-daemon (Step 9) ja faz tudo:
+#   - Configura gateway (bind, porta, auth, Tailscale serve)
+#   - Configura canais (WhatsApp QR)
+#   - Instala systemd user service (~/.config/systemd/user/)
+#   - Inicia o gateway automaticamente
+# Steps 10-12 eram redundantes e causavam conflito (porta ja em uso).
 # =============================================================================
-if ss -tlnp 2>/dev/null | grep -q ":${porta_openclaw} "; then
-  step_fail "Porta ${porta_openclaw} ja esta em uso"
-  echo "  Verifique com: ss -tlnp | grep ${porta_openclaw}"
-  echo "  Considere usar uma porta diferente"
-  exit 1
-fi
-step_ok "Porta ${porta_openclaw} disponivel"
+# if ss -tlnp 2>/dev/null | grep -q ":${porta_openclaw} "; then
+#   step_fail "Porta ${porta_openclaw} ja esta em uso"
+#   echo "  Verifique com: ss -tlnp | grep ${porta_openclaw}"
+#   echo "  Considere usar uma porta diferente"
+#   exit 1
+# fi
+# step_ok "Porta ${porta_openclaw} disponivel"
+#
+# cat > /etc/systemd/system/openclaw.service << EOF
+# [Unit]
+# Description=OpenClaw Gateway
+# After=network.target tailscaled.service
+#
+# [Service]
+# Type=simple
+# User=root
+# WorkingDirectory=/opt/openclaw
+# ExecStart=/usr/bin/node openclaw.mjs gateway --port ${porta_openclaw}
+# Restart=always
+# RestartSec=5
+# Environment=NODE_ENV=production
+#
+# [Install]
+# WantedBy=multi-user.target
+# EOF
+#
+# step_ok "Systemd unit criada (/etc/systemd/system/openclaw.service)"
+#
+# systemctl daemon-reload
+# systemctl enable openclaw
+# systemctl start openclaw
+#
+# step_ok "Servico openclaw habilitado e iniciado"
 
-# =============================================================================
-# STEP 11: GERAR SYSTEMD UNIT
-# =============================================================================
-cat > /etc/systemd/system/openclaw.service << EOF
-[Unit]
-Description=OpenClaw Gateway
-After=network.target tailscaled.service
-
-[Service]
-Type=simple
-User=root
-WorkingDirectory=/opt/openclaw
-ExecStart=/usr/bin/node openclaw.mjs gateway --port ${porta_openclaw}
-Restart=always
-RestartSec=5
-Environment=NODE_ENV=production
-
-[Install]
-WantedBy=multi-user.target
-EOF
-
-step_ok "Systemd unit criada (/etc/systemd/system/openclaw.service)"
-
-# =============================================================================
-# STEP 12: ENABLE + START SERVICE
-# =============================================================================
-systemctl daemon-reload
-systemctl enable openclaw
-systemctl start openclaw
-
-step_ok "Servico openclaw habilitado e iniciado"
+step_skip "Steps 10-12 delegados ao onboard (daemon ja instalado)"
 
 # =============================================================================
 # STEP 13: HEALTH CHECK (retry 5x, 10s intervalo)
@@ -319,7 +321,7 @@ URL Gateway: https://${dominio_openclaw}
 Porta: ${porta_openclaw}
 Repo: ${repo_url}
 Install Path: /opt/openclaw
-Systemd Unit: /etc/systemd/system/openclaw.service
+Systemd Unit: ~/.config/systemd/user/openclaw-gateway.service (via onboard)
 EOF
 chmod 600 "$STATE_DIR/dados_openclaw"
 
