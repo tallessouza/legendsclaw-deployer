@@ -150,7 +150,7 @@ hint_dns_openclaw "$dominio_openclaw"
 if [[ -d "/opt/openclaw/.git" ]]; then
   # Repositorio ja existe — atualizar
   echo "  Repositorio ja existe em /opt/openclaw — atualizando..."
-  if git -C /opt/openclaw pull --ff-only 2>&1; then
+  if sudo git -C /opt/openclaw pull --ff-only 2>&1; then
     step_ok "Repositorio atualizado em /opt/openclaw (git pull)"
   else
     step_skip "Repositorio ja existe em /opt/openclaw (pull falhou — usando versao atual)"
@@ -158,18 +158,18 @@ if [[ -d "/opt/openclaw/.git" ]]; then
 else
   # Limpar diretorio nao-git se existir
   if [[ -d "/opt/openclaw" ]]; then
-    rm -rf /opt/openclaw
+    sudo rm -rf /opt/openclaw
   fi
 
   clonado=false
   for tentativa in 1 2 3; do
     echo "  Tentativa ${tentativa}/3: Clonando ${repo_url}..."
-    if git clone "$repo_url" /opt/openclaw 2>&1; then
+    if sudo git clone "$repo_url" /opt/openclaw 2>&1; then
       clonado=true
       break
     else
       echo "  Falha na tentativa ${tentativa}/3"
-      rm -rf /opt/openclaw
+      sudo rm -rf /opt/openclaw
       if [[ "$tentativa" -lt 3 ]]; then
         sleep 5
       fi
@@ -177,6 +177,8 @@ else
   done
 
   if $clonado; then
+    # Dar ownership ao user atual para que pnpm/build funcione sem sudo
+    sudo chown -R "$(id -u):$(id -g)" /opt/openclaw
     step_ok "Repositorio clonado em /opt/openclaw"
   else
     step_fail "Falha ao clonar repositorio apos 3 tentativas"
