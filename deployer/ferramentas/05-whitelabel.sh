@@ -330,7 +330,7 @@ step_ok "Estado salvo em ~/dados_vps/dados_whitelabel"
 # =============================================================================
 # STEP 8: COPIAR CONFIG PARA OPENCLAW WORKSPACE
 # =============================================================================
-OPENCLAW_WORKSPACE="$HOME/.openclaw/workspace"
+OPENCLAW_WORKSPACE="${REAL_HOME}/.openclaw/workspace"
 if [[ -d "$OPENCLAW_WORKSPACE" ]]; then
   DEST_CONFIG_DIR="${OPENCLAW_WORKSPACE}/apps/${nome_agente}/config"
   mkdir -p "$DEST_CONFIG_DIR"

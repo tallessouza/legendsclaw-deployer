@@ -8,7 +8,14 @@
 # IMPORTANT: Every ferramentas script MUST call setup_trap() after log_init().
 # =============================================================================
 
-STATE_DIR="$HOME/dados_vps"
+# Detectar home do user real (funciona com sudo, root direto, ou user normal)
+if [[ -n "${SUDO_USER:-}" ]]; then
+  REAL_HOME="$(getent passwd "$SUDO_USER" | cut -d: -f6)"
+else
+  REAL_HOME="$HOME"
+fi
+
+STATE_DIR="${REAL_HOME}/dados_vps"
 
 # --- Trap Handler & Cleanup ---
 

@@ -695,7 +695,7 @@ step_ok "Estado salvo em dados_gateway_config"
 # =============================================================================
 # STEP 12: COPIAR CONFIGS PARA OPENCLAW WORKSPACE
 # =============================================================================
-OPENCLAW_WORKSPACE="$HOME/.openclaw/workspace"
+OPENCLAW_WORKSPACE="${REAL_HOME}/.openclaw/workspace"
 if [[ -d "$OPENCLAW_WORKSPACE" ]]; then
   DEST_CONFIG_DIR="${OPENCLAW_WORKSPACE}/apps/${nome_agente}/config"
   DEST_MCP_DIR="${OPENCLAW_WORKSPACE}/apps/${nome_agente}/mcps"
