@@ -63,8 +63,8 @@ main() {
   local porta_openclaw=""
 
   if [[ -f "$HOME/dados_vps/dados_openclaw" ]]; then
-    url_openclaw=$(grep "URL:" "$HOME/dados_vps/dados_openclaw" 2>/dev/null | head -1 | awk -F': ' '{print $2}' | tr -d ' ')
-    porta_openclaw=$(grep "Porta:" "$HOME/dados_vps/dados_openclaw" 2>/dev/null | head -1 | awk -F': ' '{print $2}' | tr -d ' ')
+    url_openclaw=$(grep "URL:" "$HOME/dados_vps/dados_openclaw" 2>/dev/null | head -1 | awk -F': ' '{print $2}' | tr -d ' ' || true)
+    porta_openclaw=$(grep "Porta:" "$HOME/dados_vps/dados_openclaw" 2>/dev/null | head -1 | awk -F': ' '{print $2}' | tr -d ' ' || true)
     if [[ -n "$url_openclaw" ]]; then
       OPENCLAW_AVAILABLE=true
       step_ok "OpenClaw Gateway encontrado (${url_openclaw}:${porta_openclaw:-18789})"
@@ -335,7 +335,7 @@ version: "3.7"
 services:
 
   evolution${sufixo}_api:
-    image: evoapicloud/evolution-api:v2.2.3
+    image: evoapicloud/evolution-api:v2.3.7
     volumes:
       - evolution${sufixo}_instances:/evolution/instances
     networks:
@@ -354,7 +354,7 @@ services:
       ## Banco de Dados
       - DATABASE_ENABLED=true
       - DATABASE_PROVIDER=postgresql
-      - DATABASE_CONNECTION_URI=postgresql://postgres:${senha_postgres}@postgres:5432/evolution${sufixo}
+      - DATABASE_CONNECTION_URI=postgresql://postgres:${senha_postgres}@postgres:5432/evolution${sufixo}?schema=evolution_api
       - DATABASE_CONNECTION_CLIENT_NAME=evolution${sufixo}
       - DATABASE_SAVE_DATA_INSTANCE=true
       - DATABASE_SAVE_DATA_NEW_MESSAGE=true
@@ -363,6 +363,7 @@ services:
       - DATABASE_SAVE_DATA_CHATS=true
       - DATABASE_SAVE_DATA_LABELS=true
       - DATABASE_SAVE_DATA_HISTORIC=true
+      - DATABASE_DELETE_MESSAGE=true
       ## Integracoes
       - N8N_ENABLED=true
       - EVOAI_ENABLED=true
@@ -399,6 +400,7 @@ services:
       ## WebSocket
       - WEBSOCKET_ENABLED=false
       - WEBSOCKET_GLOBAL_EVENTS=false
+      - WEBSOCKET_ALLOWED_HOSTS=*
       ## SQS (desabilitado)
       - SQS_ENABLED=false
       - SQS_ACCESS_KEY_ID=
@@ -437,6 +439,17 @@ services:
       - RABBITMQ_EVENTS_CALL=false
       - RABBITMQ_EVENTS_TYPEBOT_START=false
       - RABBITMQ_EVENTS_TYPEBOT_CHANGE_STATUS=false
+      ## Kafka (desabilitado — v2.3.4+)
+      - KAFKA_ENABLED=false
+      - KAFKA_CLIENT_ID=evolution
+      - KAFKA_BROKERS=
+      - KAFKA_GLOBAL_ENABLED=false
+      - KAFKA_TOPIC_PREFIX=evolution
+      ## NATS (desabilitado — v2.3.0+)
+      - NATS_ENABLED=false
+      - NATS_URI=
+      - NATS_EXCHANGE_NAME=evolution
+      - NATS_GLOBAL_ENABLED=false
       ## Webhook (Story 5.1: condicional — ativado quando OpenClaw disponivel)
       - WEBHOOK_GLOBAL_ENABLED=$(if [[ "$OPENCLAW_AVAILABLE" == "true" ]]; then echo "true"; else echo "false"; fi)
       - WEBHOOK_GLOBAL_URL=$(if [[ "$OPENCLAW_AVAILABLE" == "true" ]]; then echo "http://openclaw_gateway:${porta_openclaw:-18789}/webhook/evolution"; fi)
@@ -533,7 +546,7 @@ version: "3.7"
 services:
 
   evolution${sufixo}_api:
-    image: evoapicloud/evolution-api:v2.2.3
+    image: evoapicloud/evolution-api:v2.3.7
     volumes:
       - evolution${sufixo}_instances:/evolution/instances
     ports:
@@ -552,7 +565,7 @@ services:
       ## Banco de Dados
       - DATABASE_ENABLED=true
       - DATABASE_PROVIDER=postgresql
-      - DATABASE_CONNECTION_URI=postgresql://postgres:${senha_postgres}@postgres:5432/evolution${sufixo}
+      - DATABASE_CONNECTION_URI=postgresql://postgres:${senha_postgres}@postgres:5432/evolution${sufixo}?schema=evolution_api
       - DATABASE_CONNECTION_CLIENT_NAME=evolution${sufixo}
       - DATABASE_SAVE_DATA_INSTANCE=true
       - DATABASE_SAVE_DATA_NEW_MESSAGE=true
@@ -561,6 +574,7 @@ services:
       - DATABASE_SAVE_DATA_CHATS=true
       - DATABASE_SAVE_DATA_LABELS=true
       - DATABASE_SAVE_DATA_HISTORIC=true
+      - DATABASE_DELETE_MESSAGE=true
       ## Integracoes
       - N8N_ENABLED=true
       - EVOAI_ENABLED=true
@@ -597,6 +611,7 @@ services:
       ## WebSocket
       - WEBSOCKET_ENABLED=false
       - WEBSOCKET_GLOBAL_EVENTS=false
+      - WEBSOCKET_ALLOWED_HOSTS=*
       ## SQS (desabilitado)
       - SQS_ENABLED=false
       - SQS_ACCESS_KEY_ID=
@@ -635,6 +650,17 @@ services:
       - RABBITMQ_EVENTS_CALL=false
       - RABBITMQ_EVENTS_TYPEBOT_START=false
       - RABBITMQ_EVENTS_TYPEBOT_CHANGE_STATUS=false
+      ## Kafka (desabilitado — v2.3.4+)
+      - KAFKA_ENABLED=false
+      - KAFKA_CLIENT_ID=evolution
+      - KAFKA_BROKERS=
+      - KAFKA_GLOBAL_ENABLED=false
+      - KAFKA_TOPIC_PREFIX=evolution
+      ## NATS (desabilitado — v2.3.0+)
+      - NATS_ENABLED=false
+      - NATS_URI=
+      - NATS_EXCHANGE_NAME=evolution
+      - NATS_GLOBAL_ENABLED=false
       ## Webhook (Story 5.1: condicional — ativado quando OpenClaw disponivel)
       - WEBHOOK_GLOBAL_ENABLED=$(if [[ "$OPENCLAW_AVAILABLE" == "true" ]]; then echo "true"; else echo "false"; fi)
       - WEBHOOK_GLOBAL_URL=$(if [[ "$OPENCLAW_AVAILABLE" == "true" ]]; then echo "http://openclaw_gateway:${porta_openclaw:-18789}/webhook/evolution"; fi)
@@ -709,7 +735,7 @@ EOL
   # Pull images
   echo "  Baixando imagens..."
   pull "redis:7-alpine" || true
-  pull "evoapicloud/evolution-api:v2.2.3" || true
+  pull "evoapicloud/evolution-api:v2.3.7" || true
 
   deploy_stack "$stack_name" "$yaml_file"
   step_ok "Evolution API deployada (modo ${ambiente}, stack: ${stack_name})"

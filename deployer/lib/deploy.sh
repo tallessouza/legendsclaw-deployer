@@ -31,7 +31,7 @@ stack_editavel() {
   while [[ -z "$token" || "$token" == "null" ]]; do
     token=$(curl -k -s -X POST \
       -H "Content-Type: application/json" \
-      -d "{\"username\":\"${usuario}\",\"password\":\"${senha}\"}" \
+      -d "$(jq -n --arg u "$usuario" --arg p "$senha" '{username:$u,password:$p}')" \
       "https://${portainer_url}/api/auth" | jq -r .jwt 2>/dev/null)
 
     tentativa=$((tentativa + 1))

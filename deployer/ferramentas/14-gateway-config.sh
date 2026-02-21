@@ -41,16 +41,16 @@ for req in "${REQUIRED_FILES[@]}"; do
 done
 
 # Extrair campos obrigatorios
-nome_agente=$(grep "Agente:" "$STATE_DIR/dados_whitelabel" | awk -F': ' '{print $2}')
-display_name=$(grep "Display Name:" "$STATE_DIR/dados_whitelabel" | awk -F': ' '{print $2}')
-idioma=$(grep "Idioma:" "$STATE_DIR/dados_whitelabel" | awk -F': ' '{print $2}')
-apps_path=$(grep "Apps Path:" "$STATE_DIR/dados_whitelabel" 2>/dev/null | awk -F': ' '{print $2}')
+nome_agente=$(grep "Agente:" "$STATE_DIR/dados_whitelabel" | awk -F': ' '{print $2}' || true)
+display_name=$(grep "Display Name:" "$STATE_DIR/dados_whitelabel" | awk -F': ' '{print $2}' || true)
+idioma=$(grep "Idioma:" "$STATE_DIR/dados_whitelabel" | awk -F': ' '{print $2}' || true)
+apps_path=$(grep "Apps Path:" "$STATE_DIR/dados_whitelabel" 2>/dev/null | awk -F': ' '{print $2}' || true)
 apps_path="${apps_path:-apps/${nome_agente}}"
 
-openclaw_porta=$(grep "Porta:" "$STATE_DIR/dados_openclaw" 2>/dev/null | awk -F': ' '{print $2}')
+openclaw_porta=$(grep "Porta:" "$STATE_DIR/dados_openclaw" 2>/dev/null | awk -F': ' '{print $2}' || true)
 openclaw_porta="${openclaw_porta:-18789}"
 
-workspace_path=$(grep "Workspace Path:" "$STATE_DIR/dados_workspace" 2>/dev/null | awk -F': ' '{print $2}')
+workspace_path=$(grep "Workspace Path:" "$STATE_DIR/dados_workspace" 2>/dev/null | awk -F': ' '{print $2}' || true)
 workspace_path="${workspace_path:-${apps_path}/workspace}"
 
 if [[ -z "$nome_agente" ]]; then
@@ -72,12 +72,12 @@ ts_hostname=""
 ts_ip=""
 ts_tailnet=""
 if [[ -f "$STATE_DIR/dados_tailscale" ]]; then
-  ts_hostname=$(grep "Hostname Tailscale:" "$STATE_DIR/dados_tailscale" 2>/dev/null | awk -F': ' '{print $2}')
-  ts_ip=$(grep "IP Tailscale:" "$STATE_DIR/dados_tailscale" 2>/dev/null | awk -F': ' '{print $2}')
-  ts_tailnet=$(grep "Tailnet:" "$STATE_DIR/dados_tailscale" 2>/dev/null | awk -F': ' '{print $2}')
-  ((loaded_optional++))
+  ts_hostname=$(grep "Hostname Tailscale:" "$STATE_DIR/dados_tailscale" 2>/dev/null | awk -F': ' '{print $2}' || true)
+  ts_ip=$(grep "IP Tailscale:" "$STATE_DIR/dados_tailscale" 2>/dev/null | awk -F': ' '{print $2}' || true)
+  ts_tailnet=$(grep "Tailnet:" "$STATE_DIR/dados_tailscale" 2>/dev/null | awk -F': ' '{print $2}' || true)
+  ((loaded_optional++)) || true || true
 else
-  ((skipped_optional++))
+  ((skipped_optional++)) || true || true
 fi
 
 # Evolution (WhatsApp)
@@ -87,33 +87,33 @@ evo_instance=""
 whatsapp_admin_phone=""
 has_evolution="false"
 if [[ -f "$STATE_DIR/dados_evolution" ]]; then
-  evo_url=$(grep "Evolution URL:" "$STATE_DIR/dados_evolution" 2>/dev/null | awk -F': ' '{print $2}')
-  evo_api_key=$(grep "API Key:" "$STATE_DIR/dados_evolution" 2>/dev/null | awk -F': ' '{print $2}')
-  evo_instance=$(grep "Instance:" "$STATE_DIR/dados_evolution" 2>/dev/null | awk -F': ' '{print $2}')
+  evo_url=$(grep "Evolution URL:" "$STATE_DIR/dados_evolution" 2>/dev/null | awk -F': ' '{print $2}' || true)
+  evo_api_key=$(grep "API Key:" "$STATE_DIR/dados_evolution" 2>/dev/null | awk -F': ' '{print $2}' || true)
+  evo_instance=$(grep "Instance:" "$STATE_DIR/dados_evolution" 2>/dev/null | awk -F': ' '{print $2}' || true)
   has_evolution="true"
-  ((loaded_optional++))
+  ((loaded_optional++)) || true || true
 else
-  ((skipped_optional++))
+  ((skipped_optional++)) || true || true
 fi
 
 # Seguranca
 blocklist_path=""
 has_seguranca="false"
 if [[ -f "$STATE_DIR/dados_seguranca" ]]; then
-  blocklist_path=$(grep "Blocklist:" "$STATE_DIR/dados_seguranca" 2>/dev/null | awk -F': ' '{print $2}')
+  blocklist_path=$(grep "Blocklist:" "$STATE_DIR/dados_seguranca" 2>/dev/null | awk -F': ' '{print $2}' || true)
   has_seguranca="true"
-  ((loaded_optional++))
+  ((loaded_optional++)) || true || true
 else
-  ((skipped_optional++))
+  ((skipped_optional++)) || true || true
 fi
 
 # LLM Router — API keys
-openrouter_key=$(grep "OPENROUTER_API_KEY:" "$STATE_DIR/dados_llm_router" 2>/dev/null | awk -F': ' '{print $2}')
-anthropic_key=$(grep "ANTHROPIC_ADMIN_KEY:" "$STATE_DIR/dados_llm_router" 2>/dev/null | awk -F': ' '{print $2}')
-openai_key=$(grep "OPENAI_API_KEY:" "$STATE_DIR/dados_llm_router" 2>/dev/null | awk -F': ' '{print $2}')
-gemini_key=$(grep "GEMINI_API_KEY:" "$STATE_DIR/dados_llm_router" 2>/dev/null | awk -F': ' '{print $2}')
-brave_key=$(grep "BRAVE_API_KEY:" "$STATE_DIR/dados_llm_router" 2>/dev/null | awk -F': ' '{print $2}')
-default_tier=$(grep "Default Tier:" "$STATE_DIR/dados_llm_router" 2>/dev/null | awk -F': ' '{print $2}')
+openrouter_key=$(grep "OPENROUTER_API_KEY:" "$STATE_DIR/dados_llm_router" 2>/dev/null | awk -F': ' '{print $2}' || true)
+anthropic_key=$(grep "ANTHROPIC_ADMIN_KEY:" "$STATE_DIR/dados_llm_router" 2>/dev/null | awk -F': ' '{print $2}' || true)
+openai_key=$(grep "OPENAI_API_KEY:" "$STATE_DIR/dados_llm_router" 2>/dev/null | awk -F': ' '{print $2}' || true)
+gemini_key=$(grep "GEMINI_API_KEY:" "$STATE_DIR/dados_llm_router" 2>/dev/null | awk -F': ' '{print $2}' || true)
+brave_key=$(grep "BRAVE_API_KEY:" "$STATE_DIR/dados_llm_router" 2>/dev/null | awk -F': ' '{print $2}' || true)
+default_tier=$(grep "Default Tier:" "$STATE_DIR/dados_llm_router" 2>/dev/null | awk -F': ' '{print $2}' || true)
 default_tier="${default_tier:-standard}"
 
 # Elicitation
@@ -126,53 +126,53 @@ supabase_project_ref=""
 supabase_db_password=""
 database_url=""
 if [[ -f "$STATE_DIR/dados_elicitation" ]]; then
-  user_name=$(grep "User Name:" "$STATE_DIR/dados_elicitation" 2>/dev/null | awk -F': ' '{print $2}')
-  user_timezone=$(grep "Timezone:" "$STATE_DIR/dados_elicitation" 2>/dev/null | awk -F': ' '{print $2}')
-  supabase_url=$(grep "SUPABASE_URL:" "$STATE_DIR/dados_elicitation" 2>/dev/null | awk -F': ' '{print $2}')
-  supabase_anon_key=$(grep "SUPABASE_ANON_KEY:" "$STATE_DIR/dados_elicitation" 2>/dev/null | awk -F': ' '{print $2}')
-  supabase_service_key=$(grep "SUPABASE_SERVICE_ROLE_KEY:" "$STATE_DIR/dados_elicitation" 2>/dev/null | awk -F': ' '{print $2}')
-  supabase_project_ref=$(grep "SUPABASE_PROJECT_REF:" "$STATE_DIR/dados_elicitation" 2>/dev/null | awk -F': ' '{print $2}')
-  supabase_db_password=$(grep "SUPABASE_DB_PASSWORD:" "$STATE_DIR/dados_elicitation" 2>/dev/null | awk -F': ' '{print $2}')
-  database_url=$(grep "DATABASE_URL:" "$STATE_DIR/dados_elicitation" 2>/dev/null | awk -F': ' '{print $2}')
-  ((loaded_optional++))
+  user_name=$(grep "User Name:" "$STATE_DIR/dados_elicitation" 2>/dev/null | awk -F': ' '{print $2}' || true)
+  user_timezone=$(grep "Timezone:" "$STATE_DIR/dados_elicitation" 2>/dev/null | awk -F': ' '{print $2}' || true)
+  supabase_url=$(grep "SUPABASE_URL:" "$STATE_DIR/dados_elicitation" 2>/dev/null | awk -F': ' '{print $2}' || true)
+  supabase_anon_key=$(grep "SUPABASE_ANON_KEY:" "$STATE_DIR/dados_elicitation" 2>/dev/null | awk -F': ' '{print $2}' || true)
+  supabase_service_key=$(grep "SUPABASE_SERVICE_ROLE_KEY:" "$STATE_DIR/dados_elicitation" 2>/dev/null | awk -F': ' '{print $2}' || true)
+  supabase_project_ref=$(grep "SUPABASE_PROJECT_REF:" "$STATE_DIR/dados_elicitation" 2>/dev/null | awk -F': ' '{print $2}' || true)
+  supabase_db_password=$(grep "SUPABASE_DB_PASSWORD:" "$STATE_DIR/dados_elicitation" 2>/dev/null | awk -F': ' '{print $2}' || true)
+  database_url=$(grep "DATABASE_URL:" "$STATE_DIR/dados_elicitation" 2>/dev/null | awk -F': ' '{print $2}' || true)
+  ((loaded_optional++)) || true || true
 else
-  ((skipped_optional++))
+  ((skipped_optional++)) || true || true
 fi
 
 # VPS (nome_servidor para node.json displayName — AC 8)
 nome_servidor=""
 if [[ -f "$STATE_DIR/dados_vps" ]]; then
-  nome_servidor=$(grep "Nome do Servidor:" "$STATE_DIR/dados_vps" 2>/dev/null | awk -F': ' '{print $2}')
-  ((loaded_optional++))
+  nome_servidor=$(grep "Nome do Servidor:" "$STATE_DIR/dados_vps" 2>/dev/null | awk -F': ' '{print $2}' || true)
+  ((loaded_optional++)) || true || true
 else
-  ((skipped_optional++))
+  ((skipped_optional++)) || true || true
 fi
 
 # Portainer
 portainer_url=""
 if [[ -f "$STATE_DIR/dados_portainer" ]]; then
-  portainer_url=$(grep "Portainer URL:" "$STATE_DIR/dados_portainer" 2>/dev/null | awk -F': ' '{print $2}')
-  ((loaded_optional++))
+  portainer_url=$(grep "Portainer URL:" "$STATE_DIR/dados_portainer" 2>/dev/null | awk -F': ' '{print $2}' || true)
+  ((loaded_optional++)) || true || true
 else
-  ((skipped_optional++))
+  ((skipped_optional++)) || true || true
 fi
 
 # Bridge
 has_bridge="false"
 if [[ -f "$STATE_DIR/dados_bridge" ]]; then
   has_bridge="true"
-  ((loaded_optional++))
+  ((loaded_optional++)) || true || true
 else
-  ((skipped_optional++))
+  ((skipped_optional++)) || true || true
 fi
 
 # Skills
 skills_ativas=""
 if [[ -f "$STATE_DIR/dados_skills" ]]; then
-  skills_ativas=$(grep "Skills Ativas:" "$STATE_DIR/dados_skills" 2>/dev/null | awk -F': ' '{print $2}')
-  ((loaded_optional++))
+  skills_ativas=$(grep "Skills Ativas:" "$STATE_DIR/dados_skills" 2>/dev/null | awk -F': ' '{print $2}' || true)
+  ((loaded_optional++)) || true || true
 else
-  ((skipped_optional++))
+  ((skipped_optional++)) || true || true
 fi
 
 # Postgres
@@ -181,11 +181,11 @@ postgres_port=""
 postgres_user=""
 postgres_db=""
 if [[ -f "$STATE_DIR/dados_postgres" ]]; then
-  postgres_host=$(grep "Host:" "$STATE_DIR/dados_postgres" 2>/dev/null | awk -F': ' '{print $2}')
-  postgres_port=$(grep "Port:" "$STATE_DIR/dados_postgres" 2>/dev/null | awk -F': ' '{print $2}')
-  postgres_user=$(grep "User:" "$STATE_DIR/dados_postgres" 2>/dev/null | awk -F': ' '{print $2}')
-  postgres_db=$(grep "DB:" "$STATE_DIR/dados_postgres" 2>/dev/null | awk -F': ' '{print $2}')
-  ((loaded_optional++))
+  postgres_host=$(grep "Host:" "$STATE_DIR/dados_postgres" 2>/dev/null | awk -F': ' '{print $2}' || true)
+  postgres_port=$(grep "Port:" "$STATE_DIR/dados_postgres" 2>/dev/null | awk -F': ' '{print $2}' || true)
+  postgres_user=$(grep "User:" "$STATE_DIR/dados_postgres" 2>/dev/null | awk -F': ' '{print $2}' || true)
+  postgres_db=$(grep "DB:" "$STATE_DIR/dados_postgres" 2>/dev/null | awk -F': ' '{print $2}' || true)
+  ((loaded_optional++)) || true || true
 fi
 
 step_ok "Dados opcionais: ${loaded_optional} carregados, ${skipped_optional} skipped"

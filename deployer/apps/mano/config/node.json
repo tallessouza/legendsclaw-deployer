@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "nodeId": "669fb9d6-23e4-4f73-bf7f-4f631efbd1f6",
+  "displayName": "adskoadkosadkos",
+  "gateway": {
+    "host": "localhost",
+    "port": 443,
+    "tls": true
+  }
+}

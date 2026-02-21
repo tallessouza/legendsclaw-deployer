@@ -8,6 +8,9 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 LIB_DIR="${SCRIPT_DIR}/../lib"
+# Repo root — deployer/ esta um nivel abaixo do repo
+REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
+cd "$REPO_ROOT"
 
 # Source libs
 source "${LIB_DIR}/ui.sh"
@@ -61,7 +64,7 @@ if [[ ! -f "$STATE_DIR/dados_openclaw" ]]; then
   echo "  Execute primeiro: Ferramenta [05] OpenClaw Gateway"
   exit 1
 fi
-gateway_url=$(grep "Gateway URL:" "$STATE_DIR/dados_openclaw" 2>/dev/null | awk -F': ' '{print $2}')
+gateway_url=$(grep -E "Gateway URL:|URL Gateway:" "$STATE_DIR/dados_openclaw" 2>/dev/null | awk -F': ' '{print $2}' || true)
 gateway_url="${gateway_url:-http://localhost:18789}"
 
 # Tailscale

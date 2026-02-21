@@ -31,7 +31,13 @@ deploy_stack() {
   ambiente=$(detectar_ambiente)
 
   if [[ "$ambiente" == "vps" ]]; then
-    stack_editavel "$stack_name" "$yaml_file"
+    echo "  Deploying stack '${stack_name}' via docker stack deploy..."
+    if docker stack deploy -c "$yaml_file" "$stack_name" 2>&1; then
+      echo "  Stack '${stack_name}' deployed"
+    else
+      echo "ERRO ao criar stack '${stack_name}'"
+      return 1
+    fi
   else
     docker compose -f "$yaml_file" -p "$stack_name" up -d
   fi

@@ -56,7 +56,7 @@ log_init "skills"
 [[ "${AUTO_MODE:-false}" == "true" ]] && auto_load_config
 setup_trap
 # Temporario — sera recalculado apos selecao
-step_init 14
+step_init 16
 
 # =============================================================================
 # STEP 2: LOAD STATE + VERIFICAR DEPENDENCIAS
@@ -172,7 +172,7 @@ step_ok "${num_skills} skills selecionadas"
 # Recalcular step_total dinamicamente:
 # Steps fixos: load(1) + deps(1) + tabela(1) + selecao(1) + inputs(1) + conferindo(1)
 #   + create_dirs(1) + config(1) + index(1) + env(1) + npm(1) + health(1) + save(1) + hints(1) = 14
-STEP_TOTAL=14
+STEP_TOTAL=16
 
 # =============================================================================
 # STEP 6: COLETA DE INPUTS POR SKILL
@@ -883,7 +883,45 @@ echo "  Health check: ${health_ok}/${health_total} OK"
 step_ok "Health check concluido (${health_ok}/${health_total} OK)"
 
 # =============================================================================
-# STEP 14: SAVE STATE + RESUMO + HINTS
+# STEP 14: COPIAR SKILLS PARA OPENCLAW WORKSPACE
+# =============================================================================
+OPENCLAW_WORKSPACE="/root/.openclaw/workspace"
+if [[ -d "$OPENCLAW_WORKSPACE" ]]; then
+  DEST_SKILLS_DIR="${OPENCLAW_WORKSPACE}/apps/${nome_agente}/skills"
+  mkdir -p "$DEST_SKILLS_DIR"
+  cp -r "${SKILLS_DIR}/"* "$DEST_SKILLS_DIR/"
+  step_ok "Skills copiados para ~/.openclaw/workspace/apps/${nome_agente}/skills/"
+else
+  step_skip "OpenClaw nao instalado (~/.openclaw/workspace/ nao existe) — copie manualmente depois"
+fi
+
+# =============================================================================
+# STEP 15: REINICIAR OPENCLAW GATEWAY
+# =============================================================================
+gateway_pid=$(pgrep -f openclaw-gateway 2>/dev/null || true)
+if [[ -n "$gateway_pid" ]]; then
+  kill "$gateway_pid" 2>/dev/null || true
+  sleep 2
+  new_pid=$(pgrep -f openclaw-gateway 2>/dev/null || true)
+  if [[ -n "$new_pid" ]]; then
+    step_ok "OpenClaw Gateway reiniciado (PID ${new_pid})"
+  else
+    cd /opt/openclaw && nohup node openclaw.mjs gateway > /dev/null 2>&1 &
+    sleep 3
+    cd - > /dev/null
+    new_pid=$(pgrep -f openclaw-gateway 2>/dev/null || true)
+    if [[ -n "$new_pid" ]]; then
+      step_ok "OpenClaw Gateway iniciado (PID ${new_pid})"
+    else
+      step_fail "OpenClaw Gateway nao reiniciou — reinicie manualmente"
+    fi
+  fi
+else
+  step_skip "OpenClaw Gateway nao estava rodando"
+fi
+
+# =============================================================================
+# STEP 16: SAVE STATE + RESUMO + HINTS
 # =============================================================================
 mkdir -p "$STATE_DIR"
 

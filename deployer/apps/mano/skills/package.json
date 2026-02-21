@@ -1,0 +1,7 @@
+{
+  "name": "@legendsclaw/mano-skills",
+  "version": "0.1.0",
+  "description": "Skills for Mano agent",
+  "main": "index.js",
+  "dependencies": {}
+}
