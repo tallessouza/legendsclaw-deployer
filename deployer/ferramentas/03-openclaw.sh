@@ -191,11 +191,11 @@ fi
 # =============================================================================
 pushd /opt/openclaw > /dev/null
 
-# 8a: pnpm install (retry 3x)
+# 8a: pnpm install (retry 3x, shamefully-hoist para vendor/a2ui ver deps)
 instalado=false
 for tentativa in 1 2 3; do
-  echo "  Tentativa ${tentativa}/3: pnpm install..."
-  if pnpm install 2>&1; then
+  echo "  Tentativa ${tentativa}/3: pnpm install --shamefully-hoist..."
+  if pnpm install --shamefully-hoist 2>&1; then
     instalado=true
     break
   else
@@ -212,11 +212,6 @@ else
   step_fail "pnpm install falhou apos 3 tentativas"
   exit 1
 fi
-
-# 8a.1: Instalar dependencias faltantes do a2ui bundler (workaround upstream)
-echo "  Verificando dependencias do a2ui bundler..."
-pnpm add -D signal-utils lit 2>&1 || true
-pnpm install 2>&1 || true
 
 # 8b: pnpm ui:build
 if pnpm ui:build 2>&1; then
