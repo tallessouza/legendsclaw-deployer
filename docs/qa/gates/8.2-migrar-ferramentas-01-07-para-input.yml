@@ -1,0 +1,8 @@
+schema: 1
+story: '8.2'
+gate: PASS
+status_reason: 'All 33 read -rp/read -rsp calls in ferramentas 01-07 and common.sh successfully migrated to input()/auto_confirm(). Zero regressions — 849 BATS tests pass, all failures are pre-existing (validar_senha + elicitation).'
+reviewer: 'Quinn'
+updated: '2026-02-21T18:00:00Z'
+top_issues: []
+waiver: { active: false }

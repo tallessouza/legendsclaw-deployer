@@ -15,11 +15,13 @@ source "${LIB_DIR}/logger.sh"
 source "${LIB_DIR}/common.sh"
 source "${LIB_DIR}/hints.sh"
 source "${LIB_DIR}/env-detect.sh"
+source "${LIB_DIR}/auto.sh"
 
 # =============================================================================
 # STEP 1: LOGGING + STEP INIT
 # =============================================================================
 log_init "llm-router"
+[[ "${AUTO_MODE:-false}" == "true" ]] && auto_load_config
 setup_trap
 step_init 10
 
@@ -96,7 +98,7 @@ while true; do
 
   # OpenRouter key (obrigatorio)
   while true; do
-    read -rp "OpenRouter API Key (sk-or-v1-...): " openrouter_key
+    input "llm_router.openrouter_key" "OpenRouter API Key (sk-or-v1-...): " openrouter_key --secret --required
     if [[ -z "$openrouter_key" ]]; then
       echo "  OpenRouter key e obrigatoria."
       continue
@@ -114,7 +116,7 @@ while true; do
 
   # Anthropic key (obrigatorio)
   while true; do
-    read -rp "Anthropic API Key (sk-ant-...): " anthropic_key
+    input "llm_router.anthropic_key" "Anthropic API Key (sk-ant-...): " anthropic_key --secret --required
     if [[ -z "$anthropic_key" ]]; then
       echo "  Anthropic key e obrigatoria."
       continue
@@ -131,7 +133,7 @@ while true; do
   done
 
   # DeepSeek key (opcional)
-  read -rp "DeepSeek API Key (opcional, Enter para pular): " deepseek_key
+  input "llm_router.deepseek_key" "DeepSeek API Key (opcional, Enter para pular): " deepseek_key --secret
 
   if [[ -n "$deepseek_key" ]]; then
     if ! [[ "$deepseek_key" =~ ^sk- ]]; then
@@ -142,7 +144,7 @@ while true; do
 
   # Tier padrao (agora com quality)
   while true; do
-    read -rp "Tier padrao (budget/standard/quality/premium, default: standard): " tier_padrao_input
+    input "llm_router.tier_padrao" "Tier padrao (budget/standard/quality/premium, default: standard): " tier_padrao_input --default=standard
     tier_padrao="${tier_padrao_input:-standard}"
     if [[ "$tier_padrao" =~ ^(budget|standard|quality|premium)$ ]]; then
       break
@@ -151,7 +153,7 @@ while true; do
   done
 
   # Metricas (opcional)
-  read -rp "Habilitar metricas? (s/n, default: n): " metrics_input
+  input "llm_router.metrics" "Habilitar metricas? (s/n, default: n): " metrics_input --default=n
   if [[ "$metrics_input" =~ ^[Ss]$ ]]; then
     metrics_enabled="true"
   else
@@ -166,7 +168,7 @@ while true; do
     "Tier Padrao=${tier_padrao}" \
     "Metricas=${metrics_enabled}"
 
-  read -rp "As informacoes estao corretas? (s/n): " confirma
+  auto_confirm "As informacoes estao corretas? (s/n): " confirma
   if [[ "$confirma" =~ ^[Ss]$ ]]; then
     break
   fi

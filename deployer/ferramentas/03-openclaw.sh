@@ -16,11 +16,13 @@ source "${LIB_DIR}/common.sh"
 source "${LIB_DIR}/hints.sh"
 source "${LIB_DIR}/env-detect.sh"
 source "${LIB_DIR}/deploy.sh"
+source "${LIB_DIR}/auto.sh"
 
 # =============================================================================
 # STEP 1: LOGGING + STEP INIT
 # =============================================================================
 log_init "openclaw"
+[[ "${AUTO_MODE:-false}" == "true" ]] && auto_load_config
 setup_trap
 step_init 13
 
@@ -115,16 +117,16 @@ step_ok "OpenClaw nao instalado — prosseguindo com instalacao"
 # =============================================================================
 while true; do
   echo ""
-  read -rp "Dominio para o OpenClaw Gateway (ex: gw.exemplo.com): " dominio_openclaw
+  input "openclaw.dominio" "Dominio para o OpenClaw Gateway (ex: gw.exemplo.com): " dominio_openclaw --required
   if [[ -z "$dominio_openclaw" ]]; then
     echo "Dominio nao pode ser vazio."
     continue
   fi
 
-  read -rp "Porta do gateway (default 18789): " porta_input
+  input "openclaw.porta" "Porta do gateway (default 18789): " porta_input --default=18789
   porta_openclaw="${porta_input:-18789}"
 
-  read -rp "URL do repositorio (default https://github.com/openclaw/openclaw.git): " repo_input
+  input "openclaw.repo" "URL do repositorio (default https://github.com/openclaw/openclaw.git): " repo_input --default=https://github.com/openclaw/openclaw.git
   repo_url="${repo_input:-https://github.com/openclaw/openclaw.git}"
 
   conferindo_as_info \
@@ -133,7 +135,7 @@ while true; do
     "Repositorio=${repo_url}" \
     "Install Path=/opt/openclaw"
 
-  read -rp "As informacoes estao corretas? (s/n): " confirma
+  auto_confirm "As informacoes estao corretas? (s/n): " confirma
   if [[ "$confirma" =~ ^[Ss]$ ]]; then
     break
   fi
@@ -147,27 +149,41 @@ hint_dns_openclaw "$dominio_openclaw"
 # =============================================================================
 # STEP 7: CLONAR REPOSITORIO
 # =============================================================================
-clonado=false
-for tentativa in 1 2 3; do
-  echo "  Tentativa ${tentativa}/3: Clonando ${repo_url}..."
-  if git clone "$repo_url" /opt/openclaw 2>&1; then
-    clonado=true
-    break
+if [[ -d "/opt/openclaw/.git" ]]; then
+  # Repositorio ja existe — atualizar
+  echo "  Repositorio ja existe em /opt/openclaw — atualizando..."
+  if git -C /opt/openclaw pull --ff-only 2>&1; then
+    step_ok "Repositorio atualizado em /opt/openclaw (git pull)"
   else
-    echo "  Falha na tentativa ${tentativa}/3"
-    # Limpar diretorio parcial se existir
-    rm -rf /opt/openclaw
-    if [[ "$tentativa" -lt 3 ]]; then
-      sleep 5
-    fi
+    step_skip "Repositorio ja existe em /opt/openclaw (pull falhou — usando versao atual)"
   fi
-done
-
-if $clonado; then
-  step_ok "Repositorio clonado em /opt/openclaw"
 else
-  step_fail "Falha ao clonar repositorio apos 3 tentativas"
-  exit 1
+  # Limpar diretorio nao-git se existir
+  if [[ -d "/opt/openclaw" ]]; then
+    rm -rf /opt/openclaw
+  fi
+
+  clonado=false
+  for tentativa in 1 2 3; do
+    echo "  Tentativa ${tentativa}/3: Clonando ${repo_url}..."
+    if git clone "$repo_url" /opt/openclaw 2>&1; then
+      clonado=true
+      break
+    else
+      echo "  Falha na tentativa ${tentativa}/3"
+      rm -rf /opt/openclaw
+      if [[ "$tentativa" -lt 3 ]]; then
+        sleep 5
+      fi
+    fi
+  done
+
+  if $clonado; then
+    step_ok "Repositorio clonado em /opt/openclaw"
+  else
+    step_fail "Falha ao clonar repositorio apos 3 tentativas"
+    exit 1
+  fi
 fi
 
 # =============================================================================
@@ -329,7 +345,7 @@ hint_troubleshoot_openclaw "$porta_openclaw" "$dominio_openclaw"
 
 # Oferecer validacao end-to-end
 echo ""
-read -rp "Deseja executar a validacao end-to-end agora? [S/n]: " validar
+input "openclaw.validar_agora" "Deseja executar a validacao end-to-end agora? [S/n]: " validar --default=s
 if [[ ! "$validar" =~ ^[Nn]$ ]]; then
   log_finish
   bash "${SCRIPT_DIR}/04-validacao-gw.sh"

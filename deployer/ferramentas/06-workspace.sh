@@ -15,11 +15,13 @@ source "${LIB_DIR}/logger.sh"
 source "${LIB_DIR}/common.sh"
 source "${LIB_DIR}/hints.sh"
 source "${LIB_DIR}/env-detect.sh"
+source "${LIB_DIR}/auto.sh"
 
 # =============================================================================
 # STEP 1: LOGGING + STEP INIT
 # =============================================================================
 log_init "workspace"
+[[ "${AUTO_MODE:-false}" == "true" ]] && auto_load_config
 setup_trap
 step_init 10
 
@@ -160,22 +162,22 @@ if [[ -z "$user_name" ]]; then
   echo -e "${UI_BOLD:-\033[1m}  Configuracao do Usuario (para USER.md)${UI_NC:-\033[0m}"
   echo ""
 
-  read -rp "Seu nome completo: " user_name
+  input "workspace.user_name" "Seu nome completo: " user_name --required
   if [[ -z "$user_name" ]]; then
     user_name="Operator"
   fi
 
-  read -rp "Como prefere ser chamado (default: ${user_name%% *}): " user_nickname
+  input "workspace.user_nickname" "Como prefere ser chamado (default: ${user_name%% *}): " user_nickname --default="${user_name%% *}"
   if [[ -z "$user_nickname" ]]; then
     user_nickname="${user_name%% *}"
   fi
 
-  read -rp "Pronomes (default: ele/dele): " user_pronouns
+  input "workspace.user_pronouns" "Pronomes (default: ele/dele): " user_pronouns --default=ele/dele
   if [[ -z "$user_pronouns" ]]; then
     user_pronouns="ele/dele"
   fi
 
-  read -rp "Timezone (default: America/Sao_Paulo): " user_timezone
+  input "workspace.user_timezone" "Timezone (default: America/Sao_Paulo): " user_timezone --default=America/Sao_Paulo
   if [[ -z "$user_timezone" ]]; then
     user_timezone="America/Sao_Paulo"
   fi
@@ -189,7 +191,7 @@ if [[ -z "$user_name" ]]; then
     "Timezone=${user_timezone}" \
     "Idioma=${user_locale}"
 
-  read -rp "As informacoes estao corretas? (s/n): " confirma
+  auto_confirm "As informacoes estao corretas? (s/n): " confirma
   if [[ ! "$confirma" =~ ^[Ss]$ ]]; then
     echo "  Abortando. Execute novamente para corrigir."
     exit 1

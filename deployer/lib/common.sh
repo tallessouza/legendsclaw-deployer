@@ -36,7 +36,12 @@ cleanup_on_fail() {
     if [[ -n "${ROLLBACK_CMD}" ]]; then
       echo "" >&2
       echo -e "${UI_YELLOW:-\033[1;33m}Rollback disponivel: ${ROLLBACK_DESC:-$ROLLBACK_CMD}${UI_NC:-\033[0m}" >&2
-      read -rp "Deseja executar rollback? (s/n): " rollback_choice </dev/tty || rollback_choice="n"
+      if [[ "${AUTO_MODE:-false}" == "true" ]]; then
+        rollback_choice="n"
+        log "ROLLBACK skipped (AUTO_MODE)" 2>/dev/null || true
+      else
+        read -rp "Deseja executar rollback? (s/n): " rollback_choice </dev/tty || rollback_choice="n"
+      fi
       if [[ "$rollback_choice" =~ ^[Ss]$ ]]; then
         echo "Executando rollback: $ROLLBACK_CMD"
         eval "$ROLLBACK_CMD" 2>/dev/null || echo "AVISO: Rollback falhou" >&2
@@ -59,8 +64,9 @@ setup_trap() {
 # Popula variaveis globais: nome_servidor, nome_rede
 # Uso: dados
 dados() {
-  nome_servidor=$(grep "Nome do Servidor:" "$STATE_DIR/dados_vps" 2>/dev/null | awk -F': ' '{print $2}')
-  nome_rede=$(grep "Rede interna:" "$STATE_DIR/dados_vps" 2>/dev/null | awk -F': ' '{print $2}')
+  mkdir -p "$STATE_DIR"
+  nome_servidor=$(grep "Nome do Servidor:" "$STATE_DIR/dados_vps" 2>/dev/null | awk -F': ' '{print $2}' || true)
+  nome_rede=$(grep "Rede interna:" "$STATE_DIR/dados_vps" 2>/dev/null | awk -F': ' '{print $2}' || true)
 }
 
 # Gate de recursos — verifica vCPU e RAM minimos
@@ -82,6 +88,10 @@ recursos() {
     return 0
   else
     echo "AVISO: Servidor tem ${vcpu_disponivel} vCPU e ${ram_disponivel_gb}GB RAM (minimo: ${vcpu_requerido} vCPU, ${ram_requerido}GB RAM)"
+    if [[ "${AUTO_MODE:-false}" == "true" ]]; then
+      echo "[auto] Recursos insuficientes — aceito automaticamente"
+      return 0
+    fi
     read -rp "Continuar mesmo assim? (s/n): " escolha
     if [[ "$escolha" =~ ^[Ss]$ ]]; then
       return 0
@@ -145,12 +155,12 @@ verificar_container_postgres() {
 # Popula variavel global: senha_postgres
 pegar_senha_postgres() {
   # Primeiro tenta do arquivo de estado
-  senha_postgres=$(grep "Senha:" "$STATE_DIR/dados_postgres" 2>/dev/null | awk -F': ' '{print $2}')
+  senha_postgres=$(grep "Senha:" "$STATE_DIR/dados_postgres" 2>/dev/null | awk -F': ' '{print $2}' || true)
   if [[ -n "$senha_postgres" ]]; then
     return 0
   fi
   # Fallback: ler do YAML
-  senha_postgres=$(grep "POSTGRES_PASSWORD" "$HOME/postgres.yaml" 2>/dev/null | head -1 | sed 's/.*=//; s/^[[:space:]]*//')
+  senha_postgres=$(grep "POSTGRES_PASSWORD" "$HOME/postgres.yaml" 2>/dev/null | head -1 | sed 's/.*=//; s/^[[:space:]]*//' || true)
   if [[ -n "$senha_postgres" ]]; then
     return 0
   fi

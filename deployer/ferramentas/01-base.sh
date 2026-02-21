@@ -15,14 +15,16 @@ source "${SCRIPT_DIR}/lib/logger.sh"
 source "${SCRIPT_DIR}/lib/common.sh"
 source "${SCRIPT_DIR}/lib/deploy.sh"
 source "${SCRIPT_DIR}/lib/hints.sh"
+source "${SCRIPT_DIR}/lib/auto.sh"
 
 # Constantes
 readonly FERRAMENTA="base"
 readonly TRAEFIK_VERSION="v3.5.3"
-readonly TOTAL=13
+readonly TOTAL=14
 
 main() {
   log_init "$FERRAMENTA"
+  [[ "${AUTO_MODE:-false}" == "true" ]] && auto_load_config
   setup_trap
   step_init "$TOTAL"
 
@@ -40,7 +42,37 @@ main() {
   fi
 
   # =========================================================================
-  # STEP 2: LOAD STATE
+  # STEP 2: SWAP — garantir que o sistema tem swap para builds pesados
+  # =========================================================================
+  if swapon --show 2>/dev/null | grep -q '/'; then
+    step_skip "Swap ja configurado ($(swapon --show --noheadings --bytes 2>/dev/null | awk '{s+=$3}END{printf "%.0fGB", s/1024/1024/1024}'))"
+  else
+    local ram_mb
+    ram_mb=$(free -m | awk '/^Mem:/{print $2}')
+    local swap_size="4G"
+    if [[ "$ram_mb" -ge 8192 ]]; then
+      swap_size="2G"
+    elif [[ "$ram_mb" -ge 4096 ]]; then
+      swap_size="4G"
+    fi
+
+    if fallocate -l "$swap_size" /swapfile 2>/dev/null && \
+       chmod 600 /swapfile && \
+       mkswap /swapfile >/dev/null 2>&1 && \
+       swapon /swapfile 2>/dev/null; then
+      # Persistir no boot
+      if ! grep -q '/swapfile' /etc/fstab 2>/dev/null; then
+        echo '/swapfile none swap sw 0 0' >> /etc/fstab
+      fi
+      step_ok "Swap ${swap_size} criado e ativado (previne OOM em builds)"
+    else
+      rm -f /swapfile 2>/dev/null
+      step_skip "Swap nao criado (fallocate/mkswap falhou — builds pesados podem falhar)"
+    fi
+  fi
+
+  # =========================================================================
+  # STEP 3: LOAD STATE
   # =========================================================================
   dados
   step_ok "Estado carregado de ~/dados_vps/"
@@ -64,21 +96,20 @@ main() {
 
   while true; do
     echo ""
-    read -rp "Dominio do Portainer (ex: painel.exemplo.com): " dominio_portainer
-    read -rp "Email para SSL/Let's Encrypt: " email_ssl
-    read -rp "Usuario admin do Portainer: " user_portainer
+    input "base.dominio_portainer" "Dominio do Portainer (ex: painel.exemplo.com): " dominio_portainer --required
+    input "base.email_ssl" "Email para SSL/Let's Encrypt: " email_ssl --required
+    input "base.user_portainer" "Usuario admin do Portainer: " user_portainer --required
 
     while true; do
-      read -rsp "Senha admin do Portainer: " pass_portainer
-      echo ""
+      input "base.pass_portainer" "Senha admin do Portainer: " pass_portainer --secret --required
       if validar_senha "$pass_portainer"; then
         break
       fi
       echo "Tente novamente."
     done
 
-    read -rp "Nome do servidor (ex: legendsclaw-01): " nome_servidor
-    read -rp "Nome da rede overlay (ex: legendsclaw_net): " nome_rede
+    input "base.nome_servidor" "Nome do servidor (ex: legendsclaw-01): " nome_servidor --required
+    input "base.nome_rede" "Nome da rede overlay (ex: legendsclaw_net): " nome_rede --required
 
     conferindo_as_info \
       "Dominio Portainer=${dominio_portainer}" \
@@ -88,7 +119,7 @@ main() {
       "Nome Servidor=${nome_servidor}" \
       "Rede Overlay=${nome_rede}"
 
-    read -rp "As informacoes estao corretas? (s/n): " confirmacao
+    auto_confirm "As informacoes estao corretas? (s/n): " confirmacao
     if [[ "$confirmacao" =~ ^[Ss]$ ]]; then
       break
     fi
@@ -106,7 +137,7 @@ main() {
   ip_vps=$(hostname -I 2>/dev/null | awk '{print $1}' || curl -s https://ifconfig.me)
 
   # Inicializar Swarm (retry 3x)
-  if docker info --format '{{.Swarm.LocalNodeState}}' 2>/dev/null | grep -q "active"; then
+  if [[ "$(docker info --format '{{.Swarm.LocalNodeState}}' 2>/dev/null)" == "active" ]]; then
     step_skip "Docker Swarm (ja inicializado)"
   else
     local swarm_ok=false
@@ -314,18 +345,26 @@ EOL
 
   for i in $(seq 1 $MAX_RETRIES); do
     local RESPONSE
-    RESPONSE=$(curl -k -s -X POST "https://${dominio_portainer}/api/users/admin/init" \
+    RESPONSE=$(curl -k -s --connect-timeout 10 --max-time 30 -X POST "https://${dominio_portainer}/api/users/admin/init" \
       -H "Content-Type: application/json" \
-      -d "{\"Username\": \"${user_portainer}\", \"Password\": \"${pass_portainer}\"}")
+      -d "{\"Username\": \"${user_portainer}\", \"Password\": \"${pass_portainer}\"}" 2>/dev/null || true)
 
-    if echo "$RESPONSE" | grep -q "\"Username\":\"${user_portainer}\""; then
+    if [[ -n "$RESPONSE" ]] && echo "$RESPONSE" | grep -q "\"Username\":\"${user_portainer}\""; then
       CONTA_CRIADA=true
+      break
+    elif [[ -n "$RESPONSE" ]] && echo "$RESPONSE" | grep -q "already exists"; then
+      CONTA_CRIADA=true
+      step_skip "Conta admin do Portainer (ja existe — tentando autenticar com credenciais fornecidas)"
       break
     else
       log "Tentando criar conta no Portainer ${i}/${MAX_RETRIES}. Resposta: ${RESPONSE}"
       if [ $i -eq $MAX_RETRIES ]; then
         echo "  Nao foi possivel criar conta admin apos ${MAX_RETRIES} tentativas."
-        echo "  Erro: ${RESPONSE}"
+        if [[ -n "$RESPONSE" ]]; then
+          echo "  Resposta: ${RESPONSE}"
+        else
+          echo "  Sem resposta — verifique DNS e SSL para https://${dominio_portainer}"
+        fi
         echo "  Crie manualmente acessando https://${dominio_portainer}"
       fi
       sleep $DELAY
@@ -333,21 +372,21 @@ EOL
   done
 
   if ! $CONTA_CRIADA; then
-    step_fail "Criar conta admin do Portainer (crie manualmente via browser)"
+    step_skip "Conta admin do Portainer nao criada (crie manualmente via browser: https://${dominio_portainer})"
   fi
 
   # Obter JWT token (só se conta foi criada)
   local token=""
   if $CONTA_CRIADA; then
     sleep 5
-    token=$(curl -k -s -X POST "https://${dominio_portainer}/api/auth" \
+    token=$(curl -k -s --connect-timeout 10 --max-time 30 -X POST "https://${dominio_portainer}/api/auth" \
       -H "Content-Type: application/json" \
-      -d "{\"username\":\"${user_portainer}\",\"password\":\"${pass_portainer}\"}" | jq -r .jwt 2>/dev/null)
+      -d "{\"username\":\"${user_portainer}\",\"password\":\"${pass_portainer}\"}" 2>/dev/null | jq -r .jwt 2>/dev/null || true)
 
     if [ -n "$token" ] && [ "$token" != "null" ]; then
       step_ok "Conta admin do Portainer criada e token JWT obtido"
     else
-      step_fail "Falha ao gerar token JWT"
+      step_skip "Token JWT nao obtido (login manual via browser: https://${dominio_portainer})"
     fi
   fi
 

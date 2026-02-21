@@ -15,11 +15,13 @@ source "${LIB_DIR}/logger.sh"
 source "${LIB_DIR}/common.sh"
 source "${LIB_DIR}/hints.sh"
 source "${LIB_DIR}/env-detect.sh"
+source "${LIB_DIR}/auto.sh"
 
 # =============================================================================
 # STEP 1: LOGGING + STEP INIT
 # =============================================================================
 log_init "whitelabel"
+[[ "${AUTO_MODE:-false}" == "true" ]] && auto_load_config
 setup_trap
 step_init 8
 
@@ -42,7 +44,7 @@ while true; do
 
   # Nome do agente (kebab-case)
   while true; do
-    read -rp "Nome tecnico do agente (kebab-case, ex: jarvis, atlas): " nome_agente
+    input "whitelabel.nome_agente" "Nome tecnico do agente (kebab-case, ex: jarvis, atlas): " nome_agente --required
     if [[ -z "$nome_agente" ]]; then
       echo "  Nome nao pode ser vazio."
       continue
@@ -56,23 +58,23 @@ while true; do
   done
 
   # Display name
-  read -rp "Display name (ex: Jarvis, Atlas): " display_name
+  input "whitelabel.display_name" "Display name (ex: Jarvis, Atlas): " display_name --required
   if [[ -z "$display_name" ]]; then
     display_name="${nome_agente^}"
   fi
 
   # Icone
-  read -rp "Icone do agente (emoji, default: 🤖): " icone_input
+  input "whitelabel.icone" "Icone do agente (emoji, default: 🤖): " icone_input --default=🤖
   icone="${icone_input:-🤖}"
 
   # Persona/estilo
-  read -rp "Persona/estilo (ex: Pratico, eficiente, orientado a resultados): " persona_estilo
+  input "whitelabel.persona" "Persona/estilo (ex: Pratico, eficiente, orientado a resultados): " persona_estilo --required
   if [[ -z "$persona_estilo" ]]; then
     persona_estilo="Pratico, eficiente, orientado a resultados"
   fi
 
   # Idioma
-  read -rp "Idioma principal (default: pt-BR): " idioma_input
+  input "whitelabel.idioma" "Idioma principal (default: pt-BR): " idioma_input --default=pt-BR
   idioma="${idioma_input:-pt-BR}"
 
   # Conferindo as info
@@ -83,7 +85,7 @@ while true; do
     "Persona=${persona_estilo}" \
     "Idioma=${idioma}"
 
-  read -rp "As informacoes estao corretas? (s/n): " confirma
+  auto_confirm "As informacoes estao corretas? (s/n): " confirma
   if [[ "$confirma" =~ ^[Ss]$ ]]; then
     break
   fi

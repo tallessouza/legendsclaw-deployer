@@ -16,11 +16,13 @@ source "${LIB_DIR}/logger.sh"
 source "${LIB_DIR}/common.sh"
 source "${LIB_DIR}/hints.sh"
 source "${LIB_DIR}/env-detect.sh"
+source "${LIB_DIR}/auto.sh"
 
 # =============================================================================
 # STEP 1: LOGGING + STEP INIT
 # =============================================================================
 log_init "tailscale"
+[[ "${AUTO_MODE:-false}" == "true" ]] && auto_load_config
 setup_trap
 step_init 9
 
@@ -79,7 +81,7 @@ ambiente=$(detectar_ambiente)
 
 while true; do
   echo ""
-  read -rp "Hostname Tailscale (ex: legendsclaw-gw): " hostname_tailscale
+  input "tailscale.hostname" "Hostname Tailscale (ex: legendsclaw-gw): " hostname_tailscale --required
 
   if [[ -z "$hostname_tailscale" ]]; then
     echo "Hostname nao pode ser vazio."
@@ -88,7 +90,7 @@ while true; do
 
   conferindo_as_info "Hostname Tailscale=${hostname_tailscale}" "Ambiente=${ambiente}"
 
-  read -rp "As informacoes estao corretas? (s/n): " confirma
+  auto_confirm "As informacoes estao corretas? (s/n): " confirma
   if [[ "$confirma" =~ ^[Ss]$ ]]; then
     break
   fi
@@ -160,13 +162,14 @@ funnel_ativo="Inativo"
 porta_funnel=""
 
 echo ""
-read -rp "Deseja habilitar Tailscale Funnel para HTTPS publico? (s/N): " habilitar_funnel
+input "tailscale.habilitar_funnel" "Deseja habilitar Tailscale Funnel para HTTPS publico? (s/N): " habilitar_funnel --default=n
 
 if [[ "$habilitar_funnel" =~ ^[Ss]$ ]]; then
-  read -rp "Porta para Funnel (default 18789): " porta_funnel_input
+  input "tailscale.porta_funnel" "Porta para Funnel (default 18789): " porta_funnel_input --default=18789
   porta_funnel="${porta_funnel_input:-18789}"
 
-  if tailscale funnel "$porta_funnel" &>/dev/null; then
+  # --bg roda o funnel em background (nao bloqueia o script)
+  if tailscale funnel --bg "$porta_funnel" 2>/dev/null; then
     funnel_ativo="Ativo"
     step_ok "Tailscale Funnel habilitado na porta ${porta_funnel}"
   else
