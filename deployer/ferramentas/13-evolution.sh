@@ -16,6 +16,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 source "${SCRIPT_DIR}/lib/ui.sh"
 source "${SCRIPT_DIR}/lib/logger.sh"
 source "${SCRIPT_DIR}/lib/common.sh"
+source "${SCRIPT_DIR}/lib/auto.sh"
 source "${SCRIPT_DIR}/lib/deploy.sh"
 source "${SCRIPT_DIR}/lib/hints.sh"
 source "${SCRIPT_DIR}/lib/env-detect.sh"
@@ -27,6 +28,7 @@ readonly TOTAL=14
 
 main() {
   log_init "$FERRAMENTA"
+  [[ "${AUTO_MODE:-false}" == "true" ]] && auto_load_config
   setup_trap
   step_init "$TOTAL"
 
@@ -91,11 +93,12 @@ main() {
       echo ""
 
       while true; do
-        read -rp "Nome para a nova instancia (ex: cliente1, loja2): " instance_name
+        input "evolution.instance_name" "Nome para a nova instancia (ex: cliente1, loja2): " instance_name --required
         instance_name=$(echo "$instance_name" | tr '[:upper:]' '[:lower:]' | tr ' ' '_')
 
         if [[ ! "$instance_name" =~ ^[a-z][a-z0-9_]*$ ]]; then
           echo "  Nome invalido. Use apenas letras minusculas, numeros e underscore. Deve comecar com letra."
+          [[ "${AUTO_MODE:-false}" == "true" ]] && { step_fail "Config invalido: evolution.instance_name"; exit 1; }
           continue
         fi
 
@@ -106,6 +109,7 @@ main() {
         # Verificar se ja existe
         if echo "$existing_stacks" | grep -qx "$stack_name"; then
           echo "  Stack '$stack_name' ja existe. Escolha outro nome."
+          [[ "${AUTO_MODE:-false}" == "true" ]] && { step_fail "Stack '$stack_name' ja existe"; exit 1; }
           continue
         fi
 
@@ -124,11 +128,12 @@ main() {
       echo ""
 
       while true; do
-        read -rp "Nome para a nova instancia (ex: cliente1, loja2): " instance_name
+        input "evolution.instance_name" "Nome para a nova instancia (ex: cliente1, loja2): " instance_name --required
         instance_name=$(echo "$instance_name" | tr '[:upper:]' '[:lower:]' | tr ' ' '_')
 
         if [[ ! "$instance_name" =~ ^[a-z][a-z0-9_]*$ ]]; then
           echo "  Nome invalido. Use apenas letras minusculas, numeros e underscore. Deve comecar com letra."
+          [[ "${AUTO_MODE:-false}" == "true" ]] && { step_fail "Config invalido: evolution.instance_name"; exit 1; }
           continue
         fi
 
@@ -151,7 +156,7 @@ main() {
   while true; do
     echo ""
     if [[ "$ambiente" == "vps" ]]; then
-      read -rp "Dominio para a Evolution API (ex: api.exemplo.com): " url_evolution
+      input "evolution.url_evolution" "Dominio para a Evolution API (ex: api.exemplo.com): " url_evolution --required
     else
       url_evolution="localhost"
       echo "Modo local: Evolution acessivel em http://localhost:8080"
@@ -162,11 +167,12 @@ main() {
       echo ""
       echo "  OpenClaw Gateway detectado — integracao WhatsApp disponivel."
       while true; do
-        read -rp "Numero WhatsApp (formato: 5511999999999, sem + ou espacos): " numero_whatsapp
+        input "evolution.numero_whatsapp" "Numero WhatsApp (formato: 5511999999999, sem + ou espacos): " numero_whatsapp --required
         if [[ "$numero_whatsapp" =~ ^[0-9]{10,15}$ ]]; then
           break
         else
           echo "  Formato invalido. Use apenas digitos (10-15 caracteres). Ex: 5511999999999"
+          [[ "${AUTO_MODE:-false}" == "true" ]] && { step_fail "Config invalido: evolution.numero_whatsapp"; exit 1; }
         fi
       done
     fi
@@ -178,7 +184,7 @@ main() {
       fi
       conferindo_as_info "${conf_args[@]}"
 
-      read -rp "A informacao esta correta? (s/n): " confirmacao
+      auto_confirm "A informacao esta correta? (s/n): " confirmacao
       if [[ "$confirmacao" =~ ^[Ss]$ ]]; then
         break
       fi
@@ -221,8 +227,7 @@ main() {
     echo "  Postgres nao encontrado — instalando automaticamente (cascade)..."
     # Cascade inline: gerar YAML, deploy, wait (equivalente ao antigo 02-postgres.sh)
     local pg_senha
-    read -rsp "  Senha para Postgres (cascade install): " pg_senha
-    echo ""
+    input "evolution.pg_senha" "  Senha para Postgres (cascade install): " pg_senha --secret --required
     if [[ -z "$pg_senha" ]]; then
       step_fail "Senha Postgres vazia — cascade abortado"
       exit 1

@@ -1,0 +1,24 @@
+schema: 1
+story: '8.3'
+gate: PASS
+status_reason: 'Todas as 3 config keys corrigidas para alinhar com os nomes especificados nos subtasks da story. Code, auto-config.example e story agora consistentes.'
+reviewer: 'Quinn'
+updated: '2026-02-22T00:15:00Z'
+top_issues:
+  - id: 'REQ-001'
+    severity: medium
+    finding: 'RESOLVIDO — 13-evolution.sh config key renomeada de "evolution.url" para "evolution.url_evolution" conforme story task 6.3.'
+    status: fixed
+  - id: 'REQ-002'
+    severity: medium
+    finding: 'RESOLVIDO — 14-gateway-config.sh config key renomeada de "gateway.whatsapp_admin_phone" para "gateway_config.whatsapp_admin_phone" conforme story task 7.1.'
+    status: fixed
+  - id: 'REQ-003'
+    severity: medium
+    finding: 'RESOLVIDO — 15-validacao-final.sh config key renomeada de "validacao.whatsapp_confirm" para "validacao.whatsapp_confirmar" conforme story task 8.1.'
+    status: fixed
+  - id: 'TEST-001'
+    severity: low
+    finding: 'Nenhum teste BATS novo para validar comportamento AUTO_MODE das ferramentas migradas. Testes existentes cobrem modo interativo apenas.'
+    suggested_action: 'Considerar adicionar testes BATS para AUTO_MODE em story futura (8.4 ou dedicada)'
+waiver: { active: false }

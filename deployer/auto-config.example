@@ -128,7 +128,7 @@ seguranca.customizar: n
 # [13] EVOLUTION — WhatsApp API
 # =============================================================================
 # Dominio para a Evolution API (apenas VPS)
-evolution.url: api.exemplo.com
+evolution.url_evolution: api.exemplo.com
 # Numero WhatsApp (formato: 5511999999999, sem + ou espacos)
 evolution.numero_whatsapp: 5511999999999
 # Nome da instancia (para multi-instancia, ex: cliente1)
@@ -140,12 +140,14 @@ evolution.pg_senha: MinhaSenh4Postgres!
 # [14] GATEWAY CONFIG — Consolidacao Final
 # =============================================================================
 # Numero WhatsApp admin (apenas se Evolution configurado e phone ausente)
-gateway.whatsapp_admin_phone: 5511999999999
+gateway_config.whatsapp_admin_phone: 5511999999999
 
 # =============================================================================
 # [15] VALIDACAO FINAL — Teste End-to-End
 # =============================================================================
 # Enviar mensagem de teste via WhatsApp (s/n)
-validacao.whatsapp_confirm: s
+validacao.whatsapp_confirmar: s
 # Numero destino para teste
 validacao.numero_teste: 5511999999999
+# Resposta recebida e agente respondeu? (s/n, default: n)
+validacao.resposta_ok: n

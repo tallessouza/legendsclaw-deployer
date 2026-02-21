@@ -13,6 +13,7 @@ LIB_DIR="${SCRIPT_DIR}/../lib"
 source "${LIB_DIR}/ui.sh"
 source "${LIB_DIR}/logger.sh"
 source "${LIB_DIR}/common.sh"
+source "${LIB_DIR}/auto.sh"
 source "${LIB_DIR}/hints.sh"
 source "${LIB_DIR}/env-detect.sh"
 
@@ -52,6 +53,7 @@ mask_key() {
 # STEP 1: LOGGING + STEP INIT (dinamico — sera recalculado apos selecao)
 # =============================================================================
 log_init "skills"
+[[ "${AUTO_MODE:-false}" == "true" ]] && auto_load_config
 setup_trap
 # Temporario — sera recalculado apos selecao
 step_init 14
@@ -122,7 +124,7 @@ step_ok "Tabela de skills exibida"
 selected_skills=()
 
 while true; do
-  read -rp "Selecione skills (numeros separados por virgula/espaco, ou 'all'): " selecao_input
+  input "skills.selecao" "Selecione skills (numeros separados por virgula/espaco, ou 'all'): " selecao_input
 
   if [[ "$selecao_input" == "all" ]]; then
     selected_skills=("${SKILL_NAMES[@]}")
@@ -147,6 +149,11 @@ while true; do
     # Remover duplicatas
     mapfile -t selected_skills < <(printf '%s\n' "${selected_skills[@]}" | sort -u)
     break
+  fi
+
+  if [[ "${AUTO_MODE:-false}" == "true" ]]; then
+    step_fail "Config invalido: skills.selecao='${selecao_input}'"
+    exit 1
   fi
 
   if [[ ${#selected_skills[@]} -eq 0 ]]; then
@@ -189,7 +196,8 @@ while true; do
   if is_skill_selected "clickup-ops"; then
     echo -e "  ${UI_BOLD}--- clickup-ops ---${UI_NC}"
     while true; do
-      read -rp "  ClickUp API Key (pk_*): " clickup_api_key
+      input "skills.clickup_api_key" "  ClickUp API Key (pk_*): " clickup_api_key --secret --required
+      [[ "${AUTO_MODE:-false}" == "true" ]] && break
       echo "    Hint: Obter em: Settings > Apps > API Token"
       if [[ -z "$clickup_api_key" ]]; then
         echo "    ClickUp API Key e obrigatoria."
@@ -204,7 +212,8 @@ while true; do
     skill_vars[CLICKUP_API_KEY]="$clickup_api_key"
 
     while true; do
-      read -rp "  ClickUp Team ID (numerico): " clickup_team_id
+      input "skills.clickup_team_id" "  ClickUp Team ID (numerico): " clickup_team_id --required
+      [[ "${AUTO_MODE:-false}" == "true" ]] && break
       echo "    Hint: Obter em: Settings > Spaces > copiar Team ID da URL"
       if [[ -z "$clickup_team_id" ]]; then
         echo "    Team ID e obrigatorio."
@@ -223,7 +232,8 @@ while true; do
   if is_skill_selected "n8n-trigger"; then
     echo -e "  ${UI_BOLD}--- n8n-trigger ---${UI_NC}"
     while true; do
-      read -rp "  N8N API Key: " n8n_api_key
+      input "skills.n8n_api_key" "  N8N API Key: " n8n_api_key --secret --required
+      [[ "${AUTO_MODE:-false}" == "true" ]] && break
       echo "    Hint: Obter em: Settings > API > Create API Key"
       if [[ -z "$n8n_api_key" ]]; then
         echo "    N8N API Key e obrigatoria."
@@ -234,7 +244,8 @@ while true; do
     skill_vars[N8N_API_KEY]="$n8n_api_key"
 
     while true; do
-      read -rp "  N8N Webhook URL (https://...): " n8n_webhook_url
+      input "skills.n8n_webhook_url" "  N8N Webhook URL (https://...): " n8n_webhook_url --required
+      [[ "${AUTO_MODE:-false}" == "true" ]] && break
       echo "    Hint: URL base do webhook N8N"
       if [[ -z "$n8n_webhook_url" ]]; then
         echo "    N8N Webhook URL e obrigatoria."
@@ -253,7 +264,8 @@ while true; do
   if is_skill_selected "supabase-query"; then
     echo -e "  ${UI_BOLD}--- supabase-query ---${UI_NC}"
     while true; do
-      read -rp "  Supabase URL (https://*.supabase.co): " supabase_url
+      input "skills.supabase_url" "  Supabase URL (https://*.supabase.co): " supabase_url --required
+      [[ "${AUTO_MODE:-false}" == "true" ]] && break
       echo "    Hint: Obter em: Project Settings > API > URL"
       if [[ -z "$supabase_url" ]]; then
         echo "    Supabase URL e obrigatoria."
@@ -268,7 +280,8 @@ while true; do
     skill_vars[SUPABASE_URL]="$supabase_url"
 
     while true; do
-      read -rp "  Supabase Anon Key (eyJ...): " supabase_anon_key
+      input "skills.supabase_anon_key" "  Supabase Anon Key (eyJ...): " supabase_anon_key --secret --required
+      [[ "${AUTO_MODE:-false}" == "true" ]] && break
       echo "    Hint: Project Settings > API > anon key"
       if [[ -z "$supabase_anon_key" ]]; then
         echo "    Anon Key e obrigatoria."
@@ -283,7 +296,8 @@ while true; do
     skill_vars[SUPABASE_ANON_KEY]="$supabase_anon_key"
 
     while true; do
-      read -rp "  Supabase Service Role Key (eyJ...): " supabase_service_role_key
+      input "skills.supabase_service_role_key" "  Supabase Service Role Key (eyJ...): " supabase_service_role_key --secret --required
+      [[ "${AUTO_MODE:-false}" == "true" ]] && break
       echo "    Hint: Project Settings > API > service_role key"
       if [[ -z "$supabase_service_role_key" ]]; then
         echo "    Service Role Key e obrigatoria."
@@ -302,7 +316,8 @@ while true; do
   if is_skill_selected "allos-status"; then
     echo -e "  ${UI_BOLD}--- allos-status ---${UI_NC}"
     while true; do
-      read -rp "  Agent Gateway URL (http*): " agent_gateway_url
+      input "skills.agent_gateway_url" "  Agent Gateway URL (http*): " agent_gateway_url --required
+      [[ "${AUTO_MODE:-false}" == "true" ]] && break
       echo "    Hint: URL do OpenClaw Gateway — ver dados_openclaw"
       if [[ -z "$agent_gateway_url" ]]; then
         echo "    Gateway URL e obrigatoria."
@@ -321,7 +336,8 @@ while true; do
   if is_skill_selected "alerts"; then
     echo -e "  ${UI_BOLD}--- alerts ---${UI_NC}"
     while true; do
-      read -rp "  Slack Webhook URL (https://hooks.slack.com/...): " slack_webhook_url
+      input "skills.slack_webhook_url" "  Slack Webhook URL (https://hooks.slack.com/...): " slack_webhook_url --secret
+      [[ "${AUTO_MODE:-false}" == "true" ]] && break
       echo "    Hint: Criar em: Slack > Apps > Incoming Webhooks"
       if [[ -z "$slack_webhook_url" ]]; then
         echo "    Slack Webhook URL e obrigatoria."
@@ -354,7 +370,7 @@ while true; do
 
   conferindo_as_info "${conferindo_args[@]}"
 
-  read -rp "As informacoes estao corretas? (s/n): " confirma
+  auto_confirm "As informacoes estao corretas? (s/n): " confirma
   if [[ "$confirma" =~ ^[Ss]$ ]]; then
     break
   fi

@@ -24,11 +24,15 @@ readonly D_NC='\033[0m'
 run_ferramenta() {
   local script="$1"
   if bash "${SCRIPT_DIR}/${script}"; then
-    read -rp "Pressione ENTER para voltar ao menu..."
+    if [[ "${AUTO_MODE:-false}" != "true" ]]; then
+      read -rp "Pressione ENTER para voltar ao menu..."
+    fi
   else
     echo ""
     echo -e "${D_RED}Ferramenta falhou. Verifique o log em ~/legendsclaw-logs/${D_NC}"
-    read -rp "Pressione ENTER para voltar ao menu..."
+    if [[ "${AUTO_MODE:-false}" != "true" ]]; then
+      read -rp "Pressione ENTER para voltar ao menu..."
+    fi
   fi
 }
 

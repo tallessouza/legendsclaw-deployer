@@ -14,6 +14,7 @@ LIB_DIR="${SCRIPT_DIR}/../lib"
 source "${LIB_DIR}/ui.sh"
 source "${LIB_DIR}/logger.sh"
 source "${LIB_DIR}/common.sh"
+source "${LIB_DIR}/auto.sh"
 source "${LIB_DIR}/hints.sh"
 source "${LIB_DIR}/env-detect.sh"
 
@@ -21,6 +22,7 @@ source "${LIB_DIR}/env-detect.sh"
 # STEP 1: LOGGING + STEP INIT
 # =============================================================================
 log_init "gateway-config"
+[[ "${AUTO_MODE:-false}" == "true" ]] && auto_load_config
 setup_trap
 step_init 12
 
@@ -204,7 +206,7 @@ hooks_token=$(openssl rand -hex 24 2>/dev/null || cat /dev/urandom | tr -dc 'a-f
 # WhatsApp admin phone
 if [[ "$has_evolution" == "true" && -z "$whatsapp_admin_phone" ]]; then
   echo ""
-  read -rp "Numero WhatsApp admin (ex: 5511999999999): " whatsapp_admin_phone
+  input "gateway_config.whatsapp_admin_phone" "Numero WhatsApp admin (ex: 5511999999999): " whatsapp_admin_phone --required
 fi
 
 # Timezone fallback
@@ -221,7 +223,7 @@ conferindo_as_info \
   "Evolution=${has_evolution}" \
   "Seguranca=${has_seguranca}"
 
-read -rp "As informacoes estao corretas? (s/n): " confirma
+auto_confirm "As informacoes estao corretas? (s/n): " confirma
 if [[ ! "$confirma" =~ ^[Ss]$ ]]; then
   step_fail "Cancelado pelo usuario"
   exit 1

@@ -15,6 +15,7 @@ SEEDS_DIR="${SCRIPT_DIR}/../seeds"
 source "${LIB_DIR}/ui.sh"
 source "${LIB_DIR}/logger.sh"
 source "${LIB_DIR}/common.sh"
+source "${LIB_DIR}/auto.sh"
 source "${LIB_DIR}/hints.sh"
 source "${LIB_DIR}/env-detect.sh"
 
@@ -33,6 +34,7 @@ mask_key() {
 # STEP 1: LOGGING + STEP INIT
 # =============================================================================
 log_init "elicitation-schema"
+[[ "${AUTO_MODE:-false}" == "true" ]] && auto_load_config
 setup_trap
 step_init 10
 
@@ -82,7 +84,7 @@ if [[ -z "$supabase_url" ]]; then
   echo -e "  ${UI_YELLOW}SUPABASE_URL nao encontrada automaticamente.${UI_NC}"
   echo "  Hint: Acesse https://supabase.com/dashboard → Settings → API → Project URL"
   echo ""
-  read -rp "  SUPABASE_URL: " supabase_url
+  input "elicitation.supabase_url" "  SUPABASE_URL: " supabase_url --required
   if [[ -z "$supabase_url" ]]; then
     step_fail "SUPABASE_URL e obrigatoria"
     exit 1
@@ -94,7 +96,7 @@ if [[ -z "$supabase_key" ]]; then
   echo -e "  ${UI_YELLOW}SUPABASE_SERVICE_ROLE_KEY nao encontrada automaticamente.${UI_NC}"
   echo "  Hint: Acesse https://supabase.com/dashboard → Settings → API → service_role (secret)"
   echo ""
-  read -rp "  SUPABASE_SERVICE_ROLE_KEY: " supabase_key
+  input "elicitation.supabase_key" "  SUPABASE_SERVICE_ROLE_KEY: " supabase_key --secret --required
   if [[ -z "$supabase_key" ]]; then
     step_fail "SUPABASE_SERVICE_ROLE_KEY e obrigatoria"
     exit 1
@@ -115,7 +117,7 @@ conferindo_as_info \
   "Migration File=deployer/migrations/001-elicitation-tables.sql" \
   "Seed File=deployer/seeds/001-onboarding-founder.sql"
 
-read -rp "Confirma? (s/n): " confirmacao
+auto_confirm "Confirma? (s/n): " confirmacao
 if [[ ! "$confirmacao" =~ ^[Ss]$ ]]; then
   echo "Cancelado pelo operador."
   exit 0

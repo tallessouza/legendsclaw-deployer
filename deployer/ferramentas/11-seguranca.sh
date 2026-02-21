@@ -13,6 +13,7 @@ LIB_DIR="${SCRIPT_DIR}/../lib"
 source "${LIB_DIR}/ui.sh"
 source "${LIB_DIR}/logger.sh"
 source "${LIB_DIR}/common.sh"
+source "${LIB_DIR}/auto.sh"
 source "${LIB_DIR}/hints.sh"
 source "${LIB_DIR}/env-detect.sh"
 
@@ -26,6 +27,7 @@ readonly TOTAL=11
 # STEP 1: LOGGING + RESOURCE GATE
 # =============================================================================
 log_init "$FERRAMENTA"
+[[ "${AUTO_MODE:-false}" == "true" ]] && auto_load_config
 setup_trap
 step_init "$TOTAL"
 
@@ -109,45 +111,49 @@ echo "=============================================="
 echo ""
 
 # Customizacao interativa
-read -rp "Deseja customizar as regras? (s/n): " customizar
-if [[ "$customizar" =~ ^[Ss]$ ]]; then
-  while true; do
-    echo ""
-    echo "  1) Adicionar regra"
-    echo "  2) Remover regra"
-    echo "  3) Ver regras atuais"
-    echo "  4) Concluir customizacao"
-    read -rp "  Opcao: " opcao_custom
+if [[ "${AUTO_MODE:-false}" == "true" ]]; then
+  log "Customizacao de regras skipada (AUTO_MODE) — usando defaults"
+else
+  input "seguranca.customizar" "Deseja customizar as regras? (s/n): " customizar --default=n
+  if [[ "$customizar" =~ ^[Ss]$ ]]; then
+    while true; do
+      echo ""
+      echo "  1) Adicionar regra"
+      echo "  2) Remover regra"
+      echo "  3) Ver regras atuais"
+      echo "  4) Concluir customizacao"
+      read -rp "  Opcao: " opcao_custom
 
-    case "$opcao_custom" in
-      1)
-        read -rp "  Comando a bloquear: " novo_comando
-        if [[ -n "$novo_comando" ]]; then
-          # Adicionar antes da linha "validation:"
-          sed -i "/^validation:/i\\  - ${novo_comando}" "${blocklist_dir}/blocklist.yaml"
-          echo -e "  ${UI_GREEN}Adicionado:${UI_NC} ${novo_comando}"
-        fi
-        ;;
-      2)
-        read -rp "  Comando a desbloquear: " rm_comando
-        if [[ -n "$rm_comando" ]]; then
-          sed -i "/^  - ${rm_comando}$/d" "${blocklist_dir}/blocklist.yaml"
-          echo -e "  ${UI_YELLOW}Removido:${UI_NC} ${rm_comando}"
-        fi
-        ;;
-      3)
-        echo ""
-        grep "^  - " "${blocklist_dir}/blocklist.yaml" | head -20
-        echo ""
-        ;;
-      4)
-        break
-        ;;
-      *)
-        echo "  Opcao invalida"
-        ;;
-    esac
-  done
+      case "$opcao_custom" in
+        1)
+          read -rp "  Comando a bloquear: " novo_comando
+          if [[ -n "$novo_comando" ]]; then
+            # Adicionar antes da linha "validation:"
+            sed -i "/^validation:/i\\  - ${novo_comando}" "${blocklist_dir}/blocklist.yaml"
+            echo -e "  ${UI_GREEN}Adicionado:${UI_NC} ${novo_comando}"
+          fi
+          ;;
+        2)
+          read -rp "  Comando a desbloquear: " rm_comando
+          if [[ -n "$rm_comando" ]]; then
+            sed -i "/^  - ${rm_comando}$/d" "${blocklist_dir}/blocklist.yaml"
+            echo -e "  ${UI_YELLOW}Removido:${UI_NC} ${rm_comando}"
+          fi
+          ;;
+        3)
+          echo ""
+          grep "^  - " "${blocklist_dir}/blocklist.yaml" | head -20
+          echo ""
+          ;;
+        4)
+          break
+          ;;
+        *)
+          echo "  Opcao invalida"
+          ;;
+      esac
+    done
+  fi
 fi
 
 # Contar regras

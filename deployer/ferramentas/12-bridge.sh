@@ -13,6 +13,7 @@ LIB_DIR="${SCRIPT_DIR}/../lib"
 source "${LIB_DIR}/ui.sh"
 source "${LIB_DIR}/logger.sh"
 source "${LIB_DIR}/common.sh"
+source "${LIB_DIR}/auto.sh"
 source "${LIB_DIR}/hints.sh"
 source "${LIB_DIR}/env-detect.sh"
 
@@ -20,6 +21,7 @@ source "${LIB_DIR}/env-detect.sh"
 # STEP 1: LOGGING + STEP INIT
 # =============================================================================
 log_init "bridge"
+[[ "${AUTO_MODE:-false}" == "true" ]] && auto_load_config
 setup_trap
 step_init 10
 
@@ -85,7 +87,7 @@ conferindo_as_info \
   "Gateway URL=${gateway_url}" \
   "Tailscale=${tailscale_connected}"
 
-read -rp "As informacoes estao corretas? (s/n): " confirma
+auto_confirm "As informacoes estao corretas? (s/n): " confirma
 if ! [[ "$confirma" =~ ^[Ss]$ ]]; then
   echo "Cancelado pelo usuario."
   exit 0

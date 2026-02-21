@@ -12,6 +12,7 @@ LIB_DIR="${SCRIPT_DIR}/../lib"
 source "${LIB_DIR}/ui.sh"
 source "${LIB_DIR}/logger.sh"
 source "${LIB_DIR}/common.sh"
+source "${LIB_DIR}/auto.sh"
 source "${LIB_DIR}/hints.sh"
 source "${LIB_DIR}/env-detect.sh"
 
@@ -19,6 +20,7 @@ source "${LIB_DIR}/env-detect.sh"
 # LOGGING + STEP INIT
 # =============================================================================
 log_init "validation-final"
+[[ "${AUTO_MODE:-false}" == "true" ]] && auto_load_config
 setup_trap
 step_init 15
 
@@ -278,12 +280,12 @@ echo -e "==============================================${UI_NC}"
 echo ""
 
 if [[ "${CHECK_RESULTS[9]:-SKIP}" == "OK" ]]; then
-  read -rp "Deseja enviar mensagem de teste via WhatsApp? (s/n): " whatsapp_confirm
+  input "validacao.whatsapp_confirmar" "Deseja enviar mensagem de teste via WhatsApp? (s/n): " whatsapp_confirm --default=n
   if [[ "$whatsapp_confirm" =~ ^[Ss]$ ]]; then
     echo "  Enviando mensagem de teste..."
 
     # Ler numero de teste (proprio numero ou numero configurado)
-    read -rp "  Numero destino (com DDI, ex: 5511999999999): " numero_teste
+    input "validacao.numero_teste" "  Numero destino (com DDI, ex: 5511999999999): " numero_teste --required
     # Sanitizar: manter apenas digitos
     numero_teste="${numero_teste//[^0-9]/}"
     if [[ -z "$numero_teste" ]]; then
@@ -309,7 +311,7 @@ if [[ "${CHECK_RESULTS[9]:-SKIP}" == "OK" ]]; then
         echo "  Verifique no celular se a mensagem chegou."
         echo "  Responda a mensagem para confirmar que o elicitation inicia."
         echo ""
-        read -rp "  A resposta foi recebida e o agente respondeu? (s/n): " resposta_ok
+        input "validacao.resposta_ok" "  A resposta foi recebida e o agente respondeu? (s/n): " resposta_ok --default=n
         if [[ "$resposta_ok" =~ ^[Ss]$ ]]; then
           whatsapp_test_detail="Mensagem enviada e resposta confirmada pelo operador"
         else
@@ -321,6 +323,9 @@ if [[ "${CHECK_RESULTS[9]:-SKIP}" == "OK" ]]; then
         whatsapp_test_detail="Falha ao enviar mensagem: ${send_response:-sem resposta}"
       fi
     fi
+  elif [[ "${AUTO_MODE:-false}" == "true" ]]; then
+    log "Teste WhatsApp skipado (AUTO_MODE, validacao.whatsapp_confirm=n)"
+    whatsapp_test_detail="Skipado em AUTO_MODE"
   fi
 else
   whatsapp_test_detail="WhatsApp nao conectado (Check 9 = ${CHECK_RESULTS[9]:-SKIP})"
