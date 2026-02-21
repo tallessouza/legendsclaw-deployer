@@ -23,7 +23,7 @@ source "${LIB_DIR}/auto.sh"
 log_init "workspace"
 [[ "${AUTO_MODE:-false}" == "true" ]] && auto_load_config
 setup_trap
-step_init 10
+step_init 12
 
 # =============================================================================
 # STEP 2: LOAD STATE + VERIFICAR DEPENDENCIA WHITELABEL
@@ -551,7 +551,30 @@ BOOTSTRAP_EOF
 step_ok "MEMORY.md e BOOTSTRAP.md gerados"
 
 # =============================================================================
-# STEP 9: SAVE STATE — dados_workspace
+# STEP 9: COPIAR WORKSPACE PARA OPENCLAW (~/.openclaw/workspace/)
+# O OpenClaw le os arquivos de personalidade de ~/.openclaw/workspace/
+# O deployer gera em apps/{agente}/workspace/ mas precisa copiar pro destino.
+# =============================================================================
+OPENCLAW_WORKSPACE="/root/.openclaw/workspace"
+if [[ -d "$OPENCLAW_WORKSPACE" ]]; then
+  for arquivo in SOUL.md IDENTITY.md USER.md AGENTS.md BOOTSTRAP.md MEMORY.md; do
+    if [[ -f "${WORKSPACE_DIR}/${arquivo}" ]]; then
+      cp "${WORKSPACE_DIR}/${arquivo}" "${OPENCLAW_WORKSPACE}/${arquivo}"
+    fi
+  done
+  step_ok "Workspace copiado para ~/.openclaw/workspace/"
+
+  # Reiniciar gateway para carregar novos arquivos
+  if systemctl --user is-active openclaw-gateway &>/dev/null; then
+    systemctl --user restart openclaw-gateway
+    step_ok "Gateway reiniciado para carregar workspace"
+  fi
+else
+  step_skip "OpenClaw nao instalado (~/.openclaw/workspace/ nao existe) — copie manualmente depois"
+fi
+
+# =============================================================================
+# STEP 10: SAVE STATE — dados_workspace
 # =============================================================================
 mkdir -p "$STATE_DIR"
 cat > "$STATE_DIR/dados_workspace" << EOF
@@ -571,7 +594,7 @@ chmod 600 "$STATE_DIR/dados_workspace"
 step_ok "Estado salvo em ~/dados_vps/dados_workspace"
 
 # =============================================================================
-# STEP 10: RESUMO + HINTS
+# STEP 12: RESUMO + HINTS
 # =============================================================================
 resumo_final
 
