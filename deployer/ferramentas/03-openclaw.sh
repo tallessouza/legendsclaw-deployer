@@ -213,6 +213,12 @@ else
   exit 1
 fi
 
+# 8a.1: Instalar dependencia signal-utils (workaround — falta no package.json upstream)
+if ! pnpm list signal-utils &>/dev/null 2>&1; then
+  echo "  Instalando signal-utils (dependencia faltante do a2ui bundler)..."
+  pnpm add -D signal-utils 2>&1 || true
+fi
+
 # 8b: pnpm ui:build
 if pnpm ui:build 2>&1; then
   step_ok "pnpm ui:build concluido"
