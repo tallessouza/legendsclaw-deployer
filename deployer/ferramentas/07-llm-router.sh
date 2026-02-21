@@ -115,23 +115,18 @@ while true; do
     break
   done
 
-  # Anthropic key (obrigatorio)
-  while true; do
-    input "llm_router.anthropic_key" "Anthropic API Key (sk-ant-...): " anthropic_key --secret --required
-    if [[ -z "$anthropic_key" ]]; then
-      echo "  Anthropic key e obrigatoria."
-      continue
-    fi
+  # Anthropic key (opcional — usado nos tiers quality/premium)
+  input "llm_router.anthropic_key" "Anthropic API Key (opcional, Enter para pular): " anthropic_key --secret
+
+  if [[ -n "$anthropic_key" ]]; then
     if [[ ${#anthropic_key} -lt 50 ]]; then
-      echo "  Key muito curta (minimo 50 caracteres)."
-      continue
+      echo "  Key muito curta (minimo 50 caracteres). Ignorando."
+      anthropic_key=""
+    elif ! [[ "$anthropic_key" =~ ^sk-ant- ]]; then
+      echo "  Formato invalido. Anthropic keys comecam com 'sk-ant-'. Ignorando."
+      anthropic_key=""
     fi
-    if ! [[ "$anthropic_key" =~ ^sk-ant- ]]; then
-      echo "  Formato invalido. Anthropic keys comecam com 'sk-ant-'."
-      continue
-    fi
-    break
-  done
+  fi
 
   # DeepSeek key (opcional)
   input "llm_router.deepseek_key" "DeepSeek API Key (opcional, Enter para pular): " deepseek_key --secret
@@ -164,7 +159,7 @@ while true; do
   # Conferindo as info (keys mascaradas)
   conferindo_as_info \
     "OpenRouter Key=$(mask_key "$openrouter_key")" \
-    "Anthropic Key=$(mask_key "$anthropic_key")" \
+    "Anthropic Key=$(if [[ -n "$anthropic_key" ]]; then mask_key "$anthropic_key"; else echo "nao configurado"; fi)" \
     "DeepSeek Key=$(if [[ -n "$deepseek_key" ]]; then mask_key "$deepseek_key"; else echo "nao configurado"; fi)" \
     "Tier Padrao=${tier_padrao}" \
     "Metricas=${metrics_enabled}"
@@ -373,7 +368,7 @@ fallback:
   max_total_retries: 5
   timeout_ms: 30000
   tier_escalation: true
-  anthropic_direct_fallback: true
+  anthropic_direct_fallback: $(if [[ -n "$anthropic_key" ]]; then echo "true"; else echo "false"; fi)
   on_error:
     rate_limit: exponential_backoff
     timeout: try_faster_model
@@ -454,7 +449,11 @@ upsert_env_block() {
     echo "LLM_ROUTER_CONFIG_PATH=apps/${nome_agente}/config/llm-router-config.yaml"
     echo "LLM_ROUTER_DEFAULT_TIER=${tier_padrao}"
     echo "OPENROUTER_API_KEY=${openrouter_key}"
-    echo "ANTHROPIC_API_KEY=${anthropic_key}"
+    if [[ -n "$anthropic_key" ]]; then
+      echo "ANTHROPIC_API_KEY=${anthropic_key}"
+    else
+      echo "# ANTHROPIC_API_KEY=  # Opcional — tiers quality/premium via OpenRouter"
+    fi
     if [[ -n "$deepseek_key" ]]; then
       echo "DEEPSEEK_API_KEY=${deepseek_key}"
     else
@@ -511,8 +510,11 @@ cat > "$STATE_DIR/dados_llm_router" << EOF
 Agente: ${nome_agente}
 Config Path: apps/${nome_agente}/config/llm-router-config.yaml
 Default Tier: ${tier_padrao}
+OPENROUTER_API_KEY: ${openrouter_key}
+ANTHROPIC_ADMIN_KEY: ${anthropic_key}
+DEEPSEEK_API_KEY: ${deepseek_key}
 OpenRouter: configurado
-Anthropic: configurado
+Anthropic: $(if [[ -n "$anthropic_key" ]]; then echo "configurado"; else echo "nao configurado"; fi)
 DeepSeek: $(if [[ -n "$deepseek_key" ]]; then echo "configurado"; else echo "nao configurado"; fi)
 Teste Budget: ${teste_resultado}
 Env File: ${ENV_FILE}
@@ -543,7 +545,7 @@ echo "  Keywords:      4 categorias"
 echo "  Fallback:      tier_escalation + on_error handlers"
 echo "  Metricas:      ${metrics_enabled}"
 echo "  OpenRouter:    $(mask_key "$openrouter_key")"
-echo "  Anthropic:     $(mask_key "$anthropic_key")"
+echo "  Anthropic:     $(if [[ -n "$anthropic_key" ]]; then mask_key "$anthropic_key"; else echo "nao configurado"; fi)"
 echo "  DeepSeek:      $(if [[ -n "$deepseek_key" ]]; then mask_key "$deepseek_key"; else echo "nao configurado"; fi)"
 echo "  Teste budget:  ${teste_resultado}"
 echo ""
