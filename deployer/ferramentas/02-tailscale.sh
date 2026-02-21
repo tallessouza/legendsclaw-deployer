@@ -156,29 +156,34 @@ hint_tailscale_desktop "$hostname_tailscale" "$ip_tailscale" "$ambiente"
 step_ok "Hints de setup desktop exibidos"
 
 # =============================================================================
-# STEP 8c: TAILSCALE FUNNEL (OPCIONAL)
+# STEP 8c: TAILSCALE SERVE/FUNNEL — DELEGADO AO OPENCLAW ONBOARD
+# O openclaw onboard --install-daemon configura Tailscale Serve/Funnel
+# internamente, ja sabendo a porta e bind do gateway.
+# Configurar aqui causava conflito com o onboard.
 # =============================================================================
 funnel_ativo="Inativo"
 porta_funnel=""
 
-echo ""
-input "tailscale.habilitar_funnel" "Deseja habilitar Tailscale Funnel para HTTPS publico? (s/N): " habilitar_funnel --default=n
+# echo ""
+# input "tailscale.habilitar_funnel" "Deseja habilitar Tailscale Funnel para HTTPS publico? (s/N): " habilitar_funnel --default=n
+#
+# if [[ "$habilitar_funnel" =~ ^[Ss]$ ]]; then
+#   input "tailscale.porta_funnel" "Porta para Funnel (default 18789): " porta_funnel_input --default=18789
+#   porta_funnel="${porta_funnel_input:-18789}"
+#
+#   # --bg roda o funnel em background (nao bloqueia o script)
+#   if tailscale funnel --bg "$porta_funnel" 2>/dev/null; then
+#     funnel_ativo="Ativo"
+#     step_ok "Tailscale Funnel habilitado na porta ${porta_funnel}"
+#   else
+#     step_skip "Tailscale Funnel nao suportado (requer HTTPS certs do Tailscale)"
+#     porta_funnel=""
+#   fi
+# else
+#   step_skip "Tailscale Funnel nao solicitado"
+# fi
 
-if [[ "$habilitar_funnel" =~ ^[Ss]$ ]]; then
-  input "tailscale.porta_funnel" "Porta para Funnel (default 18789): " porta_funnel_input --default=18789
-  porta_funnel="${porta_funnel_input:-18789}"
-
-  # --bg roda o funnel em background (nao bloqueia o script)
-  if tailscale funnel --bg "$porta_funnel" 2>/dev/null; then
-    funnel_ativo="Ativo"
-    step_ok "Tailscale Funnel habilitado na porta ${porta_funnel}"
-  else
-    step_skip "Tailscale Funnel nao suportado (requer HTTPS certs do Tailscale)"
-    porta_funnel=""
-  fi
-else
-  step_skip "Tailscale Funnel nao solicitado"
-fi
+step_skip "Tailscale Serve/Funnel sera configurado pelo OpenClaw onboard"
 
 # =============================================================================
 # STEP 9: SALVAR ESTADO + RESUMO
