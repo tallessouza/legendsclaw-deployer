@@ -319,8 +319,8 @@ Display Name: ${display_name}
 Icone: ${icone}
 Persona: ${persona_estilo}
 Idioma: ${idioma}
-Apps Path: apps/${nome_agente}
-Config: apps/${nome_agente}/skills/config.js
+Apps Path: ${APPS_DIR}
+Config: ${APPS_DIR}/skills/config.js
 Data Criacao: $(date '+%Y-%m-%d %H:%M:%S')
 EOF
 chmod 600 "$STATE_DIR/dados_whitelabel"

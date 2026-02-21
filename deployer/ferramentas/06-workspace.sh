@@ -52,7 +52,13 @@ step_ok "Estado carregado — dados_whitelabel encontrado (${nome_agente})"
 # =============================================================================
 # STEP 3: CRIAR DIRETORIO WORKSPACE
 # =============================================================================
-WORKSPACE_DIR="${apps_path:-apps/${nome_agente}}/workspace"
+DEPLOYER_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+# Se apps_path for relativo, resolver a partir do DEPLOYER_ROOT
+if [[ "$apps_path" == /* ]]; then
+  WORKSPACE_DIR="${apps_path}/workspace"
+else
+  WORKSPACE_DIR="${DEPLOYER_ROOT}/${apps_path:-apps/${nome_agente}}/workspace"
+fi
 mkdir -p "$WORKSPACE_DIR"
 mkdir -p "$WORKSPACE_DIR/memory"
 
