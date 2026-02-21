@@ -108,14 +108,14 @@ echo "  IMPORTANTE: Tailscale vai exibir um link de autenticacao."
 echo "  Copie o link e abra no navegador para autorizar esta maquina."
 echo ""
 
-tailscale up --hostname="$hostname_tailscale" &
+sudo tailscale up --hostname="$hostname_tailscale" &
 ts_pid=$!
 
 # Polling: aguardar autenticacao (timeout 5 min = 30 iter x 10s)
 autenticado=false
 for iter in $(seq 1 30); do
   sleep 10
-  ts_status=$(tailscale status --json 2>/dev/null | jq -r '.BackendState' 2>/dev/null || echo "")
+  ts_status=$(sudo tailscale status --json 2>/dev/null | jq -r '.BackendState' 2>/dev/null || echo "")
   if [[ "$ts_status" == "Running" ]]; then
     autenticado=true
     break
@@ -132,16 +132,16 @@ if $autenticado; then
   step_ok "Tailscale autenticado com sucesso"
 else
   step_fail "Timeout aguardando autenticacao Tailscale (5 min)"
-  echo "  Execute manualmente: tailscale up --hostname=${hostname_tailscale}"
+  echo "  Execute manualmente: sudo tailscale up --hostname=${hostname_tailscale}"
   exit 1
 fi
 
 # =============================================================================
 # STEP 8: VERIFICAR CONECTIVIDADE
 # =============================================================================
-ip_tailscale=$(tailscale ip -4 2>/dev/null || echo "desconhecido")
+ip_tailscale=$(sudo tailscale ip -4 2>/dev/null || echo "desconhecido")
 
-if tailscale status &>/dev/null; then
+if sudo tailscale status &>/dev/null; then
   step_ok "Conectividade verificada — IP: ${ip_tailscale}"
 else
   step_fail "Falha na verificacao de conectividade"
