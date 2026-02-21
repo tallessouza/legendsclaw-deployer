@@ -290,6 +290,29 @@ hint_whitelabel() {
   echo ""
 }
 
+# Hint de proximos passos para workspace
+# Uso: hint_workspace "$nome_agente"
+hint_workspace() {
+  local nome_agente="${1:-meu-agente}"
+
+  echo ""
+  echo -e "${UI_BOLD:-\033[1m}=============================================="
+  echo "  HINT: PROXIMOS PASSOS"
+  echo -e "==============================================${UI_NC:-\033[0m}"
+  echo ""
+  echo "  1. Configurar LLM Router:"
+  echo "     deployer.sh → Ferramenta [07]"
+  echo ""
+  echo "  2. Revisar e personalizar os workspace files:"
+  echo "     apps/${nome_agente}/workspace/"
+  echo ""
+  echo "  3. Editar SOUL.md para refinar a personalidade:"
+  echo "     apps/${nome_agente}/workspace/SOUL.md"
+  echo ""
+  echo "=============================================="
+  echo ""
+}
+
 # Hint de debug e proximos passos para LLM Router
 # Uso: hint_llm_router "$nome_agente"
 hint_skills() {
@@ -786,10 +809,14 @@ hint_llm_router() {
   echo "     curl -H 'Authorization: Bearer \$OPENROUTER_API_KEY' \\"
   echo "       https://openrouter.ai/api/v1/models"
   echo ""
-  echo "  3. Config do router:"
-  echo "     apps/${nome_agente}/config/llm-router-config.yaml"
+  echo "  3. Verificar config completa (4 tiers, keywords, fallback):"
+  echo "     cat apps/${nome_agente}/config/llm-router-config.yaml | head -20"
   echo ""
-  echo "  4. Proximo: configurar skills do agente (Epics futuros)"
+  echo "  4. Tiers disponiveis: budget, standard, quality, premium"
+  echo "     Fallback chain: budget → standard → quality → premium"
+  echo ""
+  echo "  5. Proximo: configurar skills do agente"
+  echo "     deployer.sh → Ferramenta [08]"
   echo ""
   echo "=============================================="
   echo ""
