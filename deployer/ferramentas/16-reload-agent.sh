@@ -68,10 +68,11 @@ if [[ -d "$workspace_dir" ]]; then
 fi
 
 # LLM Router config
-if [[ -n "${nome_agente:-}" ]] && [[ -f "apps/${nome_agente}/config/llm-router-config.yaml" ]]; then
+DEPLOYER_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+if [[ -n "${nome_agente:-}" ]] && [[ -f "${DEPLOYER_ROOT}/apps/${nome_agente}/config/llm-router-config.yaml" ]]; then
   echo "  ✓ llm-router-config.yaml"
 fi
-if [[ -n "${nome_agente:-}" ]] && [[ -f "apps/${nome_agente}/skills/config.js" ]]; then
+if [[ -n "${nome_agente:-}" ]] && [[ -f "${DEPLOYER_ROOT}/apps/${nome_agente}/skills/config.js" ]]; then
   echo "  ✓ skills/config.js"
 fi
 

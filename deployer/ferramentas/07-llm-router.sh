@@ -44,7 +44,8 @@ step_ok "Estado carregado — agente '${nome_agente}' encontrado"
 # =============================================================================
 # STEP 3: CHECK DEPENDENCIES — llm-router-config.yaml existe
 # =============================================================================
-CONFIG_FILE="apps/${nome_agente}/config/llm-router-config.yaml"
+DEPLOYER_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+CONFIG_FILE="${DEPLOYER_ROOT}/apps/${nome_agente}/config/llm-router-config.yaml"
 if [[ ! -f "$CONFIG_FILE" ]]; then
   step_fail "Config LLM Router nao encontrado: ${CONFIG_FILE}"
   echo "  Execute a Ferramenta [05] Whitelabel primeiro"

@@ -96,7 +96,8 @@ step_ok "Inputs coletados"
 # =============================================================================
 # STEP 4: CHECK EXISTING — verificar se agente ja existe
 # =============================================================================
-APPS_DIR="apps/${nome_agente}"
+DEPLOYER_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+APPS_DIR="${DEPLOYER_ROOT}/apps/${nome_agente}"
 if [[ -d "$APPS_DIR" ]]; then
   step_fail "Agente '${nome_agente}' ja existe em ${APPS_DIR}"
   echo "  Use outro nome ou remova manualmente: rm -rf ${APPS_DIR}"

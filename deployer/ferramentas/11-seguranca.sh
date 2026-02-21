@@ -72,7 +72,8 @@ fi
 # =============================================================================
 
 # Diretorio destino da blocklist
-blocklist_dir="apps/${nome_agente}/skills/lib"
+DEPLOYER_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+blocklist_dir="${DEPLOYER_ROOT}/apps/${nome_agente}/skills/lib"
 mkdir -p "$blocklist_dir"
 
 # Gerar blocklist.yaml com regras default

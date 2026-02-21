@@ -84,7 +84,8 @@ fi
 # =============================================================================
 # STEP 3: CHECK DEPENDENCIES — skills/ existe
 # =============================================================================
-APPS_DIR="apps/${nome_agente}"
+DEPLOYER_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+APPS_DIR="${DEPLOYER_ROOT}/apps/${nome_agente}"
 SKILLS_DIR="${APPS_DIR}/skills"
 
 if [[ ! -d "$SKILLS_DIR" ]]; then
