@@ -898,26 +898,15 @@ fi
 # =============================================================================
 # STEP 15: REINICIAR OPENCLAW GATEWAY
 # =============================================================================
-gateway_pid=$(pgrep -f openclaw-gateway 2>/dev/null || true)
-if [[ -n "$gateway_pid" ]]; then
-  kill "$gateway_pid" 2>/dev/null || true
-  sleep 2
-  new_pid=$(pgrep -f openclaw-gateway 2>/dev/null || true)
-  if [[ -n "$new_pid" ]]; then
-    step_ok "OpenClaw Gateway reiniciado (PID ${new_pid})"
-  else
-    cd /opt/openclaw && nohup node openclaw.mjs gateway > /dev/null 2>&1 &
-    sleep 3
-    cd - > /dev/null
-    new_pid=$(pgrep -f openclaw-gateway 2>/dev/null || true)
-    if [[ -n "$new_pid" ]]; then
-      step_ok "OpenClaw Gateway iniciado (PID ${new_pid})"
-    else
-      step_fail "OpenClaw Gateway nao reiniciou — reinicie manualmente"
-    fi
-  fi
+if reload_gateway; then
+  step_ok "OpenClaw Gateway reiniciado — skills atualizadas"
 else
-  step_skip "OpenClaw Gateway nao estava rodando"
+  ret=$?
+  if [[ "$ret" -eq 2 ]]; then
+    step_skip "OpenClaw Gateway nao estava rodando"
+  else
+    step_fail "OpenClaw Gateway nao reiniciou — reinicie manualmente"
+  fi
 fi
 
 # =============================================================================

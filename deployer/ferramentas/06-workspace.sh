@@ -565,8 +565,7 @@ if [[ -d "$OPENCLAW_WORKSPACE" ]]; then
   step_ok "Workspace copiado para ~/.openclaw/workspace/"
 
   # Reiniciar gateway para carregar novos arquivos
-  if systemctl --user is-active openclaw-gateway &>/dev/null; then
-    systemctl --user restart openclaw-gateway
+  if reload_gateway; then
     step_ok "Gateway reiniciado para carregar workspace"
   fi
 else

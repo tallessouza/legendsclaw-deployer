@@ -554,4 +554,11 @@ echo ""
 
 hint_llm_router "${nome_agente}"
 
+# Reload gateway se estiver rodando
+if reload_gateway; then
+  echo -e "  Gateway reiniciado — novas rotas LLM ativas"
+elif [[ $? -eq 2 ]]; then
+  echo "  INFO: Gateway nao encontrado (sera aplicado ao iniciar)"
+fi
+
 log_finish

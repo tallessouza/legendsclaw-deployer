@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # =============================================================================
 # Legendsclaw Deployer — Common Functions
-# dados(), recursos(), verificar_stack(), validar_senha()
-# cleanup_on_fail(), setup_trap()
+# dados(), recursos(), verificar_stack(), validar_senha(),
+# cleanup_on_fail(), setup_trap(), reload_gateway()
 # NOTE: This file is sourced (not executed standalone).
 #       It inherits set -euo pipefail from the calling script.
 # IMPORTANT: Every ferramentas script MUST call setup_trap() after log_init().
@@ -218,4 +218,43 @@ conferindo_as_info() {
   done
   echo ""
   echo "=============================================="
+}
+
+# --- Reload Gateway ---
+# Reinicia o OpenClaw Gateway independente de como foi instalado.
+# Uso: reload_gateway
+# Retorna: 0 se reiniciou com sucesso, 1 se falhou, 2 se nao encontrado
+reload_gateway() {
+  # System service
+  if systemctl is-active openclaw &>/dev/null 2>&1; then
+    sudo systemctl restart openclaw
+    sleep 3
+    systemctl is-active openclaw &>/dev/null 2>&1 && return 0 || return 1
+  fi
+  # User service (openclaw)
+  if systemctl --user is-active openclaw &>/dev/null 2>&1; then
+    systemctl --user restart openclaw
+    sleep 3
+    systemctl --user is-active openclaw &>/dev/null 2>&1 && return 0 || return 1
+  fi
+  # User service (openclaw-gateway)
+  if systemctl --user is-active openclaw-gateway &>/dev/null 2>&1; then
+    systemctl --user restart openclaw-gateway
+    sleep 3
+    systemctl --user is-active openclaw-gateway &>/dev/null 2>&1 && return 0 || return 1
+  fi
+  # Bare process
+  local gw_pid
+  gw_pid=$(pgrep -f "openclaw.*gateway\|openclaw.*serve\|dist/cli.js serve" 2>/dev/null | head -1 || true)
+  if [[ -n "$gw_pid" ]]; then
+    kill "$gw_pid" 2>/dev/null || true
+    sleep 2
+    pushd /opt/openclaw > /dev/null 2>&1 || return 1
+    nohup node dist/cli.js serve > /dev/null 2>&1 &
+    popd > /dev/null
+    sleep 3
+    pgrep -f "openclaw.*gateway\|openclaw.*serve\|dist/cli.js serve" &>/dev/null && return 0 || return 1
+  fi
+  # Nao encontrado
+  return 2
 }

@@ -353,4 +353,11 @@ echo ""
 
 hint_whitelabel "${nome_agente}"
 
+# Reload gateway se estiver rodando
+if reload_gateway; then
+  echo -e "  ${UI_GREEN}Gateway reiniciado — mudancas aplicadas${UI_NC}"
+elif [[ $? -eq 2 ]]; then
+  echo "  INFO: Gateway nao encontrado (sera aplicado ao iniciar)"
+fi
+
 log_finish
