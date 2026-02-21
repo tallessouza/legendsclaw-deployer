@@ -1,0 +1,151 @@
+# =============================================================================
+# Legendsclaw Deployer — Auto Config Template
+# Arquivo de configuracao para execucao automatizada (AUTO_MODE=true)
+#
+# USO:
+#   1. Copie este arquivo: cp auto-config.example auto-config.env
+#   2. Preencha os valores de cada chave
+#   3. Execute: AUTO_MODE=true AUTO_CONFIG=./auto-config.env bash deployer.sh
+#
+# FORMATO:
+#   chave: valor
+#   Linhas vazias e comentarios (#) sao ignorados
+#   Chaves duplicadas: ultimo valor prevalece
+# =============================================================================
+
+# =============================================================================
+# [01] BASE — Traefik + Portainer + Docker Swarm
+# =============================================================================
+base.dominio_portainer: painel.exemplo.com
+base.email_ssl: admin@exemplo.com
+base.user_portainer: admin
+base.pass_portainer: MinhaSenh4Segura!
+base.nome_servidor: legendsclaw-01
+base.nome_rede: legendsclaw_net
+
+# =============================================================================
+# [02] TAILSCALE — VPN Mesh
+# =============================================================================
+tailscale.hostname: legendsclaw-gw
+# Habilitar Tailscale Funnel para HTTPS publico (s/n)
+tailscale.habilitar_funnel: s
+# Porta para Funnel (default: 18789)
+tailscale.porta_funnel: 18789
+
+# =============================================================================
+# [03] OPENCLAW — Gateway
+# =============================================================================
+openclaw.dominio: gw.exemplo.com
+# Porta do gateway (default: 18789)
+openclaw.porta: 18789
+# URL do repositorio (default: https://github.com/openclaw/openclaw.git)
+openclaw.repo: https://github.com/openclaw/openclaw.git
+# Executar validacao end-to-end apos instalacao (s/n)
+openclaw.validar_agora: s
+
+# =============================================================================
+# [05] WHITELABEL — Identidade do Agente
+# =============================================================================
+# Nome tecnico (kebab-case, ex: jarvis, atlas)
+whitelabel.nome_agente: meu-agente
+# Nome de exibicao
+whitelabel.display_name: Meu Agente
+# Emoji do agente
+whitelabel.icone: 🤖
+# Estilo/persona do agente
+whitelabel.persona: Pratico, eficiente, orientado a resultados
+# Idioma principal
+whitelabel.idioma: pt-BR
+
+# =============================================================================
+# [06] WORKSPACE — Dados do Usuario
+# =============================================================================
+workspace.user_name: Fulano de Tal
+workspace.user_nickname: Fulano
+# Pronomes (default: ele/dele)
+workspace.user_pronouns: ele/dele
+# Timezone (default: America/Sao_Paulo)
+workspace.user_timezone: America/Sao_Paulo
+
+# =============================================================================
+# [07] LLM ROUTER — Chaves de API e Configuracao
+# =============================================================================
+# OpenRouter (obrigatorio, comeca com sk-or-v1-)
+llm_router.openrouter_key: sk-or-v1-XXXXXXXXXXXXXXXXXXXX
+# Anthropic (obrigatorio, comeca com sk-ant-)
+llm_router.anthropic_key: sk-ant-XXXXXXXXXXXXXXXXXXXXXXXXXXXX
+# DeepSeek (opcional, comeca com sk-)
+llm_router.deepseek_key:
+# Tier padrao: budget | standard | quality | premium (default: standard)
+llm_router.tier_padrao: standard
+# Habilitar metricas (s/n, default: n)
+llm_router.metrics: n
+
+# =============================================================================
+# [08] SKILLS — Selecao e Credenciais
+# =============================================================================
+# Skills a ativar (numeros separados por virgula, ou "all")
+# 1=clickup-ops, 2=n8n-trigger, 3=supabase-query,
+# 4=allos-status, 5=alerts, 6=memory
+skills.selecao: all
+
+# --- clickup-ops ---
+skills.clickup_api_key: pk_XXXXXXXX
+skills.clickup_team_id: 12345678
+
+# --- n8n-trigger ---
+skills.n8n_api_key: XXXXXXXX
+skills.n8n_webhook_url: https://n8n.exemplo.com
+
+# --- supabase-query ---
+skills.supabase_url: https://XXXXX.supabase.co
+skills.supabase_anon_key: eyJXXXXX
+skills.supabase_service_role_key: eyJXXXXX
+
+# --- allos-status ---
+skills.agent_gateway_url: https://gw.exemplo.com
+
+# --- alerts ---
+skills.slack_webhook_url: https://hooks.slack.com/services/XXX/XXX/XXX
+
+# --- memory ---
+# (nenhuma credencial necessaria)
+
+# =============================================================================
+# [10] ELICITATION SCHEMA — Supabase para Elicitation
+# =============================================================================
+# Apenas necessario se nao auto-detectado de dados_skills ou .env
+elicitation.supabase_url: https://XXXXX.supabase.co
+elicitation.supabase_key: eyJXXXXX
+
+# =============================================================================
+# [11] SEGURANCA — 3 Layers
+# =============================================================================
+# Customizar regras de blocklist (s/n)
+seguranca.customizar: n
+
+# =============================================================================
+# [13] EVOLUTION — WhatsApp API
+# =============================================================================
+# Dominio para a Evolution API (apenas VPS)
+evolution.url: api.exemplo.com
+# Numero WhatsApp (formato: 5511999999999, sem + ou espacos)
+evolution.numero_whatsapp: 5511999999999
+# Nome da instancia (para multi-instancia, ex: cliente1)
+evolution.instance_name:
+# Senha Postgres (cascade install, se Postgres nao estiver instalado)
+evolution.pg_senha: MinhaSenh4Postgres!
+
+# =============================================================================
+# [14] GATEWAY CONFIG — Consolidacao Final
+# =============================================================================
+# Numero WhatsApp admin (apenas se Evolution configurado e phone ausente)
+gateway.whatsapp_admin_phone: 5511999999999
+
+# =============================================================================
+# [15] VALIDACAO FINAL — Teste End-to-End
+# =============================================================================
+# Enviar mensagem de teste via WhatsApp (s/n)
+validacao.whatsapp_confirm: s
+# Numero destino para teste
+validacao.numero_teste: 5511999999999
