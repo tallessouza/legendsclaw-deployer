@@ -1,9 +1,9 @@
 #!/usr/bin/env bats
 
 # =============================================================================
-# Testes para deployer/ferramentas/07-whitelabel.sh
+# Testes para deployer/ferramentas/05-whitelabel.sh
 # Framework: bats-core
-# Execucao: npx bats tests/deployer/07-whitelabel.bats
+# Execucao: npx bats tests/deployer/05-whitelabel.bats
 # =============================================================================
 
 SCRIPT_DIR="$(cd "$(dirname "$BATS_TEST_FILENAME")/../../deployer" && pwd)"
@@ -410,81 +410,81 @@ EOF
 # Script File Existence
 # =============================================================================
 
-@test "07-whitelabel.sh exists" {
-  [[ -f "$SCRIPT_DIR/ferramentas/07-whitelabel.sh" ]]
+@test "05-whitelabel.sh exists" {
+  [[ -f "$SCRIPT_DIR/ferramentas/05-whitelabel.sh" ]]
 }
 
-@test "07-whitelabel.sh is executable" {
-  [[ -x "$SCRIPT_DIR/ferramentas/07-whitelabel.sh" ]]
+@test "05-whitelabel.sh is executable" {
+  [[ -x "$SCRIPT_DIR/ferramentas/05-whitelabel.sh" ]]
 }
 
-@test "07-whitelabel.sh starts with shebang" {
-  run head -1 "$SCRIPT_DIR/ferramentas/07-whitelabel.sh"
+@test "05-whitelabel.sh starts with shebang" {
+  run head -1 "$SCRIPT_DIR/ferramentas/05-whitelabel.sh"
   [[ "$output" == "#!/usr/bin/env bash" ]]
 }
 
-@test "07-whitelabel.sh has set -euo pipefail" {
-  run head -5 "$SCRIPT_DIR/ferramentas/07-whitelabel.sh"
+@test "05-whitelabel.sh has set -euo pipefail" {
+  run head -5 "$SCRIPT_DIR/ferramentas/05-whitelabel.sh"
   [[ "$output" == *"set -euo pipefail"* ]]
 }
 
-@test "07-whitelabel.sh sources ui.sh" {
-  run cat "$SCRIPT_DIR/ferramentas/07-whitelabel.sh"
+@test "05-whitelabel.sh sources ui.sh" {
+  run cat "$SCRIPT_DIR/ferramentas/05-whitelabel.sh"
   [[ "$output" == *'source "${LIB_DIR}/ui.sh"'* ]]
 }
 
-@test "07-whitelabel.sh sources logger.sh" {
-  run cat "$SCRIPT_DIR/ferramentas/07-whitelabel.sh"
+@test "05-whitelabel.sh sources logger.sh" {
+  run cat "$SCRIPT_DIR/ferramentas/05-whitelabel.sh"
   [[ "$output" == *'source "${LIB_DIR}/logger.sh"'* ]]
 }
 
-@test "07-whitelabel.sh sources common.sh" {
-  run cat "$SCRIPT_DIR/ferramentas/07-whitelabel.sh"
+@test "05-whitelabel.sh sources common.sh" {
+  run cat "$SCRIPT_DIR/ferramentas/05-whitelabel.sh"
   [[ "$output" == *'source "${LIB_DIR}/common.sh"'* ]]
 }
 
-@test "07-whitelabel.sh sources hints.sh" {
-  run cat "$SCRIPT_DIR/ferramentas/07-whitelabel.sh"
+@test "05-whitelabel.sh sources hints.sh" {
+  run cat "$SCRIPT_DIR/ferramentas/05-whitelabel.sh"
   [[ "$output" == *'source "${LIB_DIR}/hints.sh"'* ]]
 }
 
-@test "07-whitelabel.sh does NOT source deploy.sh" {
-  run cat "$SCRIPT_DIR/ferramentas/07-whitelabel.sh"
+@test "05-whitelabel.sh does NOT source deploy.sh" {
+  run cat "$SCRIPT_DIR/ferramentas/05-whitelabel.sh"
   ! [[ "$output" == *'source "${LIB_DIR}/deploy.sh"'* ]]
 }
 
-@test "07-whitelabel.sh calls log_init whitelabel" {
-  run cat "$SCRIPT_DIR/ferramentas/07-whitelabel.sh"
+@test "05-whitelabel.sh calls log_init whitelabel" {
+  run cat "$SCRIPT_DIR/ferramentas/05-whitelabel.sh"
   [[ "$output" == *'log_init "whitelabel"'* ]]
 }
 
-@test "07-whitelabel.sh calls step_init 8" {
-  run cat "$SCRIPT_DIR/ferramentas/07-whitelabel.sh"
+@test "05-whitelabel.sh calls step_init 8" {
+  run cat "$SCRIPT_DIR/ferramentas/05-whitelabel.sh"
   [[ "$output" == *"step_init 8"* ]]
 }
 
-@test "07-whitelabel.sh checks dados_openclaw dependency" {
-  run cat "$SCRIPT_DIR/ferramentas/07-whitelabel.sh"
+@test "05-whitelabel.sh checks dados_openclaw dependency" {
+  run cat "$SCRIPT_DIR/ferramentas/05-whitelabel.sh"
   [[ "$output" == *"dados_openclaw"* ]]
 }
 
-@test "07-whitelabel.sh calls hint_whitelabel" {
-  run cat "$SCRIPT_DIR/ferramentas/07-whitelabel.sh"
+@test "05-whitelabel.sh calls hint_whitelabel" {
+  run cat "$SCRIPT_DIR/ferramentas/05-whitelabel.sh"
   [[ "$output" == *"hint_whitelabel"* ]]
 }
 
-@test "07-whitelabel.sh calls log_finish" {
-  run cat "$SCRIPT_DIR/ferramentas/07-whitelabel.sh"
+@test "05-whitelabel.sh calls log_finish" {
+  run cat "$SCRIPT_DIR/ferramentas/05-whitelabel.sh"
   [[ "$output" == *"log_finish"* ]]
 }
 
-@test "07-whitelabel.sh calls conferindo_as_info" {
-  run cat "$SCRIPT_DIR/ferramentas/07-whitelabel.sh"
+@test "05-whitelabel.sh calls conferindo_as_info" {
+  run cat "$SCRIPT_DIR/ferramentas/05-whitelabel.sh"
   [[ "$output" == *"conferindo_as_info"* ]]
 }
 
-@test "07-whitelabel.sh chmod 600 dados_whitelabel" {
-  run cat "$SCRIPT_DIR/ferramentas/07-whitelabel.sh"
+@test "05-whitelabel.sh chmod 600 dados_whitelabel" {
+  run cat "$SCRIPT_DIR/ferramentas/05-whitelabel.sh"
   [[ "$output" == *'chmod 600 "$STATE_DIR/dados_whitelabel"'* ]]
 }
 
@@ -502,7 +502,7 @@ EOF
   [[ "$output" == *"07|7)"* ]]
 }
 
-@test "deployer.sh calls 07-whitelabel.sh" {
+@test "deployer.sh calls 05-whitelabel.sh" {
   run cat "$SCRIPT_DIR/deployer.sh"
-  [[ "$output" == *"07-whitelabel.sh"* ]]
+  [[ "$output" == *"05-whitelabel.sh"* ]]
 }

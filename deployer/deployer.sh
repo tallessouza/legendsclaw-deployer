@@ -39,19 +39,20 @@ show_menu() {
   echo "║         LEGENDSCLAW DEPLOYER v${DEPLOYER_VERSION}            ║"
   echo "╠══════════════════════════════════════════════╣"
   echo -e "║  ${D_GREEN}[01] Traefik + Portainer (base)${D_CYAN}             ║"
-  echo -e "║  ${D_GREEN}[02] PostgreSQL (standalone)${D_CYAN}                 ║"
-  echo -e "║  ${D_GREEN}[03] Evolution API (instala Postgres se faltar)${D_CYAN}║"
-  echo -e "║  ${D_GREEN}[04] Tailscale VPN${D_CYAN}                          ║"
-  echo -e "║  ${D_GREEN}[05] OpenClaw Gateway${D_CYAN}                       ║"
-  echo -e "║  ${D_GRAY}[06] N8N (Workflows)             [EM BREVE]${D_CYAN}  ║"
-  echo -e "║  ${D_GREEN}[07] Whitelabel — Identidade do Agente${D_CYAN}     ║"
-  echo -e "║  ${D_GREEN}[08] LLM Router — Tiers e API Keys${D_CYAN}         ║"
-  echo -e "║  ${D_GREEN}[09] Skills AIOS — Configurar Skills${D_CYAN}        ║"
-  echo -e "║  ${D_GREEN}[10] Elicitation — Skill de Entrevistas${D_CYAN}    ║"
-  echo -e "║  ${D_GREEN}[11] Elicitation Schema — Tabelas e Seeds${D_CYAN} ║"
-  echo -e "║  ${D_GREEN}[12] Seguranca (3 Layers)${D_CYAN}                   ║"
-  echo -e "║  ${D_GREEN}[13] Bridge — Claude Code Integration${D_CYAN}      ║"
-  echo -e "║  ${D_GREEN}[14] Validacao Final — Teste End-to-End${D_CYAN}    ║"
+  echo -e "║  ${D_GREEN}[02] Tailscale VPN${D_CYAN}                          ║"
+  echo -e "║  ${D_GREEN}[03] OpenClaw Gateway${D_CYAN}                       ║"
+  echo -e "║  ${D_GREEN}[04] Validacao Gateway (ping + health)${D_CYAN}     ║"
+  echo -e "║  ${D_GREEN}[05] Whitelabel — Identidade do Agente${D_CYAN}     ║"
+  echo -e "║  ${D_GREEN}[06] Workspace Files (SOUL, AGENTS, IDENTITY)${D_CYAN}║"
+  echo -e "║  ${D_GREEN}[07] LLM Router — Tiers e API Keys${D_CYAN}         ║"
+  echo -e "║  ${D_GREEN}[08] Skills AIOS — Configurar Skills${D_CYAN}        ║"
+  echo -e "║  ${D_GREEN}[09] Elicitation — Skill de Entrevistas${D_CYAN}    ║"
+  echo -e "║  ${D_GREEN}[10] Elicitation Schema — Tabelas e Seeds${D_CYAN} ║"
+  echo -e "║  ${D_GREEN}[11] Seguranca (3 Layers)${D_CYAN}                   ║"
+  echo -e "║  ${D_GREEN}[12] Bridge — Claude Code Integration${D_CYAN}      ║"
+  echo -e "║  ${D_GREEN}[13] Evolution API (cascade Postgres)${D_CYAN}      ║"
+  echo -e "║  ${D_GRAY}[14] Gateway Config                  [EM BREVE]${D_CYAN}║"
+  echo -e "║  ${D_GREEN}[15] Validacao Final — Teste End-to-End${D_CYAN}    ║"
   echo -e "║  ${D_GRAY}[00] Sair${D_CYAN}                                    ║"
   echo "╚══════════════════════════════════════════════╝"
   echo -e "${D_NC}"
@@ -64,18 +65,19 @@ main() {
 
     case "$opcao" in
       01|1)  run_ferramenta "ferramentas/01-base.sh" ;;
-      02|2)  run_ferramenta "ferramentas/02-postgres.sh" ;;
-      03|3)  run_ferramenta "ferramentas/03-evolution.sh" ;;
-      04|4)  run_ferramenta "ferramentas/04-tailscale.sh" ;;
-      05|5)  run_ferramenta "ferramentas/05-openclaw.sh" ;;
-      07|7)  run_ferramenta "ferramentas/07-whitelabel.sh" ;;
-      08|8)  run_ferramenta "ferramentas/08-llm-router.sh" ;;
-      09|9)  run_ferramenta "ferramentas/09-skills.sh" ;;
-      10)    run_ferramenta "ferramentas/10-elicitation.sh" ;;
-      11)    run_ferramenta "ferramentas/11-elicitation-schema.sh" ;;
-      12)    run_ferramenta "ferramentas/12-seguranca.sh" ;;
-      13)    run_ferramenta "ferramentas/13-bridge.sh" ;;
-      14)    run_ferramenta "ferramentas/14-validacao-final.sh" ;;
+      02|2)  run_ferramenta "ferramentas/02-tailscale.sh" ;;
+      03|3)  run_ferramenta "ferramentas/03-openclaw.sh" ;;
+      04|4)  run_ferramenta "ferramentas/04-validacao-gw.sh" ;;
+      05|5)  run_ferramenta "ferramentas/05-whitelabel.sh" ;;
+      06|6)  run_ferramenta "ferramentas/06-workspace.sh" ;;
+      07|7)  run_ferramenta "ferramentas/07-llm-router.sh" ;;
+      08|8)  run_ferramenta "ferramentas/08-skills.sh" ;;
+      09|9)  run_ferramenta "ferramentas/09-elicitation.sh" ;;
+      10)    run_ferramenta "ferramentas/10-elicitation-schema.sh" ;;
+      11)    run_ferramenta "ferramentas/11-seguranca.sh" ;;
+      12)    run_ferramenta "ferramentas/12-bridge.sh" ;;
+      13)    run_ferramenta "ferramentas/13-evolution.sh" ;;
+      15)    run_ferramenta "ferramentas/15-validacao-final.sh" ;;
       00|0)
         echo "Ate mais!"
         exit 0

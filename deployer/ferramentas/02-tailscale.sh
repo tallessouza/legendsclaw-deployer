@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # =============================================================================
-# Legendsclaw Deployer — Ferramenta 04: Tailscale VPN Mesh
+# Legendsclaw Deployer — Ferramenta 02: Tailscale VPN Mesh
 # Story 1.4: Instala e configura Tailscale para mesh VPN
 # Dual-mode: local e VPS
 # =============================================================================

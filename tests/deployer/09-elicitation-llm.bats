@@ -4,7 +4,7 @@
 # Testes para deployer/ferramentas/10-elicitation.sh — Story 4.4
 # LLM Extraction, Memory Writer, Event Bus
 # Framework: bats-core
-# Execucao: npx bats tests/deployer/10-elicitation-llm.bats
+# Execucao: npx bats tests/deployer/09-elicitation-llm.bats
 # =============================================================================
 
 SCRIPT_DIR="$(cd "$(dirname "$BATS_TEST_FILENAME")/../../deployer" && pwd)"

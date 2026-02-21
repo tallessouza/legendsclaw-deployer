@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # =============================================================================
-# Legendsclaw Deployer — Ferramenta 11: Elicitation Schema
+# Legendsclaw Deployer — Ferramenta 10: Elicitation Schema
 # Story 4.3: Skill Elicitation — Templates e Schema Supabase
 # =============================================================================
 

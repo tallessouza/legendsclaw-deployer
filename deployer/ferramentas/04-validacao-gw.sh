@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # =============================================================================
-# Legendsclaw Deployer — Ferramenta 06: Validacao Gateway + Tailscale
+# Legendsclaw Deployer — Ferramenta 04: Validacao Gateway + Tailscale
 # Story 2.2: Validacao end-to-end do OpenClaw Gateway via Tailscale
 # =============================================================================
 

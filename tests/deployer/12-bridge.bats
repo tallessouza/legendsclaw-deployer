@@ -1,9 +1,9 @@
 #!/usr/bin/env bats
 
 # =============================================================================
-# Testes para Bridge.js e deployer/ferramentas/13-bridge.sh
+# Testes para Bridge.js e deployer/ferramentas/12-bridge.sh
 # Framework: bats-core
-# Execucao: npx bats tests/deployer/13-bridge.bats
+# Execucao: npx bats tests/deployer/12-bridge.bats
 # =============================================================================
 
 SCRIPT_DIR="$(cd "$(dirname "$BATS_TEST_FILENAME")/../../deployer" && pwd)"
@@ -303,7 +303,7 @@ JSEOF
 }
 
 @test "deployer menu includes case 13" {
-  run grep -c "13-bridge.sh" "${SCRIPT_DIR}/deployer.sh"
+  run grep -c "12-bridge.sh" "${SCRIPT_DIR}/deployer.sh"
   [[ "$output" -ge "1" ]]
 }
 

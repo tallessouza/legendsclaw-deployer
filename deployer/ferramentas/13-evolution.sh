@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # =============================================================================
-# Legendsclaw Deployer — Ferramenta 03: Evolution API + Redis
+# Legendsclaw Deployer — Ferramenta 13: Evolution API + Redis
 # Pattern: 14-Step Tool Lifecycle (SetupOrion)
 # Story 1.3: Dual-mode (local compose / VPS stack deploy)
 # Story 5.1: WhatsApp + Webhook integration (conditional on OpenClaw Gateway)
@@ -218,10 +218,86 @@ main() {
     pegar_senha_postgres > /dev/null 2>&1
     step_ok "Postgres ja instalado — senha obtida"
   else
-    echo "  Postgres nao encontrado — instalando automaticamente..."
-    bash "${SCRIPT_DIR}/ferramentas/02-postgres.sh"
+    echo "  Postgres nao encontrado — instalando automaticamente (cascade)..."
+    # Cascade inline: gerar YAML, deploy, wait (equivalente ao antigo 02-postgres.sh)
+    local pg_senha
+    read -rsp "  Senha para Postgres (cascade install): " pg_senha
+    echo ""
+    if [[ -z "$pg_senha" ]]; then
+      step_fail "Senha Postgres vazia — cascade abortado"
+      exit 1
+    fi
+    local pg_ambiente
+    pg_ambiente=$(detectar_ambiente)
+    if [[ "$pg_ambiente" == "vps" ]]; then
+      docker volume create postgres_data 2>/dev/null || true
+      cat > "$HOME/postgres.yaml" << PG_EOL
+version: "3.7"
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    environment:
+      - POSTGRES_PASSWORD=${pg_senha}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - ${nome_rede:-legendsclaw_net}
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      resources:
+        limits:
+          cpus: "1"
+          memory: 1024M
+volumes:
+  postgres_data:
+    external: true
+    name: postgres_data
+networks:
+  ${nome_rede:-legendsclaw_net}:
+    external: true
+    name: ${nome_rede:-legendsclaw_net}
+PG_EOL
+    else
+      cat > "$HOME/postgres.yaml" << PG_EOL
+version: "3.7"
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    environment:
+      - POSTGRES_PASSWORD=${pg_senha}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+volumes:
+  postgres_data:
+PG_EOL
+    fi
+    chmod 600 "$HOME/postgres.yaml"
+    deploy_stack "postgres" "$HOME/postgres.yaml"
+    echo "  Aguardando Postgres ficar online..."
+    if wait_deploy "postgres" "postgres"; then
+      echo "  Postgres online"
+    else
+      step_fail "Postgres nao ficou online (timeout)"
+      exit 1
+    fi
+    # Salvar credenciais
+    mkdir -p "$HOME/dados_vps"
+    cat > "$HOME/dados_vps/dados_postgres" << PG_EOL
+[ POSTGRESQL ]
+
+Senha: ${pg_senha}
+Porta: 5432
+Imagem: pgvector/pgvector:pg16
+PG_EOL
+    chmod 600 "$HOME/dados_vps/dados_postgres"
     pegar_senha_postgres > /dev/null 2>&1
-    step_ok "Postgres instalado via dependencia cascata"
+    step_ok "Postgres instalado via cascade (inline)"
   fi
 
   # Criar banco com sufixo

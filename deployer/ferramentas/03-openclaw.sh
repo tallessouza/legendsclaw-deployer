@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # =============================================================================
-# Legendsclaw Deployer — Ferramenta 05: OpenClaw Gateway
+# Legendsclaw Deployer — Ferramenta 03: OpenClaw Gateway
 # Story 2.1: Build & deploy OpenClaw como systemd service
 # =============================================================================
 
@@ -332,7 +332,7 @@ echo ""
 read -rp "Deseja executar a validacao end-to-end agora? [S/n]: " validar
 if [[ ! "$validar" =~ ^[Nn]$ ]]; then
   log_finish
-  bash "${SCRIPT_DIR}/06-validacao-gw.sh"
+  bash "${SCRIPT_DIR}/04-validacao-gw.sh"
 else
   log_finish
 fi

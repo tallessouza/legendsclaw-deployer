@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # =============================================================================
-# Legendsclaw Deployer — Ferramenta 12: Seguranca (3 Layers)
+# Legendsclaw Deployer — Ferramenta 11: Seguranca (3 Layers)
 # Story 5.2: Blocklist + Sandbox + Logging
 # =============================================================================
 

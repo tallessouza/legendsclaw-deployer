@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # =============================================================================
-# Legendsclaw Deployer — Ferramenta 07: Whitelabel Identity
+# Legendsclaw Deployer — Ferramenta 05: Whitelabel Identity
 # Story 3.1: Criar identidade do agente (nome, persona, estrutura apps/)
 # =============================================================================
 

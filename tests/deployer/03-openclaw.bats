@@ -1,9 +1,9 @@
 #!/usr/bin/env bats
 
 # =============================================================================
-# Testes para deployer/ferramentas/05-openclaw.sh
+# Testes para deployer/ferramentas/03-openclaw.sh
 # Framework: bats-core
-# Execucao: npx bats tests/deployer/05-openclaw.bats
+# Execucao: npx bats tests/deployer/03-openclaw.bats
 # =============================================================================
 
 SCRIPT_DIR="$(cd "$(dirname "$BATS_TEST_FILENAME")/../../deployer" && pwd)"
@@ -229,8 +229,8 @@ EOF
   [[ "$output" -ge 1 ]]
 }
 
-@test "deployer.sh routes option 05 to 05-openclaw.sh" {
-  run grep "05-openclaw.sh" "$SCRIPT_DIR/deployer.sh"
+@test "deployer.sh routes option 05 to 03-openclaw.sh" {
+  run grep "03-openclaw.sh" "$SCRIPT_DIR/deployer.sh"
   [[ "$status" -eq 0 ]]
 }
 
@@ -240,166 +240,166 @@ EOF
 }
 
 # -----------------------------------------------------------------------------
-# 05-openclaw.sh file structure
+# 03-openclaw.sh file structure
 # -----------------------------------------------------------------------------
-@test "05-openclaw.sh exists and is executable" {
-  [[ -f "$SCRIPT_DIR/ferramentas/05-openclaw.sh" ]]
-  [[ -x "$SCRIPT_DIR/ferramentas/05-openclaw.sh" ]]
+@test "03-openclaw.sh exists and is executable" {
+  [[ -f "$SCRIPT_DIR/ferramentas/03-openclaw.sh" ]]
+  [[ -x "$SCRIPT_DIR/ferramentas/03-openclaw.sh" ]]
 }
 
-@test "05-openclaw.sh has set -euo pipefail" {
-  run grep "set -euo pipefail" "$SCRIPT_DIR/ferramentas/05-openclaw.sh"
-  [[ "$status" -eq 0 ]]
-}
-
-@test "05-openclaw.sh sources all required libs" {
-  run grep 'source.*ui.sh' "$SCRIPT_DIR/ferramentas/05-openclaw.sh"
-  [[ "$status" -eq 0 ]]
-  run grep 'source.*logger.sh' "$SCRIPT_DIR/ferramentas/05-openclaw.sh"
-  [[ "$status" -eq 0 ]]
-  run grep 'source.*common.sh' "$SCRIPT_DIR/ferramentas/05-openclaw.sh"
-  [[ "$status" -eq 0 ]]
-  run grep 'source.*hints.sh' "$SCRIPT_DIR/ferramentas/05-openclaw.sh"
-  [[ "$status" -eq 0 ]]
-  run grep 'source.*env-detect.sh' "$SCRIPT_DIR/ferramentas/05-openclaw.sh"
-  [[ "$status" -eq 0 ]]
-  run grep 'source.*deploy.sh' "$SCRIPT_DIR/ferramentas/05-openclaw.sh"
+@test "03-openclaw.sh has set -euo pipefail" {
+  run grep "set -euo pipefail" "$SCRIPT_DIR/ferramentas/03-openclaw.sh"
   [[ "$status" -eq 0 ]]
 }
 
-@test "05-openclaw.sh calls log_init openclaw" {
-  run grep 'log_init "openclaw"' "$SCRIPT_DIR/ferramentas/05-openclaw.sh"
+@test "03-openclaw.sh sources all required libs" {
+  run grep 'source.*ui.sh' "$SCRIPT_DIR/ferramentas/03-openclaw.sh"
+  [[ "$status" -eq 0 ]]
+  run grep 'source.*logger.sh' "$SCRIPT_DIR/ferramentas/03-openclaw.sh"
+  [[ "$status" -eq 0 ]]
+  run grep 'source.*common.sh' "$SCRIPT_DIR/ferramentas/03-openclaw.sh"
+  [[ "$status" -eq 0 ]]
+  run grep 'source.*hints.sh' "$SCRIPT_DIR/ferramentas/03-openclaw.sh"
+  [[ "$status" -eq 0 ]]
+  run grep 'source.*env-detect.sh' "$SCRIPT_DIR/ferramentas/03-openclaw.sh"
+  [[ "$status" -eq 0 ]]
+  run grep 'source.*deploy.sh' "$SCRIPT_DIR/ferramentas/03-openclaw.sh"
   [[ "$status" -eq 0 ]]
 }
 
-@test "05-openclaw.sh calls step_init 13" {
-  run grep 'step_init 13' "$SCRIPT_DIR/ferramentas/05-openclaw.sh"
+@test "03-openclaw.sh calls log_init openclaw" {
+  run grep 'log_init "openclaw"' "$SCRIPT_DIR/ferramentas/03-openclaw.sh"
   [[ "$status" -eq 0 ]]
 }
 
-@test "05-openclaw.sh calls recursos 2 4" {
-  run grep 'recursos 2 4' "$SCRIPT_DIR/ferramentas/05-openclaw.sh"
+@test "03-openclaw.sh calls step_init 13" {
+  run grep 'step_init 13' "$SCRIPT_DIR/ferramentas/03-openclaw.sh"
   [[ "$status" -eq 0 ]]
 }
 
-@test "05-openclaw.sh checks dados_portainer" {
-  run grep 'dados_portainer' "$SCRIPT_DIR/ferramentas/05-openclaw.sh"
+@test "03-openclaw.sh calls recursos 2 4" {
+  run grep 'recursos 2 4' "$SCRIPT_DIR/ferramentas/03-openclaw.sh"
   [[ "$status" -eq 0 ]]
 }
 
-@test "05-openclaw.sh checks node version >= 22" {
-  run grep '22' "$SCRIPT_DIR/ferramentas/05-openclaw.sh"
+@test "03-openclaw.sh checks dados_portainer" {
+  run grep 'dados_portainer' "$SCRIPT_DIR/ferramentas/03-openclaw.sh"
   [[ "$status" -eq 0 ]]
 }
 
-@test "05-openclaw.sh verifies pnpm availability" {
-  run grep 'command -v pnpm' "$SCRIPT_DIR/ferramentas/05-openclaw.sh"
+@test "03-openclaw.sh checks node version >= 22" {
+  run grep '22' "$SCRIPT_DIR/ferramentas/03-openclaw.sh"
   [[ "$status" -eq 0 ]]
 }
 
-@test "05-openclaw.sh uses conferindo_as_info" {
-  run grep 'conferindo_as_info' "$SCRIPT_DIR/ferramentas/05-openclaw.sh"
+@test "03-openclaw.sh verifies pnpm availability" {
+  run grep 'command -v pnpm' "$SCRIPT_DIR/ferramentas/03-openclaw.sh"
   [[ "$status" -eq 0 ]]
 }
 
-@test "05-openclaw.sh clones to /opt/openclaw" {
-  run grep '/opt/openclaw' "$SCRIPT_DIR/ferramentas/05-openclaw.sh"
+@test "03-openclaw.sh uses conferindo_as_info" {
+  run grep 'conferindo_as_info' "$SCRIPT_DIR/ferramentas/03-openclaw.sh"
   [[ "$status" -eq 0 ]]
 }
 
-@test "05-openclaw.sh runs pnpm install with retry" {
-  run grep -c 'pnpm install' "$SCRIPT_DIR/ferramentas/05-openclaw.sh"
+@test "03-openclaw.sh clones to /opt/openclaw" {
+  run grep '/opt/openclaw' "$SCRIPT_DIR/ferramentas/03-openclaw.sh"
+  [[ "$status" -eq 0 ]]
+}
+
+@test "03-openclaw.sh runs pnpm install with retry" {
+  run grep -c 'pnpm install' "$SCRIPT_DIR/ferramentas/03-openclaw.sh"
   [[ "$output" -ge 1 ]]
 }
 
-@test "05-openclaw.sh runs pnpm ui:build" {
-  run grep 'pnpm ui:build' "$SCRIPT_DIR/ferramentas/05-openclaw.sh"
+@test "03-openclaw.sh runs pnpm ui:build" {
+  run grep 'pnpm ui:build' "$SCRIPT_DIR/ferramentas/03-openclaw.sh"
   [[ "$status" -eq 0 ]]
 }
 
-@test "05-openclaw.sh runs pnpm build" {
-  run grep 'pnpm build' "$SCRIPT_DIR/ferramentas/05-openclaw.sh"
+@test "03-openclaw.sh runs pnpm build" {
+  run grep 'pnpm build' "$SCRIPT_DIR/ferramentas/03-openclaw.sh"
   [[ "$status" -eq 0 ]]
 }
 
-@test "05-openclaw.sh runs onboard" {
-  run grep 'openclaw onboard --install-daemon' "$SCRIPT_DIR/ferramentas/05-openclaw.sh"
+@test "03-openclaw.sh runs onboard" {
+  run grep 'openclaw onboard --install-daemon' "$SCRIPT_DIR/ferramentas/03-openclaw.sh"
   [[ "$status" -eq 0 ]]
 }
 
-@test "05-openclaw.sh generates systemd unit" {
-  run grep 'openclaw.service' "$SCRIPT_DIR/ferramentas/05-openclaw.sh"
+@test "03-openclaw.sh generates systemd unit" {
+  run grep 'openclaw.service' "$SCRIPT_DIR/ferramentas/03-openclaw.sh"
   [[ "$status" -eq 0 ]]
 }
 
-@test "05-openclaw.sh systemd unit has correct After directive" {
-  run grep 'After=network.target tailscaled.service' "$SCRIPT_DIR/ferramentas/05-openclaw.sh"
+@test "03-openclaw.sh systemd unit has correct After directive" {
+  run grep 'After=network.target tailscaled.service' "$SCRIPT_DIR/ferramentas/03-openclaw.sh"
   [[ "$status" -eq 0 ]]
 }
 
-@test "05-openclaw.sh systemd unit has Restart=always" {
-  run grep 'Restart=always' "$SCRIPT_DIR/ferramentas/05-openclaw.sh"
+@test "03-openclaw.sh systemd unit has Restart=always" {
+  run grep 'Restart=always' "$SCRIPT_DIR/ferramentas/03-openclaw.sh"
   [[ "$status" -eq 0 ]]
 }
 
-@test "05-openclaw.sh checks port availability with ss" {
-  run grep 'ss -tlnp' "$SCRIPT_DIR/ferramentas/05-openclaw.sh"
+@test "03-openclaw.sh checks port availability with ss" {
+  run grep 'ss -tlnp' "$SCRIPT_DIR/ferramentas/03-openclaw.sh"
   [[ "$status" -eq 0 ]]
 }
 
-@test "05-openclaw.sh checks port BEFORE systemd unit generation" {
+@test "03-openclaw.sh checks port BEFORE systemd unit generation" {
   # Port check (STEP 10) must appear before systemd heredoc (STEP 11)
   local port_line systemd_line
-  port_line=$(grep -n 'VERIFICAR PORTA LIVRE' "$SCRIPT_DIR/ferramentas/05-openclaw.sh" | head -1 | cut -d: -f1)
-  systemd_line=$(grep -n 'GERAR SYSTEMD UNIT' "$SCRIPT_DIR/ferramentas/05-openclaw.sh" | head -1 | cut -d: -f1)
+  port_line=$(grep -n 'VERIFICAR PORTA LIVRE' "$SCRIPT_DIR/ferramentas/03-openclaw.sh" | head -1 | cut -d: -f1)
+  systemd_line=$(grep -n 'GERAR SYSTEMD UNIT' "$SCRIPT_DIR/ferramentas/03-openclaw.sh" | head -1 | cut -d: -f1)
   [[ "$port_line" -lt "$systemd_line" ]]
 }
 
-@test "05-openclaw.sh uses pushd/popd instead of cd" {
-  run grep 'pushd /opt/openclaw' "$SCRIPT_DIR/ferramentas/05-openclaw.sh"
+@test "03-openclaw.sh uses pushd/popd instead of cd" {
+  run grep 'pushd /opt/openclaw' "$SCRIPT_DIR/ferramentas/03-openclaw.sh"
   [[ "$status" -eq 0 ]]
-  run grep 'popd' "$SCRIPT_DIR/ferramentas/05-openclaw.sh"
-  [[ "$status" -eq 0 ]]
-}
-
-@test "05-openclaw.sh runs systemctl daemon-reload" {
-  run grep 'systemctl daemon-reload' "$SCRIPT_DIR/ferramentas/05-openclaw.sh"
+  run grep 'popd' "$SCRIPT_DIR/ferramentas/03-openclaw.sh"
   [[ "$status" -eq 0 ]]
 }
 
-@test "05-openclaw.sh has health check with retry 5x" {
-  run grep -c 'Health check' "$SCRIPT_DIR/ferramentas/05-openclaw.sh"
+@test "03-openclaw.sh runs systemctl daemon-reload" {
+  run grep 'systemctl daemon-reload' "$SCRIPT_DIR/ferramentas/03-openclaw.sh"
+  [[ "$status" -eq 0 ]]
+}
+
+@test "03-openclaw.sh has health check with retry 5x" {
+  run grep -c 'Health check' "$SCRIPT_DIR/ferramentas/03-openclaw.sh"
   [[ "$output" -ge 1 ]]
-  run grep '1 2 3 4 5' "$SCRIPT_DIR/ferramentas/05-openclaw.sh"
+  run grep '1 2 3 4 5' "$SCRIPT_DIR/ferramentas/03-openclaw.sh"
   [[ "$status" -eq 0 ]]
 }
 
-@test "05-openclaw.sh saves dados_openclaw with chmod 600" {
-  run grep 'chmod 600.*dados_openclaw' "$SCRIPT_DIR/ferramentas/05-openclaw.sh"
+@test "03-openclaw.sh saves dados_openclaw with chmod 600" {
+  run grep 'chmod 600.*dados_openclaw' "$SCRIPT_DIR/ferramentas/03-openclaw.sh"
   [[ "$status" -eq 0 ]]
 }
 
-@test "05-openclaw.sh calls resumo_final" {
-  run grep 'resumo_final' "$SCRIPT_DIR/ferramentas/05-openclaw.sh"
+@test "03-openclaw.sh calls resumo_final" {
+  run grep 'resumo_final' "$SCRIPT_DIR/ferramentas/03-openclaw.sh"
   [[ "$status" -eq 0 ]]
 }
 
-@test "05-openclaw.sh calls log_finish" {
-  run grep 'log_finish' "$SCRIPT_DIR/ferramentas/05-openclaw.sh"
+@test "03-openclaw.sh calls log_finish" {
+  run grep 'log_finish' "$SCRIPT_DIR/ferramentas/03-openclaw.sh"
   [[ "$status" -eq 0 ]]
 }
 
-@test "05-openclaw.sh calls hint_troubleshoot_openclaw" {
-  run grep 'hint_troubleshoot_openclaw' "$SCRIPT_DIR/ferramentas/05-openclaw.sh"
+@test "03-openclaw.sh calls hint_troubleshoot_openclaw" {
+  run grep 'hint_troubleshoot_openclaw' "$SCRIPT_DIR/ferramentas/03-openclaw.sh"
   [[ "$status" -eq 0 ]]
 }
 
-@test "05-openclaw.sh calls hint_dns_openclaw" {
-  run grep 'hint_dns_openclaw' "$SCRIPT_DIR/ferramentas/05-openclaw.sh"
+@test "03-openclaw.sh calls hint_dns_openclaw" {
+  run grep 'hint_dns_openclaw' "$SCRIPT_DIR/ferramentas/03-openclaw.sh"
   [[ "$status" -eq 0 ]]
 }
 
-@test "05-openclaw.sh default port is 18789" {
-  run grep '18789' "$SCRIPT_DIR/ferramentas/05-openclaw.sh"
+@test "03-openclaw.sh default port is 18789" {
+  run grep '18789' "$SCRIPT_DIR/ferramentas/03-openclaw.sh"
   [[ "$status" -eq 0 ]]
 }

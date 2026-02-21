@@ -1,9 +1,9 @@
 #!/usr/bin/env bats
 
 # =============================================================================
-# Testes para deployer/ferramentas/10-elicitation.sh
+# Testes para deployer/ferramentas/09-elicitation.sh
 # Framework: bats-core
-# Execucao: npx bats tests/deployer/10-elicitation.bats
+# Execucao: npx bats tests/deployer/09-elicitation.bats
 # =============================================================================
 
 SCRIPT_DIR="$(cd "$(dirname "$BATS_TEST_FILENAME")/../../deployer" && pwd)"
@@ -443,10 +443,10 @@ EOF
   [[ "$output" == *"Elicitation"* ]]
 }
 
-@test "deployer menu: case 10 calls 10-elicitation.sh" {
+@test "deployer menu: case 10 calls 09-elicitation.sh" {
   run cat "$SCRIPT_DIR/deployer.sh"
   [[ "$output" == *"10)"* ]]
-  [[ "$output" == *"10-elicitation.sh"* ]]
+  [[ "$output" == *"09-elicitation.sh"* ]]
 }
 
 # =============================================================================

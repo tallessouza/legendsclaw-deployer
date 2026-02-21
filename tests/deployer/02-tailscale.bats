@@ -1,9 +1,9 @@
 #!/usr/bin/env bats
 
 # =============================================================================
-# Testes para deployer/ferramentas/04-tailscale.sh
+# Testes para deployer/ferramentas/02-tailscale.sh
 # Framework: bats-core
-# Execucao: npx bats tests/deployer/04-tailscale.bats
+# Execucao: npx bats tests/deployer/02-tailscale.bats
 # =============================================================================
 
 SCRIPT_DIR="$(cd "$(dirname "$BATS_TEST_FILENAME")/../../deployer" && pwd)"

@@ -1,10 +1,10 @@
 #!/usr/bin/env bats
 
 # =============================================================================
-# Testes para deployer/ferramentas/11-elicitation-schema.sh
+# Testes para deployer/ferramentas/10-elicitation-schema.sh
 # Story 4.3: Skill Elicitation — Templates e Schema Supabase
 # Framework: bats-core
-# Execucao: npx bats tests/deployer/11-elicitation-schema.bats
+# Execucao: npx bats tests/deployer/10-elicitation-schema.bats
 # =============================================================================
 
 SCRIPT_DIR="$(cd "$(dirname "$BATS_TEST_FILENAME")/../../deployer" && pwd)"
@@ -411,7 +411,7 @@ EOF
 }
 
 @test "failure: script has set -euo pipefail" {
-  run head -3 "$SCRIPT_DIR/ferramentas/11-elicitation-schema.sh"
+  run head -3 "$SCRIPT_DIR/ferramentas/10-elicitation-schema.sh"
   [[ "$output" == *"set -euo pipefail"* ]]
 }
 
@@ -457,23 +457,23 @@ EOF
   [[ "$output" == *"Elicitation Schema"* ]]
 }
 
-@test "deployer menu: case 11 calls 11-elicitation-schema.sh" {
+@test "deployer menu: case 11 calls 10-elicitation-schema.sh" {
   run cat "$SCRIPT_DIR/deployer.sh"
   [[ "$output" == *"11)"* ]]
-  [[ "$output" == *"11-elicitation-schema.sh"* ]]
+  [[ "$output" == *"10-elicitation-schema.sh"* ]]
 }
 
 # =============================================================================
 # Ferramenta Script Structure
 # =============================================================================
 
-@test "script: 11-elicitation-schema.sh exists and is executable" {
-  [[ -f "$SCRIPT_DIR/ferramentas/11-elicitation-schema.sh" ]]
-  [[ -x "$SCRIPT_DIR/ferramentas/11-elicitation-schema.sh" ]]
+@test "script: 10-elicitation-schema.sh exists and is executable" {
+  [[ -f "$SCRIPT_DIR/ferramentas/10-elicitation-schema.sh" ]]
+  [[ -x "$SCRIPT_DIR/ferramentas/10-elicitation-schema.sh" ]]
 }
 
 @test "script: sources all required libs" {
-  run cat "$SCRIPT_DIR/ferramentas/11-elicitation-schema.sh"
+  run cat "$SCRIPT_DIR/ferramentas/10-elicitation-schema.sh"
   [[ "$output" == *"ui.sh"* ]]
   [[ "$output" == *"logger.sh"* ]]
   [[ "$output" == *"common.sh"* ]]
@@ -481,64 +481,64 @@ EOF
 }
 
 @test "script: calls log_init with correct name" {
-  run cat "$SCRIPT_DIR/ferramentas/11-elicitation-schema.sh"
+  run cat "$SCRIPT_DIR/ferramentas/10-elicitation-schema.sh"
   [[ "$output" == *'log_init "elicitation-schema"'* ]]
 }
 
 @test "script: calls step_init" {
-  run cat "$SCRIPT_DIR/ferramentas/11-elicitation-schema.sh"
+  run cat "$SCRIPT_DIR/ferramentas/10-elicitation-schema.sh"
   [[ "$output" == *"step_init"* ]]
 }
 
 @test "script: calls log_finish" {
-  run cat "$SCRIPT_DIR/ferramentas/11-elicitation-schema.sh"
+  run cat "$SCRIPT_DIR/ferramentas/10-elicitation-schema.sh"
   [[ "$output" == *"log_finish"* ]]
 }
 
 @test "script: calls resumo_final" {
-  run cat "$SCRIPT_DIR/ferramentas/11-elicitation-schema.sh"
+  run cat "$SCRIPT_DIR/ferramentas/10-elicitation-schema.sh"
   [[ "$output" == *"resumo_final"* ]]
 }
 
 @test "script: calls conferindo_as_info" {
-  run cat "$SCRIPT_DIR/ferramentas/11-elicitation-schema.sh"
+  run cat "$SCRIPT_DIR/ferramentas/10-elicitation-schema.sh"
   [[ "$output" == *"conferindo_as_info"* ]]
 }
 
 @test "script: calls hint_elicitation_schema" {
-  run cat "$SCRIPT_DIR/ferramentas/11-elicitation-schema.sh"
+  run cat "$SCRIPT_DIR/ferramentas/10-elicitation-schema.sh"
   [[ "$output" == *"hint_elicitation_schema"* ]]
 }
 
 @test "script: has mask_key function" {
-  run cat "$SCRIPT_DIR/ferramentas/11-elicitation-schema.sh"
+  run cat "$SCRIPT_DIR/ferramentas/10-elicitation-schema.sh"
   [[ "$output" == *"mask_key()"* ]]
 }
 
 @test "script: saves state with chmod 600" {
-  run cat "$SCRIPT_DIR/ferramentas/11-elicitation-schema.sh"
+  run cat "$SCRIPT_DIR/ferramentas/10-elicitation-schema.sh"
   [[ "$output" == *"chmod 600"* ]]
   [[ "$output" == *"dados_elicitation_schema"* ]]
 }
 
 @test "script: checks for dados_whitelabel dependency" {
-  run cat "$SCRIPT_DIR/ferramentas/11-elicitation-schema.sh"
+  run cat "$SCRIPT_DIR/ferramentas/10-elicitation-schema.sh"
   [[ "$output" == *"dados_whitelabel"* ]]
 }
 
 @test "script: provides SUPABASE_URL hint" {
-  run cat "$SCRIPT_DIR/ferramentas/11-elicitation-schema.sh"
+  run cat "$SCRIPT_DIR/ferramentas/10-elicitation-schema.sh"
   [[ "$output" == *"supabase.com/dashboard"* ]]
   [[ "$output" == *"Project URL"* ]]
 }
 
 @test "script: provides SUPABASE_SERVICE_ROLE_KEY hint" {
-  run cat "$SCRIPT_DIR/ferramentas/11-elicitation-schema.sh"
+  run cat "$SCRIPT_DIR/ferramentas/10-elicitation-schema.sh"
   [[ "$output" == *"service_role"* ]]
 }
 
 @test "script: verifies via REST API (curl)" {
-  run cat "$SCRIPT_DIR/ferramentas/11-elicitation-schema.sh"
+  run cat "$SCRIPT_DIR/ferramentas/10-elicitation-schema.sh"
   [[ "$output" == *"curl"* ]]
   [[ "$output" == *"elicitation_templates"* ]]
 }

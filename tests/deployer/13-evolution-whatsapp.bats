@@ -1,7 +1,7 @@
 #!/usr/bin/env bats
 # =============================================================================
 # Tests: Story 5.1 — Evolution API WhatsApp + Webhook Integration
-# File: tests/deployer/12-evolution-whatsapp.bats
+# File: tests/deployer/13-evolution-whatsapp.bats
 # =============================================================================
 
 setup() {
@@ -82,73 +82,73 @@ setup() {
   declare -f hint_evolution_debug > /dev/null
 }
 
-# --- Task 3: 03-evolution.sh sources evolution-api.sh ---
+# --- Task 3: 13-evolution.sh sources evolution-api.sh ---
 
-@test "03-evolution.sh sources evolution-api.sh" {
-  grep -q 'evolution-api.sh' "${DEPLOYER_DIR}/ferramentas/03-evolution.sh"
+@test "13-evolution.sh sources evolution-api.sh" {
+  grep -q 'evolution-api.sh' "${DEPLOYER_DIR}/ferramentas/13-evolution.sh"
 }
 
-@test "03-evolution.sh checks OpenClaw dependency" {
-  grep -q 'dados_openclaw' "${DEPLOYER_DIR}/ferramentas/03-evolution.sh"
+@test "13-evolution.sh checks OpenClaw dependency" {
+  grep -q 'dados_openclaw' "${DEPLOYER_DIR}/ferramentas/13-evolution.sh"
 }
 
-@test "03-evolution.sh has OPENCLAW_AVAILABLE flag" {
-  grep -q 'OPENCLAW_AVAILABLE' "${DEPLOYER_DIR}/ferramentas/03-evolution.sh"
+@test "13-evolution.sh has OPENCLAW_AVAILABLE flag" {
+  grep -q 'OPENCLAW_AVAILABLE' "${DEPLOYER_DIR}/ferramentas/13-evolution.sh"
 }
 
-@test "03-evolution.sh collects numero_whatsapp" {
-  grep -q 'numero_whatsapp' "${DEPLOYER_DIR}/ferramentas/03-evolution.sh"
+@test "13-evolution.sh collects numero_whatsapp" {
+  grep -q 'numero_whatsapp' "${DEPLOYER_DIR}/ferramentas/13-evolution.sh"
 }
 
-@test "03-evolution.sh has TOTAL=14" {
-  grep -q 'readonly TOTAL=14' "${DEPLOYER_DIR}/ferramentas/03-evolution.sh"
+@test "13-evolution.sh has TOTAL=14" {
+  grep -q 'readonly TOTAL=14' "${DEPLOYER_DIR}/ferramentas/13-evolution.sh"
 }
 
 # --- YAML generation with webhook (OpenClaw available) ---
 
 @test "YAML contains WEBHOOK_GLOBAL_ENABLED conditional" {
-  grep -q 'WEBHOOK_GLOBAL_ENABLED=' "${DEPLOYER_DIR}/ferramentas/03-evolution.sh"
+  grep -q 'WEBHOOK_GLOBAL_ENABLED=' "${DEPLOYER_DIR}/ferramentas/13-evolution.sh"
 }
 
 @test "YAML contains webhook URL pointing to openclaw_gateway" {
-  grep -q 'openclaw_gateway' "${DEPLOYER_DIR}/ferramentas/03-evolution.sh"
+  grep -q 'openclaw_gateway' "${DEPLOYER_DIR}/ferramentas/13-evolution.sh"
 }
 
 @test "YAML contains WEBHOOK_EVENTS_MESSAGES_UPSERT conditional" {
-  grep -q 'WEBHOOK_EVENTS_MESSAGES_UPSERT=' "${DEPLOYER_DIR}/ferramentas/03-evolution.sh"
+  grep -q 'WEBHOOK_EVENTS_MESSAGES_UPSERT=' "${DEPLOYER_DIR}/ferramentas/13-evolution.sh"
 }
 
 # --- Backward compatibility ---
 
-@test "03-evolution.sh maintains standalone mode when OpenClaw absent" {
+@test "13-evolution.sh maintains standalone mode when OpenClaw absent" {
   # Verify the conditional pattern: when OPENCLAW_AVAILABLE is false, webhook is disabled
-  grep -q 'OPENCLAW_AVAILABLE.*false' "${DEPLOYER_DIR}/ferramentas/03-evolution.sh"
+  grep -q 'OPENCLAW_AVAILABLE.*false' "${DEPLOYER_DIR}/ferramentas/13-evolution.sh"
 }
 
 # --- Finalize: dados_evolution includes WhatsApp data ---
 
-@test "03-evolution.sh writes Numero WhatsApp to dados_evolution" {
-  grep -q 'Numero WhatsApp' "${DEPLOYER_DIR}/ferramentas/03-evolution.sh"
+@test "13-evolution.sh writes Numero WhatsApp to dados_evolution" {
+  grep -q 'Numero WhatsApp' "${DEPLOYER_DIR}/ferramentas/13-evolution.sh"
 }
 
-@test "03-evolution.sh writes Webhook URL to dados_evolution" {
-  grep -q 'Webhook URL:' "${DEPLOYER_DIR}/ferramentas/03-evolution.sh"
+@test "13-evolution.sh writes Webhook URL to dados_evolution" {
+  grep -q 'Webhook URL:' "${DEPLOYER_DIR}/ferramentas/13-evolution.sh"
 }
 
-@test "03-evolution.sh writes Instancia WA to dados_evolution" {
-  grep -q 'Instancia WA:' "${DEPLOYER_DIR}/ferramentas/03-evolution.sh"
+@test "13-evolution.sh writes Instancia WA to dados_evolution" {
+  grep -q 'Instancia WA:' "${DEPLOYER_DIR}/ferramentas/13-evolution.sh"
 }
 
 # --- Hint debug in resumo ---
 
-@test "03-evolution.sh calls hint_evolution_debug" {
-  grep -q 'hint_evolution_debug' "${DEPLOYER_DIR}/ferramentas/03-evolution.sh"
+@test "13-evolution.sh calls hint_evolution_debug" {
+  grep -q 'hint_evolution_debug' "${DEPLOYER_DIR}/ferramentas/13-evolution.sh"
 }
 
 # --- Syntax validation ---
 
-@test "03-evolution.sh passes bash syntax check" {
-  bash -n "${DEPLOYER_DIR}/ferramentas/03-evolution.sh"
+@test "13-evolution.sh passes bash syntax check" {
+  bash -n "${DEPLOYER_DIR}/ferramentas/13-evolution.sh"
 }
 
 @test "evolution-api.sh passes bash syntax check" {

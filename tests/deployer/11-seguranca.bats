@@ -1,9 +1,9 @@
 #!/usr/bin/env bats
 
 # =============================================================================
-# Testes para deployer/ferramentas/12-seguranca.sh
+# Testes para deployer/ferramentas/11-seguranca.sh
 # Framework: bats-core
-# Execucao: npx bats tests/deployer/13-seguranca.bats
+# Execucao: npx bats tests/deployer/11-seguranca.bats
 # =============================================================================
 
 SCRIPT_DIR="$(cd "$(dirname "$BATS_TEST_FILENAME")/../../deployer" && pwd)"
@@ -37,16 +37,16 @@ teardown() {
 # Script existence and executability
 # =============================================================================
 
-@test "12-seguranca.sh exists" {
-  [[ -f "$SCRIPT_DIR/ferramentas/12-seguranca.sh" ]]
+@test "11-seguranca.sh exists" {
+  [[ -f "$SCRIPT_DIR/ferramentas/11-seguranca.sh" ]]
 }
 
-@test "12-seguranca.sh is executable" {
-  [[ -x "$SCRIPT_DIR/ferramentas/12-seguranca.sh" ]]
+@test "11-seguranca.sh is executable" {
+  [[ -x "$SCRIPT_DIR/ferramentas/11-seguranca.sh" ]]
 }
 
-@test "12-seguranca.sh sources all required libs" {
-  run grep -c "source.*LIB_DIR" "$SCRIPT_DIR/ferramentas/12-seguranca.sh"
+@test "11-seguranca.sh sources all required libs" {
+  run grep -c "source.*LIB_DIR" "$SCRIPT_DIR/ferramentas/11-seguranca.sh"
   [[ "$output" -ge 5 ]]
 }
 
@@ -55,7 +55,7 @@ teardown() {
 # =============================================================================
 
 @test "script checks for dados_openclaw dependency" {
-  run grep "dados_openclaw" "$SCRIPT_DIR/ferramentas/12-seguranca.sh"
+  run grep "dados_openclaw" "$SCRIPT_DIR/ferramentas/11-seguranca.sh"
   [[ "$status" -eq 0 ]]
 }
 
@@ -112,17 +112,17 @@ EOF
 
 @test "Dockerfile.sandbox generated uses alpine:3.19" {
   # Check the script generates correct Dockerfile
-  run grep "alpine:3.19" "$SCRIPT_DIR/ferramentas/12-seguranca.sh"
+  run grep "alpine:3.19" "$SCRIPT_DIR/ferramentas/11-seguranca.sh"
   [[ "$status" -eq 0 ]]
 }
 
 @test "Dockerfile.sandbox uses USER sandbox" {
-  run grep "USER sandbox" "$SCRIPT_DIR/ferramentas/12-seguranca.sh"
+  run grep "USER sandbox" "$SCRIPT_DIR/ferramentas/11-seguranca.sh"
   [[ "$status" -eq 0 ]]
 }
 
 @test "sandbox config has network none and read_only" {
-  run grep "read_only: true" "$SCRIPT_DIR/ferramentas/12-seguranca.sh"
+  run grep "read_only: true" "$SCRIPT_DIR/ferramentas/11-seguranca.sh"
   [[ "$status" -eq 0 ]]
 }
 
@@ -131,12 +131,12 @@ EOF
 # =============================================================================
 
 @test "journald config has MaxRetentionSec for 6 months" {
-  run grep "MaxRetentionSec=15780000" "$SCRIPT_DIR/ferramentas/12-seguranca.sh"
+  run grep "MaxRetentionSec=15780000" "$SCRIPT_DIR/ferramentas/11-seguranca.sh"
   [[ "$status" -eq 0 ]]
 }
 
 @test "logrotate config has rotate 180" {
-  run grep "rotate 180" "$SCRIPT_DIR/ferramentas/12-seguranca.sh"
+  run grep "rotate 180" "$SCRIPT_DIR/ferramentas/11-seguranca.sh"
   [[ "$status" -eq 0 ]]
 }
 
@@ -214,13 +214,13 @@ EOF
 # Menu integration
 # =============================================================================
 
-@test "deployer.sh menu contains [12] Seguranca" {
-  run grep '\[12\]' "$SCRIPT_DIR/deployer.sh"
+@test "deployer.sh menu contains [11] Seguranca" {
+  run grep '\[11\]' "$SCRIPT_DIR/deployer.sh"
   [[ "$status" -eq 0 ]]
   [[ "$output" == *"Seguranca"* ]]
 }
 
-@test "deployer.sh has case 12 handler" {
-  run grep "12)" "$SCRIPT_DIR/deployer.sh"
+@test "deployer.sh has case 11 handler" {
+  run grep "11)" "$SCRIPT_DIR/deployer.sh"
   [[ "$status" -eq 0 ]]
 }

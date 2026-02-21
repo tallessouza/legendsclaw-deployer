@@ -1,14 +1,14 @@
 #!/usr/bin/env bats
 
 # =============================================================================
-# Testes para deployer/ferramentas/14-validacao-final.sh
+# Testes para deployer/ferramentas/15-validacao-final.sh
 # Framework: bats-core
-# Execucao: npx bats tests/deployer/14-validacao-final.bats
+# Execucao: npx bats tests/deployer/15-validacao-final.bats
 # =============================================================================
 
 SCRIPT_DIR="$(cd "$(dirname "$BATS_TEST_FILENAME")/../../deployer" && pwd)"
 PROJECT_DIR="$(cd "$(dirname "$BATS_TEST_FILENAME")/../.." && pwd)"
-TOOL_SCRIPT="${SCRIPT_DIR}/ferramentas/14-validacao-final.sh"
+TOOL_SCRIPT="${SCRIPT_DIR}/ferramentas/15-validacao-final.sh"
 
 setup() {
   # Source libs com readonly removido
@@ -34,16 +34,16 @@ teardown() {
 # EXISTENCE AND SYNTAX
 # =============================================================================
 
-@test "14-validacao-final.sh exists" {
+@test "15-validacao-final.sh exists" {
   [[ -f "$TOOL_SCRIPT" ]]
 }
 
-@test "14-validacao-final.sh has valid syntax" {
+@test "15-validacao-final.sh has valid syntax" {
   run bash -n "$TOOL_SCRIPT"
   [[ "$status" -eq 0 ]]
 }
 
-@test "14-validacao-final.sh is executable" {
+@test "15-validacao-final.sh is executable" {
   [[ -x "$TOOL_SCRIPT" ]]
 }
 
@@ -289,6 +289,6 @@ EOF
 }
 
 @test "deployer menu includes case 14" {
-  run grep -c "14-validacao-final.sh" "${SCRIPT_DIR}/deployer.sh"
+  run grep -c "15-validacao-final.sh" "${SCRIPT_DIR}/deployer.sh"
   [[ "$output" -ge "1" ]]
 }

@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # =============================================================================
-# Legendsclaw Deployer — Ferramenta 14: Bridge — Claude Code Integration
+# Legendsclaw Deployer — Ferramenta 12: Bridge — Claude Code Integration
 # Story 5.3: Integrar agente com Claude Code via Bridge.js e Hooks
 # =============================================================================
 

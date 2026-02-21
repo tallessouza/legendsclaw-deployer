@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # =============================================================================
-# Legendsclaw Deployer — Ferramenta 09: Skills Base
+# Legendsclaw Deployer — Ferramenta 08: Skills Base
 # Story 4.1: Configurar skills existentes para a instancia whitelabel
 # =============================================================================
 

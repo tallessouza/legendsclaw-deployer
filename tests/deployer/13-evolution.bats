@@ -1,6 +1,6 @@
 #!/usr/bin/env bats
 # =============================================================================
-# Tests: deployer/ferramentas/03-evolution.sh
+# Tests: deployer/ferramentas/13-evolution.sh
 # Story 1.3: Evolution API deployment
 # =============================================================================
 
@@ -95,13 +95,13 @@ EOL
 # --- Dependencies ---
 
 @test "evolution script sources env-detect.sh" {
-  grep -q "env-detect.sh" "${BATS_TEST_DIRNAME}/../../deployer/ferramentas/03-evolution.sh"
+  grep -q "env-detect.sh" "${BATS_TEST_DIRNAME}/../../deployer/ferramentas/13-evolution.sh"
 }
 
 @test "evolution script calls verificar_container_postgres" {
-  grep -q "verificar_container_postgres" "${BATS_TEST_DIRNAME}/../../deployer/ferramentas/03-evolution.sh"
+  grep -q "verificar_container_postgres" "${BATS_TEST_DIRNAME}/../../deployer/ferramentas/13-evolution.sh"
 }
 
 @test "evolution script calls criar_banco_postgres_da_stack" {
-  grep -q "criar_banco_postgres_da_stack" "${BATS_TEST_DIRNAME}/../../deployer/ferramentas/03-evolution.sh"
+  grep -q "criar_banco_postgres_da_stack" "${BATS_TEST_DIRNAME}/../../deployer/ferramentas/13-evolution.sh"
 }

@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # =============================================================================
-# Legendsclaw Deployer — Ferramenta 10: Elicitation Skill
+# Legendsclaw Deployer — Ferramenta 09: Elicitation Skill
 # Story 4.2: Skill Elicitation — Estrutura e Tools
 # Story 4.4: Integração LLM Router e Memory
 # =============================================================================

@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # =============================================================================
-# Legendsclaw Deployer — Ferramenta 14: Validacao Final — Teste End-to-End
+# Legendsclaw Deployer — Ferramenta 15: Validacao Final — Teste End-to-End
 # Story 5.4: Validar todos os componentes instalados (Epics 1-5)
 # =============================================================================
 

@@ -1,9 +1,9 @@
 #!/usr/bin/env bats
 
 # =============================================================================
-# Testes para deployer/ferramentas/09-skills.sh
+# Testes para deployer/ferramentas/08-skills.sh
 # Framework: bats-core
-# Execucao: npx bats tests/deployer/09-skills.bats
+# Execucao: npx bats tests/deployer/08-skills.bats
 # =============================================================================
 
 SCRIPT_DIR="$(cd "$(dirname "$BATS_TEST_FILENAME")/../../deployer" && pwd)"
@@ -526,8 +526,8 @@ EOF
   [[ "$output" == *"Skills"* ]]
 }
 
-@test "deployer menu: case 09 calls 09-skills.sh" {
+@test "deployer menu: case 09 calls 08-skills.sh" {
   run cat "$SCRIPT_DIR/deployer.sh"
   [[ "$output" == *"09|9)"* ]]
-  [[ "$output" == *"09-skills.sh"* ]]
+  [[ "$output" == *"08-skills.sh"* ]]
 }

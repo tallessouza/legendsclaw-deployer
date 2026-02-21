@@ -2,8 +2,8 @@
 set -euo pipefail
 
 # =============================================================================
-# Legendsclaw Deployer — Ferramenta 08: LLM Router
-# Story 3.2: Configurar tiers de custo e API keys
+# Legendsclaw Deployer — Ferramenta 07: LLM Router
+# Story 3.2 + Story 7.3: Config completa com 4 tiers, keywords, fallback
 # =============================================================================
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -29,7 +29,7 @@ step_init 10
 dados
 if [[ ! -f "$STATE_DIR/dados_whitelabel" ]]; then
   step_fail "Whitelabel nao encontrado (~/dados_vps/dados_whitelabel ausente)"
-  echo "  Execute primeiro: Ferramenta [07] Whitelabel — Identidade do Agente"
+  echo "  Execute primeiro: Ferramenta [05] Whitelabel — Identidade do Agente"
   exit 1
 fi
 nome_agente=$(grep "Agente:" "$STATE_DIR/dados_whitelabel" | awk -F': ' '{print $2}')
@@ -45,7 +45,7 @@ step_ok "Estado carregado — agente '${nome_agente}' encontrado"
 CONFIG_FILE="apps/${nome_agente}/config/llm-router-config.yaml"
 if [[ ! -f "$CONFIG_FILE" ]]; then
   step_fail "Config LLM Router nao encontrado: ${CONFIG_FILE}"
-  echo "  Execute a Ferramenta [07] Whitelabel primeiro"
+  echo "  Execute a Ferramenta [05] Whitelabel primeiro"
   exit 1
 fi
 
@@ -55,25 +55,29 @@ OPENCLAW_DIR="${OPENCLAW_DIR:-/opt/openclaw}"
 step_ok "Dependencias verificadas — config e OpenClaw (${OPENCLAW_DIR})"
 
 # =============================================================================
-# STEP 4: EXIBIR TABELA DE CUSTOS
+# STEP 4: EXIBIR TABELA DE CUSTOS (4 tiers, 7 modelos)
 # =============================================================================
 echo ""
 echo -e "${UI_BOLD:-\033[1m}=============================================="
-echo "  LLM ROUTER — TABELA DE CUSTOS"
+echo "  LLM ROUTER — TABELA DE CUSTOS (4 TIERS)"
 echo -e "==============================================${UI_NC:-\033[0m}"
 echo ""
-echo "  Tier       Modelo                 Custo/req    Custo/1M tok  Uso"
-echo "  --------   --------------------   ----------   -----------   -------------------"
-echo "  budget     deepseek-chat          ~\$0.01       ~\$0.14       status, health"
-echo "  standard   claude-3.5-haiku       ~\$0.05       ~\$0.80       ClickUp, N8N"
-echo "  premium    claude-sonnet-4-6      ~\$0.20       ~\$15.00      decisoes complexas"
+echo "  Tier       Modelo                  Input/1M    Output/1M   Uso"
+echo "  --------   ---------------------   ---------   ---------   -------------------"
+echo "  budget     deepseek-chat           \$0.14       \$0.28       status, health"
+echo "  budget     gemini-2.0-flash        \$0.10       \$0.40       queries simples"
+echo "  standard   mistral-large-2411      \$2.00       \$6.00       ClickUp, N8N"
+echo "  standard   gpt-4o-mini             \$0.15       \$0.60       workflows"
+echo "  quality    claude-sonnet-4         \$3.00       \$15.00      analises, review"
+echo "  quality    gpt-4o                  \$2.50       \$10.00      documentos"
+echo "  premium    claude-opus-4-5         \$15.00      \$75.00      decisoes criticas"
 echo ""
 echo "=============================================="
 echo ""
-step_ok "Tabela de custos exibida"
+step_ok "Tabela de custos exibida (4 tiers, 7 modelos)"
 
 # =============================================================================
-# STEP 5: INPUT COLLECTION — API keys + tier padrao
+# STEP 5: INPUT COLLECTION — API keys + tier padrao + metrics
 # =============================================================================
 
 # Mascarar key para exibicao segura
@@ -136,22 +140,31 @@ while true; do
     fi
   fi
 
-  # Tier padrao
+  # Tier padrao (agora com quality)
   while true; do
-    read -rp "Tier padrao (budget/standard/premium, default: standard): " tier_padrao_input
+    read -rp "Tier padrao (budget/standard/quality/premium, default: standard): " tier_padrao_input
     tier_padrao="${tier_padrao_input:-standard}"
-    if [[ "$tier_padrao" =~ ^(budget|standard|premium)$ ]]; then
+    if [[ "$tier_padrao" =~ ^(budget|standard|quality|premium)$ ]]; then
       break
     fi
-    echo "  Opcoes validas: budget, standard, premium"
+    echo "  Opcoes validas: budget, standard, quality, premium"
   done
+
+  # Metricas (opcional)
+  read -rp "Habilitar metricas? (s/n, default: n): " metrics_input
+  if [[ "$metrics_input" =~ ^[Ss]$ ]]; then
+    metrics_enabled="true"
+  else
+    metrics_enabled="false"
+  fi
 
   # Conferindo as info (keys mascaradas)
   conferindo_as_info \
     "OpenRouter Key=$(mask_key "$openrouter_key")" \
     "Anthropic Key=$(mask_key "$anthropic_key")" \
     "DeepSeek Key=$(if [[ -n "$deepseek_key" ]]; then mask_key "$deepseek_key"; else echo "nao configurado"; fi)" \
-    "Tier Padrao=${tier_padrao}"
+    "Tier Padrao=${tier_padrao}" \
+    "Metricas=${metrics_enabled}"
 
   read -rp "As informacoes estao corretas? (s/n): " confirma
   if [[ "$confirma" =~ ^[Ss]$ ]]; then
@@ -162,61 +175,247 @@ done
 step_ok "Inputs coletados"
 
 # =============================================================================
-# STEP 6: BACKUP + UPDATE llm-router-config.yaml
+# STEP 6: BACKUP + UPDATE llm-router-config.yaml (YAML completo)
 # =============================================================================
 cp -p "$CONFIG_FILE" "${CONFIG_FILE}.bak"
 
+# Determinar DeepSeek enabled
+deepseek_enabled="true"
+if [[ -z "$deepseek_key" ]]; then
+  deepseek_enabled="false"
+fi
+
+# Gerar skill_mapping dinamico ou default
+generate_skill_mapping() {
+  if [[ -f "$STATE_DIR/dados_skills" ]]; then
+    local skills_ativas
+    skills_ativas=$(grep "Skills Ativas:" "$STATE_DIR/dados_skills" 2>/dev/null | awk -F': ' '{print $2}')
+    if [[ -n "$skills_ativas" ]]; then
+      # Mapear skills dinamicamente
+      IFS=',' read -ra SKILLS <<< "$skills_ativas"
+      for skill in "${SKILLS[@]}"; do
+        skill=$(echo "$skill" | xargs) # trim
+        local tier="standard"
+        case "$skill" in
+          *status*|*health*|*ping*|*check*) tier="budget" ;;
+          *ops*|*trigger*|*query*|*message*|*send*|*fetch*) tier="standard" ;;
+          *analyzer*|*review*|*creator*|*analysis*) tier="quality" ;;
+          *strategic*|*complex*|*critical*) tier="premium" ;;
+        esac
+        echo "  ${skill}: ${tier}"
+      done
+      return
+    fi
+  fi
+  # Default 14 mappings do stack de referencia
+  cat << 'MAPPING'
+  allos-status: budget
+  n8n-trigger: budget
+  supabase-query: budget
+  health-check: budget
+  clickup-ops: standard
+  slack-message: standard
+  email-draft: standard
+  data-lookup: standard
+  briefing-analyzer: quality
+  skill-creator: quality
+  code-review: quality
+  document-analysis: quality
+  strategic-planning: premium
+  complex-reasoning: premium
+MAPPING
+}
+
+# Contar skill mappings
+skill_mapping_content=$(generate_skill_mapping)
+skill_mapping_count=$(echo "$skill_mapping_content" | grep -c ':' || echo "0")
+
 cat > "$CONFIG_FILE" << YAML_EOF
+# ============================================
 # LLM Router Configuration — ${nome_agente}
-# Generated by Legendsclaw Deployer (Story 3.2)
+# ============================================
+# Generated by Legendsclaw Deployer (Story 7.3)
 # Date: $(date '+%Y-%m-%d %H:%M:%S')
 # API keys stored in .env (never in this file)
+
+version: "1.0"
 
 defaults:
   tier: ${tier_padrao}
   max_retries: 3
   timeout_ms: 30000
 
-providers:
-  openrouter:
-    api_key: \${OPENROUTER_API_KEY}
-    base_url: https://openrouter.ai/api/v1
-  anthropic:
-    api_key: \${ANTHROPIC_API_KEY}
-    base_url: https://api.anthropic.com
+models:
+  deepseek-v3:
+    id: "deepseek/deepseek-chat"
+    tier: budget
+    input_cost_per_1m: 0.14
+    output_cost_per_1m: 0.28
+    context_window: 64000
+    supports_tools: true
+    supports_vision: false
+    avg_latency_ms: 800
+    priority: 1
+    enabled: ${deepseek_enabled}
+
+  gemini-flash:
+    id: "google/gemini-2.0-flash-001"
+    tier: budget
+    input_cost_per_1m: 0.10
+    output_cost_per_1m: 0.40
+    context_window: 1000000
+    supports_tools: true
+    supports_vision: true
+    avg_latency_ms: 600
+    priority: 2
+    enabled: true
+
+  mistral-large:
+    id: "mistral/mistral-large-2411"
+    tier: standard
+    input_cost_per_1m: 2.00
+    output_cost_per_1m: 6.00
+    context_window: 128000
+    supports_tools: true
+    supports_vision: false
+    avg_latency_ms: 1200
+    priority: 1
+    enabled: true
+
+  gpt-4o-mini:
+    id: "openai/gpt-4o-mini"
+    tier: standard
+    input_cost_per_1m: 0.15
+    output_cost_per_1m: 0.60
+    context_window: 128000
+    supports_tools: true
+    supports_vision: true
+    avg_latency_ms: 1000
+    priority: 2
+    enabled: true
+
+  claude-sonnet:
+    id: "anthropic/claude-sonnet-4"
+    tier: quality
+    input_cost_per_1m: 3.00
+    output_cost_per_1m: 15.00
+    context_window: 200000
+    supports_tools: true
+    supports_vision: true
+    avg_latency_ms: 1500
+    priority: 1
+    enabled: true
+
+  gpt-4o:
+    id: "openai/gpt-4o"
+    tier: quality
+    input_cost_per_1m: 2.50
+    output_cost_per_1m: 10.00
+    context_window: 128000
+    supports_tools: true
+    supports_vision: true
+    avg_latency_ms: 1800
+    priority: 2
+    enabled: true
+
+  claude-opus:
+    id: "anthropic/claude-opus-4-5"
+    tier: premium
+    input_cost_per_1m: 15.00
+    output_cost_per_1m: 75.00
+    context_window: 200000
+    supports_tools: true
+    supports_vision: true
+    avg_latency_ms: 2500
+    priority: 1
+    enabled: true
 
 tiers:
   budget:
-    models:
-      - id: deepseek/deepseek-chat
-        provider: openrouter
     max_cost_per_request: 0.01
-    use_for: status, health checks, queries simples
-
+    models: [deepseek-v3, gemini-flash]
+    fallback_tier: standard
   standard:
-    models:
-      - id: anthropic/claude-3.5-haiku
-        provider: openrouter
-    max_cost_per_request: 0.05
-    use_for: operacoes ClickUp, N8N triggers, analises
-
+    max_cost_per_request: 0.10
+    models: [mistral-large, gpt-4o-mini]
+    fallback_tier: quality
+  quality:
+    max_cost_per_request: 2.00
+    models: [claude-sonnet, gpt-4o]
+    fallback_tier: premium
   premium:
-    models:
-      - id: claude-sonnet-4-6
-        provider: anthropic
-    max_cost_per_request: 0.20
-    use_for: decisoes complexas, analise de dados
+    max_cost_per_request: 10.00
+    models: [claude-opus]
+    fallback_tier: null
 
 skill_mapping:
-  status: budget
-  clickup-ops: standard
-  n8n-trigger: standard
-  supabase-query: standard
-  memory: budget
-  alerts: budget
+${skill_mapping_content}
+
+keywords:
+  budget:
+    words: [status, check, list, simple, quick, health, ping]
+    weight: 0.3
+  standard:
+    words: [create, update, modify, send, fetch, trigger, workflow]
+    weight: 0.5
+  quality:
+    words: [analyze, review, complex, detailed, comprehensive, briefing, document]
+    weight: 0.7
+  premium:
+    words: [critical, strategic, enterprise, production, mission-critical]
+    weight: 0.9
+
+fallback:
+  max_retries_per_model: 2
+  max_total_retries: 5
+  timeout_ms: 30000
+  tier_escalation: true
+  anthropic_direct_fallback: true
+  on_error:
+    rate_limit: exponential_backoff
+    timeout: try_faster_model
+    server_error: exponential_backoff
+    context_length: try_next_model
+    invalid_request: try_next_model
+
+metrics:
+  enabled: ${metrics_enabled}
+  storage: none
+  table: llm_metrics
+  batch_size: 10
+  flush_interval_ms: 30000
+  retention_days: 30
 YAML_EOF
 
-step_ok "llm-router-config.yaml atualizado (backup em .bak)"
+# Validacao do YAML gerado
+yaml_valid="false"
+yaml_lines=$(wc -l < "$CONFIG_FILE")
+
+if command -v python3 &>/dev/null && python3 -c "import yaml" 2>/dev/null; then
+  if python3 -c "import yaml; yaml.safe_load(open('${CONFIG_FILE}'))" 2>/dev/null; then
+    yaml_valid="true"
+  fi
+else
+  # Fallback: verificar secoes obrigatorias com grep
+  local_valid="true"
+  for section in "models:" "tiers:" "skill_mapping:" "keywords:" "fallback:" "metrics:"; do
+    if ! grep -q "^${section}" "$CONFIG_FILE" 2>/dev/null; then
+      local_valid="false"
+      break
+    fi
+  done
+  yaml_valid="$local_valid"
+fi
+
+if [[ "$yaml_valid" == "true" ]]; then
+  step_ok "llm-router-config.yaml atualizado (${yaml_lines} linhas, backup em .bak)"
+else
+  # Restaurar backup
+  cp -p "${CONFIG_FILE}.bak" "$CONFIG_FILE"
+  step_fail "YAML gerado invalido — backup restaurado"
+  echo "  Verifique: cat ${CONFIG_FILE}.bak"
+  exit 1
+fi
 
 # =============================================================================
 # STEP 7: POPULAR .ENV NO VPS
@@ -302,7 +501,7 @@ fi
 step_skip "Teste Anthropic: skip (manual)"
 
 # =============================================================================
-# STEP 9: SAVE STATE — dados_llm_router
+# STEP 9: SAVE STATE — dados_llm_router (expandido)
 # =============================================================================
 mkdir -p "$STATE_DIR"
 cat > "$STATE_DIR/dados_llm_router" << EOF
@@ -314,6 +513,11 @@ Anthropic: configurado
 DeepSeek: $(if [[ -n "$deepseek_key" ]]; then echo "configurado"; else echo "nao configurado"; fi)
 Teste Budget: ${teste_resultado}
 Env File: ${ENV_FILE}
+Tiers: 4
+Skill Mappings: ${skill_mapping_count}
+Keywords: true
+Fallback: true
+Metrics: ${metrics_enabled}
 Data Configuracao: $(date '+%Y-%m-%d %H:%M:%S')
 EOF
 chmod 600 "$STATE_DIR/dados_llm_router"
@@ -329,12 +533,18 @@ echo -e "${UI_BOLD}  LLM Router — ${nome_agente}${UI_NC}"
 echo ""
 echo "  Agente:        ${nome_agente}"
 echo "  Tier padrao:   ${tier_padrao}"
+echo "  Tiers:         4 (budget, standard, quality, premium)"
+echo "  Modelos:       7"
+echo "  Skill maps:    ${skill_mapping_count}"
+echo "  Keywords:      4 categorias"
+echo "  Fallback:      tier_escalation + on_error handlers"
+echo "  Metricas:      ${metrics_enabled}"
 echo "  OpenRouter:    $(mask_key "$openrouter_key")"
 echo "  Anthropic:     $(mask_key "$anthropic_key")"
 echo "  DeepSeek:      $(if [[ -n "$deepseek_key" ]]; then mask_key "$deepseek_key"; else echo "nao configurado"; fi)"
 echo "  Teste budget:  ${teste_resultado}"
 echo ""
-echo "  Config:        ${CONFIG_FILE}"
+echo "  Config:        ${CONFIG_FILE} (${yaml_lines} linhas)"
 echo "  Env:           ${ENV_FILE}"
 echo "  Estado:        ~/dados_vps/dados_llm_router"
 echo "  Log:           ${LOG_FILE}"

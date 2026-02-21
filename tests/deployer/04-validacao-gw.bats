@@ -1,9 +1,9 @@
 #!/usr/bin/env bats
 
 # =============================================================================
-# Testes para deployer/ferramentas/06-validacao-gw.sh
+# Testes para deployer/ferramentas/04-validacao-gw.sh
 # Framework: bats-core
-# Execucao: npx bats tests/deployer/06-validacao-gw.bats
+# Execucao: npx bats tests/deployer/04-validacao-gw.bats
 # =============================================================================
 
 SCRIPT_DIR="$(cd "$(dirname "$BATS_TEST_FILENAME")/../../deployer" && pwd)"
@@ -300,38 +300,38 @@ EOF
 }
 
 # =============================================================================
-# Integration with 05-openclaw.sh
+# Integration with 03-openclaw.sh
 # =============================================================================
 
-@test "05-openclaw.sh contains validation prompt" {
-  local script="$SCRIPT_DIR/ferramentas/05-openclaw.sh"
+@test "03-openclaw.sh contains validation prompt" {
+  local script="$SCRIPT_DIR/ferramentas/03-openclaw.sh"
   [[ -f "$script" ]]
   grep -q "validacao end-to-end" "$script"
 }
 
-@test "05-openclaw.sh calls 06-validacao-gw.sh" {
-  local script="$SCRIPT_DIR/ferramentas/05-openclaw.sh"
-  grep -q "06-validacao-gw.sh" "$script"
+@test "03-openclaw.sh calls 04-validacao-gw.sh" {
+  local script="$SCRIPT_DIR/ferramentas/03-openclaw.sh"
+  grep -q "04-validacao-gw.sh" "$script"
 }
 
 # =============================================================================
 # Script file validation
 # =============================================================================
 
-@test "06-validacao-gw.sh exists" {
-  [[ -f "$SCRIPT_DIR/ferramentas/06-validacao-gw.sh" ]]
+@test "04-validacao-gw.sh exists" {
+  [[ -f "$SCRIPT_DIR/ferramentas/04-validacao-gw.sh" ]]
 }
 
-@test "06-validacao-gw.sh is executable" {
-  [[ -x "$SCRIPT_DIR/ferramentas/06-validacao-gw.sh" ]]
+@test "04-validacao-gw.sh is executable" {
+  [[ -x "$SCRIPT_DIR/ferramentas/04-validacao-gw.sh" ]]
 }
 
-@test "06-validacao-gw.sh has set -euo pipefail" {
-  grep -q "set -euo pipefail" "$SCRIPT_DIR/ferramentas/06-validacao-gw.sh"
+@test "04-validacao-gw.sh has set -euo pipefail" {
+  grep -q "set -euo pipefail" "$SCRIPT_DIR/ferramentas/04-validacao-gw.sh"
 }
 
-@test "06-validacao-gw.sh sources required libs" {
-  local script="$SCRIPT_DIR/ferramentas/06-validacao-gw.sh"
+@test "04-validacao-gw.sh sources required libs" {
+  local script="$SCRIPT_DIR/ferramentas/04-validacao-gw.sh"
   grep -q 'source.*ui.sh' "$script"
   grep -q 'source.*logger.sh' "$script"
   grep -q 'source.*common.sh' "$script"
@@ -339,65 +339,65 @@ EOF
   grep -q 'source.*env-detect.sh' "$script"
 }
 
-@test "06-validacao-gw.sh calls log_init with validation-gw" {
-  grep -q 'log_init "validation-gw"' "$SCRIPT_DIR/ferramentas/06-validacao-gw.sh"
+@test "04-validacao-gw.sh calls log_init with validation-gw" {
+  grep -q 'log_init "validation-gw"' "$SCRIPT_DIR/ferramentas/04-validacao-gw.sh"
 }
 
-@test "06-validacao-gw.sh calls step_init with 10" {
-  grep -q 'step_init 10' "$SCRIPT_DIR/ferramentas/06-validacao-gw.sh"
+@test "04-validacao-gw.sh calls step_init with 10" {
+  grep -q 'step_init 10' "$SCRIPT_DIR/ferramentas/04-validacao-gw.sh"
 }
 
-@test "06-validacao-gw.sh checks dados_openclaw" {
-  grep -q 'dados_openclaw' "$SCRIPT_DIR/ferramentas/06-validacao-gw.sh"
+@test "04-validacao-gw.sh checks dados_openclaw" {
+  grep -q 'dados_openclaw' "$SCRIPT_DIR/ferramentas/04-validacao-gw.sh"
 }
 
-@test "06-validacao-gw.sh checks dados_tailscale" {
-  grep -q 'dados_tailscale' "$SCRIPT_DIR/ferramentas/06-validacao-gw.sh"
+@test "04-validacao-gw.sh checks dados_tailscale" {
+  grep -q 'dados_tailscale' "$SCRIPT_DIR/ferramentas/04-validacao-gw.sh"
 }
 
-@test "06-validacao-gw.sh runs tailscale status" {
-  grep -q 'tailscale status' "$SCRIPT_DIR/ferramentas/06-validacao-gw.sh"
+@test "04-validacao-gw.sh runs tailscale status" {
+  grep -q 'tailscale status' "$SCRIPT_DIR/ferramentas/04-validacao-gw.sh"
 }
 
-@test "06-validacao-gw.sh runs systemctl is-active openclaw" {
-  grep -q 'systemctl is-active openclaw' "$SCRIPT_DIR/ferramentas/06-validacao-gw.sh"
+@test "04-validacao-gw.sh runs systemctl is-active openclaw" {
+  grep -q 'systemctl is-active openclaw' "$SCRIPT_DIR/ferramentas/04-validacao-gw.sh"
 }
 
-@test "06-validacao-gw.sh runs openclaw doctor" {
-  grep -q 'openclaw doctor' "$SCRIPT_DIR/ferramentas/06-validacao-gw.sh"
+@test "04-validacao-gw.sh runs openclaw doctor" {
+  grep -q 'openclaw doctor' "$SCRIPT_DIR/ferramentas/04-validacao-gw.sh"
 }
 
-@test "06-validacao-gw.sh runs curl health check" {
-  grep -q 'curl.*health' "$SCRIPT_DIR/ferramentas/06-validacao-gw.sh"
+@test "04-validacao-gw.sh runs curl health check" {
+  grep -q 'curl.*health' "$SCRIPT_DIR/ferramentas/04-validacao-gw.sh"
 }
 
-@test "06-validacao-gw.sh runs openclaw agent message test" {
-  grep -q 'openclaw agent --message' "$SCRIPT_DIR/ferramentas/06-validacao-gw.sh"
+@test "04-validacao-gw.sh runs openclaw agent message test" {
+  grep -q 'openclaw agent --message' "$SCRIPT_DIR/ferramentas/04-validacao-gw.sh"
 }
 
-@test "06-validacao-gw.sh has timeout for message test" {
-  grep -q 'timeout 30' "$SCRIPT_DIR/ferramentas/06-validacao-gw.sh"
+@test "04-validacao-gw.sh has timeout for message test" {
+  grep -q 'timeout 30' "$SCRIPT_DIR/ferramentas/04-validacao-gw.sh"
 }
 
-@test "06-validacao-gw.sh calls chmod 600 on dados_openclaw" {
-  grep -q 'chmod 600.*dados_openclaw' "$SCRIPT_DIR/ferramentas/06-validacao-gw.sh"
+@test "04-validacao-gw.sh calls chmod 600 on dados_openclaw" {
+  grep -q 'chmod 600.*dados_openclaw' "$SCRIPT_DIR/ferramentas/04-validacao-gw.sh"
 }
 
-@test "06-validacao-gw.sh calls hint_validacao_gw" {
-  grep -q 'hint_validacao_gw' "$SCRIPT_DIR/ferramentas/06-validacao-gw.sh"
+@test "04-validacao-gw.sh calls hint_validacao_gw" {
+  grep -q 'hint_validacao_gw' "$SCRIPT_DIR/ferramentas/04-validacao-gw.sh"
 }
 
-@test "06-validacao-gw.sh calls resumo_final" {
-  grep -q 'resumo_final' "$SCRIPT_DIR/ferramentas/06-validacao-gw.sh"
+@test "04-validacao-gw.sh calls resumo_final" {
+  grep -q 'resumo_final' "$SCRIPT_DIR/ferramentas/04-validacao-gw.sh"
 }
 
-@test "06-validacao-gw.sh calls log_finish" {
-  grep -q 'log_finish' "$SCRIPT_DIR/ferramentas/06-validacao-gw.sh"
+@test "04-validacao-gw.sh calls log_finish" {
+  grep -q 'log_finish' "$SCRIPT_DIR/ferramentas/04-validacao-gw.sh"
 }
 
-@test "06-validacao-gw.sh displays test commands for desktop" {
-  grep -q 'tailscale ping' "$SCRIPT_DIR/ferramentas/06-validacao-gw.sh"
-  grep -q 'COMANDOS DE TESTE' "$SCRIPT_DIR/ferramentas/06-validacao-gw.sh"
+@test "04-validacao-gw.sh displays test commands for desktop" {
+  grep -q 'tailscale ping' "$SCRIPT_DIR/ferramentas/04-validacao-gw.sh"
+  grep -q 'COMANDOS DE TESTE' "$SCRIPT_DIR/ferramentas/04-validacao-gw.sh"
 }
 
 # =============================================================================
