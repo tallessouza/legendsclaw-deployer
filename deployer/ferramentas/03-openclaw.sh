@@ -41,25 +41,23 @@ fi
 # =============================================================================
 dados
 if [[ ! -f "$STATE_DIR/dados_portainer" ]]; then
-  step_fail "Traefik + Portainer nao encontrados (~/dados_vps/dados_portainer ausente)"
-  echo "  Execute primeiro: Ferramenta [01] Traefik + Portainer (base)"
-  exit 1
+  step_skip "Traefik + Portainer nao encontrados (opcional — OpenClaw funciona sem eles)"
+  echo "  Para HTTPS com dominio publico, execute: Ferramenta [01] Traefik + Portainer"
+else
+  step_ok "Estado carregado — dados_portainer encontrado"
 fi
-step_ok "Estado carregado — dados_portainer encontrado"
 
 # =============================================================================
-# STEP 4: CHECK DEPENDENCIES — Traefik, Portainer, Node.js >= 22, pnpm, git
+# STEP 4: CHECK DEPENDENCIES — Node.js >= 22, pnpm, git (Traefik/Portainer opcional)
 # =============================================================================
 deps_ok=true
 
-# Verificar stacks Docker
-if ! verificar_stack "traefik"; then
-  echo "  AVISO: Stack Traefik nao encontrada no Docker Swarm"
-  deps_ok=false
+# Verificar stacks Docker (opcional — apenas aviso)
+if ! verificar_stack "traefik" 2>/dev/null; then
+  echo "  INFO: Stack Traefik nao encontrada (opcional — HTTPS via dominio nao disponivel)"
 fi
-if ! verificar_stack "portainer"; then
-  echo "  AVISO: Stack Portainer nao encontrada no Docker Swarm"
-  deps_ok=false
+if ! verificar_stack "portainer" 2>/dev/null; then
+  echo "  INFO: Stack Portainer nao encontrada (opcional — gestao Docker via UI nao disponivel)"
 fi
 
 # Verificar Node.js >= 22
@@ -87,10 +85,10 @@ if ! command -v git &>/dev/null; then
 fi
 
 if $deps_ok; then
-  step_ok "Dependencias verificadas (Traefik, Portainer, Node.js >= 22, pnpm, git)"
+  step_ok "Dependencias verificadas (Node.js >= 22, pnpm, git)"
 else
   step_fail "Dependencias faltando — verifique os avisos acima"
-  echo "  Execute primeiro: Ferramenta [01] (base) e setup.sh (bootstrap)"
+  echo "  Execute: setup.sh (instala Node.js, pnpm, git automaticamente)"
   exit 1
 fi
 
