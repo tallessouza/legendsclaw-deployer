@@ -232,61 +232,60 @@ else
 fi
 
 # =============================================================================
-# STEP 9: ONBOARD
+# STEP 9: GARANTIR SYSTEMD USER SERVICES + ONBOARD
 # =============================================================================
+# Habilitar linger para que systemd user services funcionem via SSH/root
+current_user="$(whoami)"
+if command -v loginctl &>/dev/null; then
+  sudo loginctl enable-linger "$current_user" 2>/dev/null || true
+fi
+export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
+
 if pnpm openclaw onboard --install-daemon 2>&1; then
   step_ok "OpenClaw onboard concluido"
 else
-  step_fail "OpenClaw onboard falhou"
-  exit 1
+  echo "  AVISO: onboard falhou ou systemd user indisponivel — instalando system service..."
 fi
 
 popd > /dev/null
 
 # =============================================================================
-# STEP 10-12: DESATIVADOS — onboard ja instala daemon + systemd + inicia gw
-# O openclaw onboard --install-daemon (Step 9) ja faz tudo:
-#   - Configura gateway (bind, porta, auth, Tailscale serve)
-#   - Configura canais (WhatsApp QR)
-#   - Instala systemd user service (~/.config/systemd/user/)
-#   - Inicia o gateway automaticamente
-# Steps 10-12 eram redundantes e causavam conflito (porta ja em uso).
+# STEP 10: FALLBACK — systemd system service se user service nao funcionou
 # =============================================================================
-# if ss -tlnp 2>/dev/null | grep -q ":${porta_openclaw} "; then
-#   step_fail "Porta ${porta_openclaw} ja esta em uso"
-#   echo "  Verifique com: ss -tlnp | grep ${porta_openclaw}"
-#   echo "  Considere usar uma porta diferente"
-#   exit 1
-# fi
-# step_ok "Porta ${porta_openclaw} disponivel"
-#
-# cat > /etc/systemd/system/openclaw.service << EOF
-# [Unit]
-# Description=OpenClaw Gateway
-# After=network.target tailscaled.service
-#
-# [Service]
-# Type=simple
-# User=root
-# WorkingDirectory=/opt/openclaw
-# ExecStart=/usr/bin/node openclaw.mjs gateway --port ${porta_openclaw}
-# Restart=always
-# RestartSec=5
-# Environment=NODE_ENV=production
-#
-# [Install]
-# WantedBy=multi-user.target
-# EOF
-#
-# step_ok "Systemd unit criada (/etc/systemd/system/openclaw.service)"
-#
-# systemctl daemon-reload
-# systemctl enable openclaw
-# systemctl start openclaw
-#
-# step_ok "Servico openclaw habilitado e iniciado"
+if systemctl --user is-active openclaw &>/dev/null 2>&1; then
+  step_ok "OpenClaw rodando como user service"
+elif systemctl is-active openclaw &>/dev/null 2>&1; then
+  step_ok "OpenClaw rodando como system service"
+else
+  echo "  Instalando systemd system service (fallback)..."
+  sudo tee /etc/systemd/system/openclaw.service > /dev/null << SVCEOF
+[Unit]
+Description=OpenClaw Gateway
+After=network.target tailscaled.service
 
-step_skip "Steps 10-12 delegados ao onboard (daemon ja instalado)"
+[Service]
+Type=simple
+User=${current_user}
+WorkingDirectory=/opt/openclaw
+ExecStart=$(command -v node) dist/cli.js serve
+Restart=always
+RestartSec=5
+Environment=NODE_ENV=production
+
+[Install]
+WantedBy=multi-user.target
+SVCEOF
+
+  sudo systemctl daemon-reload
+  sudo systemctl enable --now openclaw
+  if systemctl is-active openclaw &>/dev/null; then
+    step_ok "OpenClaw system service instalado e iniciado"
+  else
+    step_fail "Falha ao iniciar OpenClaw system service"
+    echo "  Verifique com: sudo journalctl -u openclaw -n 20"
+    exit 1
+  fi
+fi
 
 # =============================================================================
 # STEP 13: HEALTH CHECK (retry 5x, 10s intervalo)

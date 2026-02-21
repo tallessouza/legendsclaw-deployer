@@ -1,0 +1,20 @@
+schema: 1
+story: '9.2'
+gate: CONCERNS
+status_reason: 'Todos os ACs verificáveis passaram (8/10). AC5 e AC6 (testes funcionais deployer.sh/setup.sh) pendentes de validação em VM limpa — risco mitigado pela estrutura flat comprovada.'
+reviewer: 'Quinn'
+updated: '2026-02-21T23:45:00Z'
+top_issues:
+  - id: 'REQ-001'
+    severity: medium
+    finding: 'AC5 e AC6 não verificados — deployer.sh e setup.sh não foram testados em VM limpa'
+    suggested_action: 'Agendar teste funcional em VM Ubuntu 22.04 limpa antes de promover o one-liner publicamente'
+  - id: 'MNT-001'
+    severity: low
+    finding: 'Monorepo local (legendsclaw/deployer/) mantém referências .aios-core desatualizadas que divergem do repo público'
+    suggested_action: 'Considerar sincronizar ajustes do repo público de volta ao monorepo local em story futura'
+  - id: 'DOC-001'
+    severity: low
+    finding: 'Story documenta bridge.js como "em breve" — 12-bridge.sh faz skip graceful, mas não há story planejada para portar bridge.js'
+    suggested_action: 'Criar story para portar bridge.js para services/ no repo público quando necessário'
+waiver: { active: false }
