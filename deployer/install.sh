@@ -74,13 +74,26 @@ feedback() {
 }
 
 # =============================================================================
-# STEP 1: Root check
+# STEP 1: Determinar user real (funciona com sudo, root direto, ou user normal)
 # =============================================================================
-if [[ $EUID -ne 0 ]]; then
-  feedback FAIL "Execucao requer root (use: sudo bash install.sh)"
+if [[ -n "${SUDO_USER:-}" ]]; then
+  REAL_USER="$SUDO_USER"
+  REAL_GROUP="$(id -gn "$SUDO_USER")"
+elif [[ $EUID -eq 0 ]]; then
+  # Root direto — tentar detectar user logado
+  REAL_USER="$(logname 2>/dev/null || who am i 2>/dev/null | awk '{print $1}' || echo root)"
+  REAL_GROUP="$(id -gn "$REAL_USER" 2>/dev/null || echo root)"
+else
+  REAL_USER="$(whoami)"
+  REAL_GROUP="$(id -gn)"
+fi
+
+# Verificar se consegue usar sudo (necessario para /opt/)
+if [[ $EUID -ne 0 ]] && ! sudo -n true 2>/dev/null; then
+  feedback FAIL "Precisa de sudo para instalar em /opt/ (use: sudo bash install.sh)"
   exit 1
 fi
-feedback OK "Executando como root"
+feedback OK "User: ${REAL_USER} (executando como $(whoami))"
 
 # =============================================================================
 # STEP 2: OS check (soft gate)
@@ -126,12 +139,19 @@ elif [[ -d "$INSTALL_DIR" ]]; then
   feedback FAIL "${INSTALL_DIR} existe mas nao e um repositorio git"
   exit 1
 else
+  # Criar /opt/legendsclaw com sudo se necessario, clonar como user real
+  if [[ $EUID -ne 0 ]]; then
+    sudo mkdir -p "$INSTALL_DIR"
+    sudo chown "${REAL_USER}:${REAL_GROUP}" "$INSTALL_DIR"
+  else
+    mkdir -p "$INSTALL_DIR"
+  fi
   if git clone "$REPO_URL" "$INSTALL_DIR" > /dev/null 2>&1; then
-    # Dar ownership ao user real (SUDO_USER) para que ferramentas funcionem sem sudo
-    if [[ -n "${SUDO_USER:-}" ]]; then
-      chown -R "${SUDO_USER}:${SUDO_USER}" "$INSTALL_DIR"
+    # Garantir ownership ao user real para que ferramentas funcionem sem sudo
+    if [[ "$REAL_USER" != "root" ]] && [[ $EUID -eq 0 ]]; then
+      chown -R "${REAL_USER}:${REAL_GROUP}" "$INSTALL_DIR"
     fi
-    feedback OK "Repositorio clonado em ${INSTALL_DIR}"
+    feedback OK "Repositorio clonado em ${INSTALL_DIR} (owner: ${REAL_USER})"
   else
     feedback FAIL "Falha ao clonar repositorio"
     exit 1
