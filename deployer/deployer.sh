@@ -57,6 +57,7 @@ show_menu() {
   echo -e "║  ${D_GREEN}[13] Evolution API (cascade Postgres)${D_CYAN}      ║"
   echo -e "║  ${D_GREEN}[14] Gateway Config (aiosbot, node, .env, MCP)${D_CYAN}║"
   echo -e "║  ${D_GREEN}[15] Validacao Final — Teste End-to-End${D_CYAN}    ║"
+  echo -e "║  ${D_YELLOW}[16] Reload Agent — Reiniciar Gateway${D_CYAN}      ║"
   echo -e "║  ${D_GRAY}[00] Sair${D_CYAN}                                    ║"
   echo "╚══════════════════════════════════════════════╝"
   echo -e "${D_NC}"
@@ -83,6 +84,7 @@ main() {
       13)    run_ferramenta "ferramentas/13-evolution.sh" ;;
       14)    run_ferramenta "ferramentas/14-gateway-config.sh" ;;
       15)    run_ferramenta "ferramentas/15-validacao-final.sh" ;;
+      16)    run_ferramenta "ferramentas/16-reload-agent.sh" ;;
       00|0)
         echo "Ate mais!"
         exit 0
