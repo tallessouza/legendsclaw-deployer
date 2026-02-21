@@ -127,6 +127,10 @@ elif [[ -d "$INSTALL_DIR" ]]; then
   exit 1
 else
   if git clone "$REPO_URL" "$INSTALL_DIR" > /dev/null 2>&1; then
+    # Dar ownership ao user real (SUDO_USER) para que ferramentas funcionem sem sudo
+    if [[ -n "${SUDO_USER:-}" ]]; then
+      chown -R "${SUDO_USER}:${SUDO_USER}" "$INSTALL_DIR"
+    fi
     feedback OK "Repositorio clonado em ${INSTALL_DIR}"
   else
     feedback FAIL "Falha ao clonar repositorio"
