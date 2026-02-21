@@ -24,7 +24,7 @@ source "${LIB_DIR}/env-detect.sh"
 log_init "gateway-config"
 [[ "${AUTO_MODE:-false}" == "true" ]] && auto_load_config
 setup_trap
-step_init 12
+step_init 13
 
 # =============================================================================
 # STEP 2: CARREGAR DADOS OBRIGATORIOS
@@ -693,7 +693,32 @@ chmod 600 "$STATE_DIR/dados_gateway_config"
 step_ok "Estado salvo em dados_gateway_config"
 
 # =============================================================================
-# STEP 12: RESUMO FINAL
+# STEP 12: COPIAR CONFIGS PARA OPENCLAW WORKSPACE
+# =============================================================================
+OPENCLAW_WORKSPACE="$HOME/.openclaw/workspace"
+if [[ -d "$OPENCLAW_WORKSPACE" ]]; then
+  DEST_CONFIG_DIR="${OPENCLAW_WORKSPACE}/apps/${nome_agente}/config"
+  DEST_MCP_DIR="${OPENCLAW_WORKSPACE}/apps/${nome_agente}/mcps"
+  mkdir -p "$DEST_CONFIG_DIR"
+  mkdir -p "$DEST_MCP_DIR"
+  cp "$CONFIG_DIR/aiosbot.json" "$DEST_CONFIG_DIR/"
+  cp "$CONFIG_DIR/node.json" "$DEST_CONFIG_DIR/"
+  cp "$MCP_DIR/mcp-config.json" "$DEST_MCP_DIR/"
+  # Copiar .env para o diretorio do agente no workspace
+  cp "$ENV_DIR/.env" "${OPENCLAW_WORKSPACE}/apps/${nome_agente}/.env"
+  chmod 600 "${OPENCLAW_WORKSPACE}/apps/${nome_agente}/.env"
+  step_ok "Configs copiados para ~/.openclaw/workspace/apps/${nome_agente}/"
+
+  # Reiniciar gateway para carregar novos configs
+  if reload_gateway; then
+    echo -e "  ${UI_GREEN:-}Gateway reiniciado — configs aplicados${UI_NC:-}"
+  fi
+else
+  step_skip "OpenClaw workspace nao encontrado (~/.openclaw/workspace/) — copie manualmente depois"
+fi
+
+# =============================================================================
+# STEP 13: RESUMO FINAL
 # =============================================================================
 resumo_final
 

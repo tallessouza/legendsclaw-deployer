@@ -561,7 +561,7 @@ step_ok "MEMORY.md e BOOTSTRAP.md gerados"
 # O OpenClaw le os arquivos de personalidade de ~/.openclaw/workspace/
 # O deployer gera em apps/{agente}/workspace/ mas precisa copiar pro destino.
 # =============================================================================
-OPENCLAW_WORKSPACE="/root/.openclaw/workspace"
+OPENCLAW_WORKSPACE="$HOME/.openclaw/workspace"
 if [[ -d "$OPENCLAW_WORKSPACE" ]]; then
   for arquivo in SOUL.md IDENTITY.md USER.md AGENTS.md BOOTSTRAP.md MEMORY.md; do
     if [[ -f "${WORKSPACE_DIR}/${arquivo}" ]]; then

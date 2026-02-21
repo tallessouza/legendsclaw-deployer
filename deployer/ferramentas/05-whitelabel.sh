@@ -23,7 +23,7 @@ source "${LIB_DIR}/auto.sh"
 log_init "whitelabel"
 [[ "${AUTO_MODE:-false}" == "true" ]] && auto_load_config
 setup_trap
-step_init 8
+step_init 9
 
 # =============================================================================
 # STEP 2: LOAD STATE + VERIFICAR DEPENDENCIA OPENCLAW
@@ -328,7 +328,27 @@ chmod 600 "$STATE_DIR/dados_whitelabel"
 step_ok "Estado salvo em ~/dados_vps/dados_whitelabel"
 
 # =============================================================================
-# STEP 8: RESUMO + HINTS
+# STEP 8: COPIAR CONFIG PARA OPENCLAW WORKSPACE
+# =============================================================================
+OPENCLAW_WORKSPACE="$HOME/.openclaw/workspace"
+if [[ -d "$OPENCLAW_WORKSPACE" ]]; then
+  DEST_CONFIG_DIR="${OPENCLAW_WORKSPACE}/apps/${nome_agente}/config"
+  mkdir -p "$DEST_CONFIG_DIR"
+  cp "${APPS_DIR}/config/llm-router-config.yaml" "$DEST_CONFIG_DIR/"
+  # Copiar skills base (config.js, index.js, package.json, lib/)
+  DEST_SKILLS_DIR="${OPENCLAW_WORKSPACE}/apps/${nome_agente}/skills"
+  mkdir -p "$DEST_SKILLS_DIR/lib"
+  cp "${APPS_DIR}/skills/config.js" "$DEST_SKILLS_DIR/"
+  cp "${APPS_DIR}/skills/index.js" "$DEST_SKILLS_DIR/"
+  cp "${APPS_DIR}/skills/package.json" "$DEST_SKILLS_DIR/"
+  cp "${APPS_DIR}/skills/lib/"* "$DEST_SKILLS_DIR/lib/"
+  step_ok "Config e skills copiados para ~/.openclaw/workspace/apps/${nome_agente}/"
+else
+  step_skip "OpenClaw workspace nao encontrado (~/.openclaw/workspace/) — copie manualmente depois"
+fi
+
+# =============================================================================
+# STEP 9: RESUMO + HINTS
 # =============================================================================
 resumo_final
 

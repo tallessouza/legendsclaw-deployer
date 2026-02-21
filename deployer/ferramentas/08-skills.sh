@@ -886,7 +886,7 @@ step_ok "Health check concluido (${health_ok}/${health_total} OK)"
 # =============================================================================
 # STEP 14: COPIAR SKILLS PARA OPENCLAW WORKSPACE
 # =============================================================================
-OPENCLAW_WORKSPACE="/root/.openclaw/workspace"
+OPENCLAW_WORKSPACE="$HOME/.openclaw/workspace"
 if [[ -d "$OPENCLAW_WORKSPACE" ]]; then
   DEST_SKILLS_DIR="${OPENCLAW_WORKSPACE}/apps/${nome_agente}/skills"
   mkdir -p "$DEST_SKILLS_DIR"
