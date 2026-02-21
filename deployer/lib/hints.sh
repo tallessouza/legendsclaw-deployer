@@ -821,3 +821,32 @@ hint_llm_router() {
   echo "=============================================="
   echo ""
 }
+
+# Hint de gateway config — debug e proximos passos
+# Uso: hint_gateway_config "nome_agente"
+hint_gateway_config() {
+  local nome_agente="${1:-agente}"
+  echo ""
+  echo -e "${UI_BOLD:-\033[1m}=============================================="
+  echo "  HINT: GATEWAY CONFIG — DEBUG E PROXIMOS PASSOS"
+  echo -e "==============================================${UI_NC:-\033[0m}"
+  echo ""
+  echo "  1. Verificar models configurados:"
+  echo "     node -e \"const c=JSON.parse(require('fs').readFileSync('apps/${nome_agente}/config/aiosbot.json','utf8'));console.log(Object.entries(c.agents.defaults.models).map(([k,v])=>v.alias+' → '+k).join('\\n'))\""
+  echo ""
+  echo "  2. Verificar gateway config:"
+  echo "     node -e \"const c=JSON.parse(require('fs').readFileSync('apps/${nome_agente}/config/aiosbot.json','utf8'));console.log(JSON.stringify(c.gateway,null,2))\""
+  echo ""
+  echo "  3. Verificar MCP servers:"
+  echo "     cat apps/${nome_agente}/mcps/mcp-config.json | node -e \"const d=JSON.parse(require('fs').readFileSync('/dev/stdin','utf8'));console.log(Object.keys(d.mcpServers).join(', '))\""
+  echo ""
+  echo "  ⚠️  SEGURANCA: Os arquivos gerados contem credenciais."
+  echo "     Nunca commit .env ou aiosbot.json ao git!"
+  echo "     Verifique: ls -la apps/${nome_agente}/config/ apps/${nome_agente}/.env"
+  echo ""
+  echo "  4. Proximo: executar validacao final"
+  echo "     deployer.sh → Ferramenta [15] Validacao Final"
+  echo ""
+  echo "=============================================="
+  echo ""
+}

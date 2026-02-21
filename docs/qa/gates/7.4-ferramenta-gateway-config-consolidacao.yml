@@ -1,0 +1,32 @@
+storyId: "7.4"
+storyTitle: "Criar Ferramenta 14-gateway-config.sh (Consolidacao)"
+reviewDate: "2026-02-21"
+reviewedBy: "Quinn (Test Architect)"
+verdict: CONCERNS
+score: "6.5/7"
+qualityChecks:
+  codeReview: PASS
+  unitTests: PASS
+  acceptanceCriteria: CONCERNS
+  noRegressions: PASS
+  performance: N/A
+  security: PASS
+  documentation: PASS
+testResults:
+  gateway_config_bats: "72/72 PASS"
+  regression_bats: "5/5 PASS"
+  syntax_check: "PASS"
+issues:
+  - id: REQ-001
+    severity: low
+    category: requirements
+    description: "nome_servidor (linha 534) referenciada mas nunca extraida de dados_vps. Fallback $nome_agente funciona, mas AC 8 especifica displayName de dados_vps (nome_servidor). dados_vps nao esta na lista de obrigatorios nem opcionais explicitamente carregados."
+    recommendation: "Adicionar extracao de nome_servidor a partir de dados_vps na secao de dados opcionais, ou documentar que o fallback e intencional."
+  - id: TEST-001
+    severity: low
+    category: tests
+    description: "Testes sao majoritariamente estaticos (grep no source code). Nao ha testes de integracao que executem funcoes com mocks reais."
+    recommendation: "Considerar adicionar 2-3 testes de integracao com setup() que popula dados_* mock e valida outputs em story futura."
+statusReason: "Story bem implementada — padrao SetupOrion seguido, 72 testes passando, 0 regressoes, seguranca adequada (chmod 600, credenciais geradas com openssl). Duas observacoes de baixa severidade: variavel nome_servidor nao extraida explicitamente e testes predominantemente estaticos. Pode prosseguir."
+waiver:
+  active: false

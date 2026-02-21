@@ -51,7 +51,7 @@ show_menu() {
   echo -e "║  ${D_GREEN}[11] Seguranca (3 Layers)${D_CYAN}                   ║"
   echo -e "║  ${D_GREEN}[12] Bridge — Claude Code Integration${D_CYAN}      ║"
   echo -e "║  ${D_GREEN}[13] Evolution API (cascade Postgres)${D_CYAN}      ║"
-  echo -e "║  ${D_GRAY}[14] Gateway Config                  [EM BREVE]${D_CYAN}║"
+  echo -e "║  ${D_GREEN}[14] Gateway Config (aiosbot, node, .env, MCP)${D_CYAN}║"
   echo -e "║  ${D_GREEN}[15] Validacao Final — Teste End-to-End${D_CYAN}    ║"
   echo -e "║  ${D_GRAY}[00] Sair${D_CYAN}                                    ║"
   echo "╚══════════════════════════════════════════════╝"
@@ -77,6 +77,7 @@ main() {
       11)    run_ferramenta "ferramentas/11-seguranca.sh" ;;
       12)    run_ferramenta "ferramentas/12-bridge.sh" ;;
       13)    run_ferramenta "ferramentas/13-evolution.sh" ;;
+      14)    run_ferramenta "ferramentas/14-gateway-config.sh" ;;
       15)    run_ferramenta "ferramentas/15-validacao-final.sh" ;;
       00|0)
         echo "Ate mais!"
