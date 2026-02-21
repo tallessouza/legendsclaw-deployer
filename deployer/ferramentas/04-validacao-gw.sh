@@ -76,13 +76,16 @@ fi
 # =============================================================================
 # STEP 4: CHECK OPENCLAW SERVICE
 # =============================================================================
-if systemctl is-active openclaw &>/dev/null; then
-  step_ok "Servico OpenClaw ativo"
+# Onboard instala como user service (openclaw-gateway), nao system service (openclaw)
+if systemctl --user is-active openclaw-gateway &>/dev/null; then
+  step_ok "Servico OpenClaw ativo (user: openclaw-gateway)"
+  RESULTS[service]="PASS"
+elif systemctl is-active openclaw &>/dev/null; then
+  step_ok "Servico OpenClaw ativo (system: openclaw)"
   RESULTS[service]="PASS"
 else
-  step_fail "Servico OpenClaw nao esta ativo"
+  step_fail "Servico OpenClaw nao esta ativo (verificou openclaw-gateway e openclaw)"
   RESULTS[service]="FAIL"
-  # Continuar com checks restantes (mesmo pattern do Tailscale check)
 fi
 
 # =============================================================================
@@ -100,7 +103,7 @@ echo "  Health check via Tailscale:"
 echo "    curl http://${ip_tailscale:-SEU_IP}:${porta_openclaw}/health"
 echo ""
 echo "  Teste de agente:"
-echo "    openclaw agent --message \"Teste\" --thinking high"
+echo "    openclaw agent --agent main --message \"Teste\""
 echo ""
 echo "=============================================="
 echo ""
@@ -140,7 +143,7 @@ fi
 # =============================================================================
 if [[ -d "/opt/openclaw" ]]; then
   echo "  Executando teste de mensagem local (timeout 30s)..."
-  if timeout 30 bash -c 'cd /opt/openclaw && pnpm openclaw agent --message "Teste" --thinking high' &>/dev/null; then
+  if timeout 30 bash -c 'cd /opt/openclaw && pnpm openclaw agent --agent main --message "Teste"' &>/dev/null; then
     step_ok "Teste de mensagem local PASS"
     RESULTS[mensagem]="PASS"
   else
