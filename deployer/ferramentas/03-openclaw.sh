@@ -105,13 +105,23 @@ if [[ -d "/opt/openclaw" ]] && systemctl is-active openclaw &>/dev/null; then
   echo "  Path:    /opt/openclaw"
   echo "  Dados:   ~/dados_vps/dados_openclaw"
   echo ""
-  hint_troubleshoot_openclaw "" ""
-  resumo_final
-  log_finish
-  exit 0
+  auto_confirm "Deseja reinstalar o OpenClaw do zero? (s/n): " reinstalar
+  if [[ ! "$reinstalar" =~ ^[Ss]$ ]]; then
+    hint_troubleshoot_openclaw "" ""
+    resumo_final
+    log_finish
+    exit 0
+  fi
+  echo "  Removendo instalacao anterior..."
+  sudo systemctl stop openclaw 2>/dev/null || true
+  sudo systemctl disable openclaw 2>/dev/null || true
+  sudo rm -f /etc/systemd/system/openclaw.service
+  sudo systemctl daemon-reload
+  sudo rm -rf /opt/openclaw
+  step_ok "Instalacao anterior removida — reinstalando"
+else
+  step_ok "OpenClaw nao instalado — prosseguindo com instalacao"
 fi
-
-step_ok "OpenClaw nao instalado — prosseguindo com instalacao"
 
 # =============================================================================
 # STEP 6: INPUT COLLECTION — dominio, porta, repo URL
