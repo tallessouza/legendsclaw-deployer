@@ -400,15 +400,8 @@ main() {
   # Estrutura de estado (Step 13)
   create_state_structure
 
-  # apt upgrade (Step 14) — nao-fatal, com timeout
-  wait_for_apt_lock || true
-  if timeout 300 apt-get upgrade -y >/dev/null 2>&1; then
-    feedback "OK" "apt-get upgrade"
-  else
-    feedback "SKIP" "apt-get upgrade (falhou ou timeout — nao-fatal, prosseguindo)"
-  fi
-
-  # Resumo (Step 15)
+  # Resumo (Steps 14-15)
+  feedback "SKIP" "apt-get upgrade (removido — pacotes individuais ja instalados)"
   feedback "OK" "Bootstrap finalizado"
 
   show_summary
