@@ -164,7 +164,7 @@ fi
 # =============================================================================
 # STEP 6: Executar setup.sh
 # =============================================================================
-if bash "${INSTALL_DIR}/setup.sh"; then
+if bash "${INSTALL_DIR}/deployer/setup.sh"; then
   feedback OK "Dependencias instaladas com sucesso"
 else
   feedback FAIL "setup.sh falhou (verifique o log acima)"
