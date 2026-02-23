@@ -157,9 +157,33 @@ install_if_missing() {
   fi
 }
 
+wait_for_apt_lock() {
+  local max_wait=60
+  local waited=0
+  while fuser /var/lib/dpkg/lock-frontend /var/lib/apt/lists/lock /var/cache/apt/archives/lock >/dev/null 2>&1; do
+    if [[ $waited -ge $max_wait ]]; then
+      echo "  AVISO: apt lock nao liberado apos ${max_wait}s" >&2
+      return 1
+    fi
+    sleep 2
+    waited=$((waited + 2))
+  done
+  return 0
+}
+
 install_apt_package() {
   local pkg="$1"
-  apt-get install -y "$pkg" >/dev/null 2>&1
+  local retries=3
+  local i=0
+  while [[ $i -lt $retries ]]; do
+    wait_for_apt_lock || true
+    if apt-get install -y "$pkg" >/dev/null 2>&1; then
+      return 0
+    fi
+    i=$((i + 1))
+    [[ $i -lt $retries ]] && sleep $((i * 5))
+  done
+  return 1
 }
 
 _install_docker() {
@@ -196,9 +220,25 @@ _install_python3() {
 }
 
 _install_nodejs() {
-  # NodeSource setup para Node.js >= 22
-  curl -fsSL https://deb.nodesource.com/setup_22.x | bash - >/dev/null 2>&1 && \
-  apt-get install -y nodejs >/dev/null 2>&1
+  # Tentativa 1: NodeSource
+  if curl -fsSL --max-time 30 https://deb.nodesource.com/setup_22.x | bash - >/dev/null 2>&1; then
+    wait_for_apt_lock || true
+    if apt-get install -y nodejs >/dev/null 2>&1; then
+      return 0
+    fi
+  fi
+
+  # Fallback: download binario direto
+  local arch
+  arch=$(dpkg --print-architecture 2>/dev/null || echo "amd64")
+  [[ "$arch" == "amd64" ]] && arch="x64"
+  local node_url="https://nodejs.org/dist/v22.14.0/node-v22.14.0-linux-${arch}.tar.xz"
+  if curl -fsSL --max-time 120 "$node_url" -o /tmp/node.tar.xz; then
+    tar -xJf /tmp/node.tar.xz -C /usr/local --strip-components=1 >/dev/null 2>&1 && \
+    rm -f /tmp/node.tar.xz
+    return 0
+  fi
+  return 1
 }
 
 _install_pnpm() {
@@ -236,7 +276,9 @@ check_pnpm() {
   if command -v pnpm &>/dev/null; then
     feedback "SKIP" "pnpm (ja instalado: v$(pnpm --version 2>/dev/null || echo 'presente'))"
   else
-    if _install_pnpm; then
+    if ! command -v node &>/dev/null; then
+      feedback "FAIL" "pnpm requer Node.js (nao instalado)"
+    elif _install_pnpm; then
       feedback "OK" "pnpm instalado via corepack"
     else
       feedback "FAIL" "Falha ao instalar pnpm"
@@ -315,8 +357,20 @@ main() {
   check_os
   check_connectivity
 
-  # apt update (Step 4)
-  if apt-get update >/dev/null 2>&1; then
+  # Resolve possivel dpkg interrompido antes de qualquer install
+  dpkg --configure -a >/dev/null 2>&1 || true
+  wait_for_apt_lock || true
+
+  # apt update (Step 4) — com retry
+  local apt_ok=false
+  for attempt in 1 2 3; do
+    if apt-get update >/dev/null 2>&1; then
+      apt_ok=true
+      break
+    fi
+    sleep $((attempt * 3))
+  done
+  if $apt_ok; then
     feedback "OK" "apt-get update"
   else
     feedback "FAIL" "apt-get update"
@@ -346,11 +400,12 @@ main() {
   # Estrutura de estado (Step 13)
   create_state_structure
 
-  # apt upgrade (Step 14)
-  if apt-get upgrade -y >/dev/null 2>&1; then
+  # apt upgrade (Step 14) — nao-fatal, com timeout
+  wait_for_apt_lock || true
+  if timeout 300 apt-get upgrade -y >/dev/null 2>&1; then
     feedback "OK" "apt-get upgrade"
   else
-    feedback "FAIL" "apt-get upgrade"
+    feedback "SKIP" "apt-get upgrade (falhou ou timeout — nao-fatal, prosseguindo)"
   fi
 
   # Resumo (Step 15)
