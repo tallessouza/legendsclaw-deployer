@@ -131,8 +131,11 @@ fi
 if [[ -d "$INSTALL_DIR/.git" ]]; then
   if git -C "$INSTALL_DIR" pull --ff-only > /dev/null 2>&1; then
     feedback OK "Repositorio atualizado (git pull)"
+  elif git -C "$INSTALL_DIR" fetch origin > /dev/null 2>&1 && \
+       git -C "$INSTALL_DIR" reset --hard origin/main > /dev/null 2>&1; then
+    feedback OK "Repositorio resincronizado (reset to origin/main)"
   else
-    feedback FAIL "Falha ao atualizar repositorio (git pull)"
+    feedback FAIL "Falha ao atualizar repositorio (git pull e reset falharam)"
     exit 1
   fi
 elif [[ -d "$INSTALL_DIR" ]]; then
