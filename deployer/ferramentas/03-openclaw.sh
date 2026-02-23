@@ -275,7 +275,7 @@ After=network.target tailscaled.service
 Type=simple
 User=${current_user}
 WorkingDirectory=/opt/openclaw
-ExecStart=$(command -v node) openclaw.mjs serve --port ${porta_openclaw}
+ExecStart=$(command -v node) openclaw.mjs gateway --port ${porta_openclaw}
 Restart=always
 RestartSec=5
 Environment=NODE_ENV=production
