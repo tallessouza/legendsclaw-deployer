@@ -24,7 +24,10 @@ source "${LIB_DIR}/auto.sh"
 log_init "openclaw"
 [[ "${AUTO_MODE:-false}" == "true" ]] && auto_load_config
 setup_trap
-step_init 15
+step_init 13
+
+# Versao estavel do OpenClaw (v2026.2.22+ quebra channels.whatsapp.enabled)
+readonly OPENCLAW_TAG="v2026.2.21"
 
 # =============================================================================
 # STEP 2: RESOURCE GATE — 2 vCPU, 4GB RAM
@@ -164,7 +167,7 @@ else
   clonado=false
   for tentativa in 1 2 3; do
     echo "  Tentativa ${tentativa}/3: Clonando ${repo_url}..."
-    if sudo git clone "$repo_url" /opt/openclaw 2>&1; then
+    if sudo git clone --branch "$OPENCLAW_TAG" --depth 1 "$repo_url" /opt/openclaw 2>&1; then
       clonado=true
       break
     else
@@ -232,35 +235,24 @@ else
 fi
 
 # =============================================================================
-# STEP 9: HABILITAR PLUGIN WHATSAPP
+# STEP 9: ONBOARD INTERATIVO — credenciais, gateway, canais, skills, hooks
 # =============================================================================
 current_user="$(whoami)"
 
-if pnpm openclaw plugins enable whatsapp 2>&1; then
-  step_ok "Plugin WhatsApp habilitado"
-else
-  step_fail "Falha ao habilitar plugin WhatsApp"
-  echo "  Tente manualmente: cd /opt/openclaw && pnpm openclaw plugins enable whatsapp"
-fi
-
-# =============================================================================
-# STEP 10: ONBOARD INTERATIVO — credenciais, gateway, skills, hooks
-# =============================================================================
 # --no-install-daemon: evita systemd user service que falha como root
-# --skip-channels: canais tem bug nessa versao (channels.whatsapp.enabled invalido)
-#                  WhatsApp sera conectado separadamente via channels login
-if pnpm openclaw onboard --no-install-daemon --skip-channels --gateway-port "${porta_openclaw}" 2>&1; then
-  step_ok "OpenClaw onboard concluido (credenciais, gateway, skills, hooks)"
+# Gateway port passada como sugestao (usuario pode alterar no wizard)
+if pnpm openclaw onboard --no-install-daemon --gateway-port "${porta_openclaw}" 2>&1; then
+  step_ok "OpenClaw onboard concluido"
 else
   step_fail "OpenClaw onboard falhou"
   echo "  Voce pode tentar novamente depois com:"
-  echo "    cd /opt/openclaw && pnpm openclaw onboard --no-install-daemon --skip-channels"
+  echo "    cd /opt/openclaw && pnpm openclaw onboard --no-install-daemon"
 fi
 
 popd > /dev/null
 
 # =============================================================================
-# STEP 10: SYSTEMD SERVICE — instalar system service
+# STEP 10: SYSTEMD SERVICE
 # =============================================================================
 # Parar service anterior se existir
 sudo systemctl stop openclaw 2>/dev/null || true
@@ -296,7 +288,7 @@ else
 fi
 
 # =============================================================================
-# STEP 13: HEALTH CHECK (retry 5x, 10s intervalo)
+# STEP 11: HEALTH CHECK (retry 5x, 10s intervalo)
 # =============================================================================
 health_ok=false
 for tentativa in 1 2 3 4 5; do
@@ -318,24 +310,6 @@ else
   hint_troubleshoot_openclaw "$porta_openclaw" ""
   exit 1
 fi
-
-# =============================================================================
-# STEP: CONECTAR WHATSAPP — via channels login (separado do onboard)
-# =============================================================================
-echo ""
-echo -e "  ${UI_BOLD}Gateway rodando! Agora vamos conectar o WhatsApp.${UI_NC}"
-echo ""
-pushd /opt/openclaw > /dev/null
-if pnpm openclaw channels login --channel whatsapp 2>&1; then
-  step_ok "WhatsApp conectado com sucesso"
-else
-  echo ""
-  echo "  AVISO: Conexao WhatsApp nao concluida."
-  echo "  Para conectar depois:"
-  echo "    cd /opt/openclaw && pnpm openclaw channels login --channel whatsapp"
-  step_skip "WhatsApp nao conectado (pode ser feito depois)"
-fi
-popd > /dev/null
 
 # =============================================================================
 # SALVAR ESTADO

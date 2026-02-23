@@ -7,7 +7,8 @@ set -euo pipefail
 # =============================================================================
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-LIB_DIR="${SCRIPT_DIR}/../lib"
+DEPLOYER_DIR="${SCRIPT_DIR}/.."
+LIB_DIR="${DEPLOYER_DIR}/lib"
 
 source "${LIB_DIR}/ui.sh"
 source "${LIB_DIR}/logger.sh"
@@ -50,7 +51,7 @@ read_state() {
   local key="$2"
   local filepath="${STATE_DIR}/${file}"
   if [[ -f "$filepath" ]]; then
-    grep "${key}:" "$filepath" 2>/dev/null | awk -F': ' '{print $2}' | head -1
+    grep "${key}:" "$filepath" 2>/dev/null | awk -F': ' '{print $2}' | head -1 || true
   fi
 }
 
@@ -109,8 +110,9 @@ fi
 
 # --- Check 3: Portainer ---
 if [[ -f "$STATE_DIR/dados_portainer" ]]; then
-  portainer_url=$(read_state "dados_portainer" "PORTAINER_URL")
-  portainer_url="${portainer_url:-$(read_state "dados_portainer" "Portainer URL")}"
+  portainer_url=$(read_state "dados_portainer" "Dominio do portainer")
+  portainer_url="${portainer_url:+https://${portainer_url}}"
+  portainer_url="${portainer_url:-$(read_state "dados_portainer" "PORTAINER_URL")}"
   if [[ -n "$portainer_url" ]]; then
     portainer_health=$(curl -s --connect-timeout 5 --max-time 5 "${portainer_url}/api/system/status" 2>/dev/null || true)
     if [[ -n "$portainer_health" ]] && echo "$portainer_health" | grep -q "Version\|version"; then
@@ -127,7 +129,7 @@ fi
 
 # --- Check 4: OpenClaw Gateway ---
 if [[ -f "$STATE_DIR/dados_openclaw" ]]; then
-  gateway_url=$(read_state "dados_openclaw" "Gateway URL")
+  gateway_url=$(read_state "dados_openclaw" "URL Gateway")
   gateway_url="${gateway_url:-http://localhost:18789}"
   gw_health=$(curl -s --connect-timeout 5 --max-time 5 "${gateway_url}/health" 2>/dev/null || true)
   if [[ -n "$gw_health" ]]; then
@@ -152,7 +154,7 @@ fi
 
 # --- Check 6: LLM Router ---
 if [[ -f "$STATE_DIR/dados_llm_router" ]]; then
-  llm_config=$(read_state "dados_llm_router" "LLM_ROUTER_CONFIG")
+  llm_config=$(read_state "dados_llm_router" "Config Path")
   llm_config="${llm_config:-$(read_state "dados_llm_router" "Config")}"
   if [[ -n "$llm_config" ]]; then
     run_check 6 "LLM Router" "OK"
@@ -167,8 +169,8 @@ fi
 if [[ -f "$STATE_DIR/dados_whitelabel" ]]; then
   nome_agente=$(read_state "dados_whitelabel" "Agente")
   nome_agente="${nome_agente:-$(read_state "dados_whitelabel" "AGENT_NAME")}"
-  if [[ -n "$nome_agente" ]] && [[ -d "apps/${nome_agente}/skills" ]]; then
-    skills_count=$(ls "apps/${nome_agente}/skills/" 2>/dev/null | wc -l)
+  if [[ -n "$nome_agente" ]] && [[ -d "${DEPLOYER_DIR}/apps/${nome_agente}/skills" ]]; then
+    skills_count=$(ls "${DEPLOYER_DIR}/apps/${nome_agente}/skills/" 2>/dev/null | wc -l)
     if [[ "$skills_count" -gt 0 ]]; then
       run_check 7 "Skills" "OK"
     else
@@ -183,10 +185,10 @@ fi
 
 # --- Check 8: Evolution API ---
 if [[ -f "$STATE_DIR/dados_evolution" ]]; then
-  evolution_url=$(read_state "dados_evolution" "EVOLUTION_URL")
-  evolution_url="${evolution_url:-$(read_state "dados_evolution" "Evolution URL")}"
-  evolution_apikey=$(read_state "dados_evolution" "EVOLUTION_API_KEY")
-  evolution_apikey="${evolution_apikey:-$(read_state "dados_evolution" "API Key")}"
+  evolution_url=$(read_state "dados_evolution" "BaseUrl")
+  evolution_url="${evolution_url:-$(read_state "dados_evolution" "EVOLUTION_URL")}"
+  evolution_apikey=$(read_state "dados_evolution" "Global API Key")
+  evolution_apikey="${evolution_apikey:-$(read_state "dados_evolution" "EVOLUTION_API_KEY")}"
   if [[ -n "$evolution_url" ]]; then
     evo_response=$(curl -s --connect-timeout 5 --max-time 5 \
       -H "apikey: ${evolution_apikey}" \
@@ -205,7 +207,7 @@ fi
 
 # --- Check 9: WhatsApp Conectado ---
 if [[ -f "$STATE_DIR/dados_evolution" ]]; then
-  evolution_instance=$(read_state "dados_evolution" "EVOLUTION_INSTANCE")
+  evolution_instance=$(read_state "dados_evolution" "Stack")
   evolution_instance="${evolution_instance:-$(read_state "dados_evolution" "Instancia")}"
   if [[ -n "$evolution_url" && -n "$evolution_instance" ]]; then
     conn_status=$(curl -s --connect-timeout 5 --max-time 5 \
@@ -224,7 +226,7 @@ else
 fi
 
 # --- Check 10: Security Layer 1 — Blocklist ---
-if [[ -n "${nome_agente:-}" ]] && [[ -f "apps/${nome_agente}/skills/lib/blocklist.yaml" ]]; then
+if [[ -n "${nome_agente:-}" ]] && [[ -f "${DEPLOYER_DIR}/apps/${nome_agente}/skills/lib/blocklist.yaml" ]]; then
   run_check 10 "Security L1 — Blocklist" "OK"
 else
   if [[ -z "${nome_agente:-}" ]]; then
@@ -236,9 +238,9 @@ fi
 
 # --- Check 11: Security Layer 2 — Sandbox ---
 if [[ -f "$STATE_DIR/dados_seguranca" ]]; then
-  security_layers=$(read_state "dados_seguranca" "SECURITY_LAYERS")
-  security_layers="${security_layers:-$(read_state "dados_seguranca" "Layers")}"
-  if echo "$security_layers" | grep -qi "sandbox\|layer2\|2"; then
+  security_layers=$(read_state "dados_seguranca" "Layer 2 (Sandbox)")
+  security_layers="${security_layers:-$(read_state "dados_seguranca" "SECURITY_LAYERS")}"
+  if [[ "$security_layers" == "ATIVO" ]] || echo "$security_layers" | grep -qi "sandbox\|layer2\|ativo"; then
     run_check 11 "Security L2 — Sandbox" "OK"
   else
     run_check 11 "Security L2 — Sandbox" "FAIL" "Sandbox nao configurado. Diagnostico: cat ~/dados_vps/dados_seguranca"
