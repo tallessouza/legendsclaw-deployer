@@ -232,21 +232,19 @@ else
 fi
 
 # =============================================================================
-# STEP 9: ONBOARD — configurar gateway (sem daemon, sem canais)
+# STEP 9: ONBOARD INTERATIVO — credenciais, gateway, canais, skills, hooks
 # =============================================================================
 current_user="$(whoami)"
 
-# Onboard configura credenciais, gateway port, workspace
-# --no-install-daemon: nao tentar systemd user (falha como root em VPS)
-# --skip-channels: canais sao configurados depois do health check
-# --gateway-port: usar a porta coletada no Step 6
-if pnpm openclaw onboard --no-install-daemon --skip-channels --gateway-port "${porta_openclaw}" 2>&1; then
-  step_ok "OpenClaw onboard concluido (gateway configurado)"
+# Onboard completo: configura tudo interativamente
+# --no-install-daemon: unica flag — evita systemd user service que falha como root
+# Gateway port passada como sugestao (usuario pode alterar no wizard)
+if pnpm openclaw onboard --no-install-daemon --gateway-port "${porta_openclaw}" 2>&1; then
+  step_ok "OpenClaw onboard concluido"
 else
-  echo "  AVISO: onboard interativo falhou — tentando config minimo..."
-  # Config minimo: setar porta do gateway
-  pnpm openclaw config set gateway.port "${porta_openclaw}" 2>/dev/null || true
-  step_ok "Config minimo aplicado (porta ${porta_openclaw})"
+  step_fail "OpenClaw onboard falhou"
+  echo "  Voce pode tentar novamente depois com:"
+  echo "    cd /opt/openclaw && pnpm openclaw onboard --no-install-daemon"
 fi
 
 popd > /dev/null
@@ -309,26 +307,6 @@ else
   echo ""
   hint_troubleshoot_openclaw "$porta_openclaw" ""
   exit 1
-fi
-
-# =============================================================================
-# STEP: CONECTAR CANAIS — WhatsApp via QR code
-# =============================================================================
-echo ""
-auto_confirm "Deseja conectar o WhatsApp agora? (s/n): " conectar_whats
-if [[ "$conectar_whats" =~ ^[Ss]$ ]]; then
-  echo "  Iniciando conexao WhatsApp (escaneie o QR code)..."
-  pushd /opt/openclaw > /dev/null
-  if pnpm openclaw channels login --channel whatsapp 2>&1; then
-    step_ok "WhatsApp conectado com sucesso"
-  else
-    echo "  AVISO: Conexao WhatsApp falhou — voce pode tentar depois com:"
-    echo "    cd /opt/openclaw && pnpm openclaw channels login --channel whatsapp"
-    step_skip "WhatsApp nao conectado (pode ser feito depois)"
-  fi
-  popd > /dev/null
-else
-  step_skip "WhatsApp pulado (conecte depois com: cd /opt/openclaw && pnpm openclaw channels login --channel whatsapp)"
 fi
 
 # =============================================================================
