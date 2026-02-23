@@ -24,7 +24,7 @@ source "${LIB_DIR}/auto.sh"
 log_init "openclaw"
 [[ "${AUTO_MODE:-false}" == "true" ]] && auto_load_config
 setup_trap
-step_init 13
+step_init 14
 
 # =============================================================================
 # STEP 2: RESOURCE GATE — 2 vCPU, 4GB RAM
@@ -232,10 +232,20 @@ else
 fi
 
 # =============================================================================
-# STEP 9: ONBOARD INTERATIVO — credenciais, gateway, canais, skills, hooks
+# STEP 9: HABILITAR PLUGIN WHATSAPP
 # =============================================================================
 current_user="$(whoami)"
 
+if pnpm openclaw plugins enable whatsapp 2>&1; then
+  step_ok "Plugin WhatsApp habilitado"
+else
+  step_fail "Falha ao habilitar plugin WhatsApp"
+  echo "  Tente manualmente: cd /opt/openclaw && pnpm openclaw plugins enable whatsapp"
+fi
+
+# =============================================================================
+# STEP 10: ONBOARD INTERATIVO — credenciais, gateway, canais, skills, hooks
+# =============================================================================
 # Onboard completo: configura tudo interativamente
 # --no-install-daemon: unica flag — evita systemd user service que falha como root
 # Gateway port passada como sugestao (usuario pode alterar no wizard)
