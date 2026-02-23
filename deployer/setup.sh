@@ -158,16 +158,36 @@ install_if_missing() {
 }
 
 wait_for_apt_lock() {
-  local max_wait=60
+  local max_wait=120
   local waited=0
+  # Phase 1: wait politely for up to 90s
   while fuser /var/lib/dpkg/lock-frontend /var/lib/apt/lists/lock /var/cache/apt/archives/lock >/dev/null 2>&1; do
-    if [[ $waited -ge $max_wait ]]; then
-      echo "  AVISO: apt lock nao liberado apos ${max_wait}s" >&2
-      return 1
+    if [[ $waited -ge 90 ]]; then
+      break
     fi
-    sleep 2
-    waited=$((waited + 2))
+    sleep 3
+    waited=$((waited + 3))
   done
+  # Phase 2: if still locked, kill blocking processes and clean up
+  if fuser /var/lib/dpkg/lock-frontend /var/lib/apt/lists/lock /var/cache/apt/archives/lock >/dev/null 2>&1; then
+    echo "  AVISO: apt lock nao liberado apos 90s — matando processos bloqueantes" >&2
+    # Kill unattended-upgrades first (common culprit on Ubuntu 24.04)
+    pkill -9 -f unattended-upgrades 2>/dev/null || true
+    pkill -9 -f apt.systemd.daily 2>/dev/null || true
+    # Kill any apt/dpkg holding locks
+    fuser -k /var/lib/dpkg/lock-frontend /var/lib/apt/lists/lock /var/cache/apt/archives/lock 2>/dev/null || true
+    sleep 2
+    # Remove stale lock files
+    rm -f /var/lib/dpkg/lock-frontend /var/lib/apt/lists/lock /var/cache/apt/archives/lock /var/lib/dpkg/lock
+    # Fix any interrupted dpkg state
+    dpkg --configure -a >/dev/null 2>&1 || true
+    echo "  INFO: locks liberados forcadamente" >&2
+  fi
+  # Phase 3: final check — if still locked after all that, fail
+  if fuser /var/lib/dpkg/lock-frontend /var/lib/apt/lists/lock /var/cache/apt/archives/lock >/dev/null 2>&1; then
+    echo "  ERRO: apt lock persiste apos ${max_wait}s e kill forcado" >&2
+    return 1
+  fi
   return 0
 }
 
