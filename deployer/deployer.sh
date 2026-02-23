@@ -7,8 +7,22 @@ set -euo pipefail
 # =============================================================================
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
 readonly DEPLOYER_VERSION="1.0.0"
+
+# --- Auto-update: sempre puxa a versao mais recente antes de exibir o menu ---
+if [[ -d "${REPO_ROOT}/.git" ]]; then
+  echo "Verificando atualizacoes..."
+  if git -C "$REPO_ROOT" pull --ff-only >/dev/null 2>&1; then
+    echo "Atualizado com sucesso."
+  elif git -C "$REPO_ROOT" fetch origin >/dev/null 2>&1 && \
+       git -C "$REPO_ROOT" reset --hard origin/main >/dev/null 2>&1; then
+    echo "Resincronizado com origin/main."
+  else
+    echo "AVISO: Nao foi possivel atualizar (continuando com versao local)."
+  fi
+fi
 
 # Cores
 readonly D_CYAN='\033[0;36m'

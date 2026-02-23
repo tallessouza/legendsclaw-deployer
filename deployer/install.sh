@@ -180,7 +180,7 @@ echo "  INSTALACAO CONCLUIDA!"
 echo "==============================================${NC}"
 echo ""
 echo -e "  Proximo passo:"
-echo -e "  ${BOLD}cd ${INSTALL_DIR} && bash deployer.sh${NC}"
+echo -e "  ${BOLD}cd ${INSTALL_DIR} && bash deployer/deployer.sh${NC}"
 echo ""
 feedback OK "Instrucoes exibidas"
 
