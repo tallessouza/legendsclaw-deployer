@@ -24,7 +24,7 @@ source "${LIB_DIR}/auto.sh"
 log_init "openclaw"
 [[ "${AUTO_MODE:-false}" == "true" ]] && auto_load_config
 setup_trap
-step_init 14
+step_init 15
 
 # =============================================================================
 # STEP 2: RESOURCE GATE — 2 vCPU, 4GB RAM
@@ -244,17 +244,17 @@ else
 fi
 
 # =============================================================================
-# STEP 10: ONBOARD INTERATIVO — credenciais, gateway, canais, skills, hooks
+# STEP 10: ONBOARD INTERATIVO — credenciais, gateway, skills, hooks
 # =============================================================================
-# Onboard completo: configura tudo interativamente
-# --no-install-daemon: unica flag — evita systemd user service que falha como root
-# Gateway port passada como sugestao (usuario pode alterar no wizard)
-if pnpm openclaw onboard --no-install-daemon --gateway-port "${porta_openclaw}" 2>&1; then
-  step_ok "OpenClaw onboard concluido"
+# --no-install-daemon: evita systemd user service que falha como root
+# --skip-channels: canais tem bug nessa versao (channels.whatsapp.enabled invalido)
+#                  WhatsApp sera conectado separadamente via channels login
+if pnpm openclaw onboard --no-install-daemon --skip-channels --gateway-port "${porta_openclaw}" 2>&1; then
+  step_ok "OpenClaw onboard concluido (credenciais, gateway, skills, hooks)"
 else
   step_fail "OpenClaw onboard falhou"
   echo "  Voce pode tentar novamente depois com:"
-  echo "    cd /opt/openclaw && pnpm openclaw onboard --no-install-daemon"
+  echo "    cd /opt/openclaw && pnpm openclaw onboard --no-install-daemon --skip-channels"
 fi
 
 popd > /dev/null
@@ -318,6 +318,24 @@ else
   hint_troubleshoot_openclaw "$porta_openclaw" ""
   exit 1
 fi
+
+# =============================================================================
+# STEP: CONECTAR WHATSAPP — via channels login (separado do onboard)
+# =============================================================================
+echo ""
+echo -e "  ${UI_BOLD}Gateway rodando! Agora vamos conectar o WhatsApp.${UI_NC}"
+echo ""
+pushd /opt/openclaw > /dev/null
+if pnpm openclaw channels login --channel whatsapp 2>&1; then
+  step_ok "WhatsApp conectado com sucesso"
+else
+  echo ""
+  echo "  AVISO: Conexao WhatsApp nao concluida."
+  echo "  Para conectar depois:"
+  echo "    cd /opt/openclaw && pnpm openclaw channels login --channel whatsapp"
+  step_skip "WhatsApp nao conectado (pode ser feito depois)"
+fi
+popd > /dev/null
 
 # =============================================================================
 # SALVAR ESTADO
