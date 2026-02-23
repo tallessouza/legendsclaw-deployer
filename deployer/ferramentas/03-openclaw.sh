@@ -232,33 +232,33 @@ else
 fi
 
 # =============================================================================
-# STEP 9: GARANTIR SYSTEMD USER SERVICES + ONBOARD
+# STEP 9: ONBOARD — configurar gateway (sem daemon, sem canais)
 # =============================================================================
-# Habilitar linger para que systemd user services funcionem via SSH/root
 current_user="$(whoami)"
-if command -v loginctl &>/dev/null; then
-  sudo loginctl enable-linger "$current_user" 2>/dev/null || true
-fi
-export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
 
-if pnpm openclaw onboard --install-daemon 2>&1; then
-  step_ok "OpenClaw onboard concluido"
+# Onboard configura credenciais, gateway port, workspace
+# --no-install-daemon: nao tentar systemd user (falha como root em VPS)
+# --skip-channels: canais sao configurados depois do health check
+# --gateway-port: usar a porta coletada no Step 6
+if pnpm openclaw onboard --no-install-daemon --skip-channels --gateway-port "${porta_openclaw}" 2>&1; then
+  step_ok "OpenClaw onboard concluido (gateway configurado)"
 else
-  echo "  AVISO: onboard falhou ou systemd user indisponivel — instalando system service..."
+  echo "  AVISO: onboard interativo falhou — tentando config minimo..."
+  # Config minimo: setar porta do gateway
+  pnpm openclaw config set gateway.port "${porta_openclaw}" 2>/dev/null || true
+  step_ok "Config minimo aplicado (porta ${porta_openclaw})"
 fi
 
 popd > /dev/null
 
 # =============================================================================
-# STEP 10: FALLBACK — systemd system service se user service nao funcionou
+# STEP 10: SYSTEMD SERVICE — instalar system service
 # =============================================================================
-if systemctl --user is-active openclaw &>/dev/null 2>&1; then
-  step_ok "OpenClaw rodando como user service"
-elif systemctl is-active openclaw &>/dev/null 2>&1; then
-  step_ok "OpenClaw rodando como system service"
-else
-  echo "  Instalando systemd system service (fallback)..."
-  sudo tee /etc/systemd/system/openclaw.service > /dev/null << SVCEOF
+# Parar service anterior se existir
+sudo systemctl stop openclaw 2>/dev/null || true
+
+echo "  Instalando systemd system service..."
+sudo tee /etc/systemd/system/openclaw.service > /dev/null << SVCEOF
 [Unit]
 Description=OpenClaw Gateway
 After=network.target tailscaled.service
@@ -267,7 +267,7 @@ After=network.target tailscaled.service
 Type=simple
 User=${current_user}
 WorkingDirectory=/opt/openclaw
-ExecStart=$(command -v node) openclaw.mjs serve
+ExecStart=$(command -v node) openclaw.mjs serve --port ${porta_openclaw}
 Restart=always
 RestartSec=5
 Environment=NODE_ENV=production
@@ -276,15 +276,15 @@ Environment=NODE_ENV=production
 WantedBy=multi-user.target
 SVCEOF
 
-  sudo systemctl daemon-reload
-  sudo systemctl enable --now openclaw
-  if systemctl is-active openclaw &>/dev/null; then
-    step_ok "OpenClaw system service instalado e iniciado"
-  else
-    step_fail "Falha ao iniciar OpenClaw system service"
-    echo "  Verifique com: sudo journalctl -u openclaw -n 20"
-    exit 1
-  fi
+sudo systemctl daemon-reload
+sudo systemctl enable --now openclaw
+sleep 3
+if systemctl is-active openclaw &>/dev/null; then
+  step_ok "OpenClaw rodando como system service (porta ${porta_openclaw})"
+else
+  step_fail "Falha ao iniciar OpenClaw system service"
+  echo "  Verifique com: sudo journalctl -u openclaw -n 20"
+  exit 1
 fi
 
 # =============================================================================
@@ -309,6 +309,26 @@ else
   echo ""
   hint_troubleshoot_openclaw "$porta_openclaw" ""
   exit 1
+fi
+
+# =============================================================================
+# STEP: CONECTAR CANAIS — WhatsApp via QR code
+# =============================================================================
+echo ""
+auto_confirm "Deseja conectar o WhatsApp agora? (s/n): " conectar_whats
+if [[ "$conectar_whats" =~ ^[Ss]$ ]]; then
+  echo "  Iniciando conexao WhatsApp (escaneie o QR code)..."
+  pushd /opt/openclaw > /dev/null
+  if pnpm openclaw channels login --channel whatsapp 2>&1; then
+    step_ok "WhatsApp conectado com sucesso"
+  else
+    echo "  AVISO: Conexao WhatsApp falhou — voce pode tentar depois com:"
+    echo "    cd /opt/openclaw && pnpm openclaw channels login --channel whatsapp"
+    step_skip "WhatsApp nao conectado (pode ser feito depois)"
+  fi
+  popd > /dev/null
+else
+  step_skip "WhatsApp pulado (conecte depois com: cd /opt/openclaw && pnpm openclaw channels login --channel whatsapp)"
 fi
 
 # =============================================================================
