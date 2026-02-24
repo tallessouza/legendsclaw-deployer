@@ -2,18 +2,34 @@
 set -euo pipefail
 
 # =============================================================================
-# Legendsclaw Installer — One-Liner para VM limpa
-# Uso: bash <(curl -sSL https://raw.githubusercontent.com/<org>/legendsclaw-deployer/main/install.sh)
-# Compativel: Ubuntu 22.04+ (soft gate para outros OS)
+# Legendsclaw Installer — One-Liner para VM limpa ou maquina local
+# Uso VPS:   curl -sSL .../install.sh | sudo bash
+# Uso Local: curl -sSL .../install.sh | bash -s -- --local
+# Compativel: Ubuntu 22.04+ (VPS), Linux/macOS/WSL (Local)
 # =============================================================================
 
-readonly INSTALL_VERSION="1.0.0"
-readonly INSTALL_DIR="/opt/legendsclaw"
+readonly INSTALL_VERSION="1.1.0"
 readonly REPO_URL="https://github.com/tallessouza/legendsclaw-deployer.git"
-readonly TOTAL_STEPS=8
 readonly TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 readonly LOG_DIR="$HOME/legendsclaw-logs"
 readonly LOG_FILE="$LOG_DIR/install-${TIMESTAMP}.log"
+
+# --- Detectar modo ---
+MODE="vps"
+for arg in "$@"; do
+  case "$arg" in
+    --local) MODE="local" ;;
+  esac
+done
+
+# --- Configurar por modo ---
+if [[ "$MODE" == "local" ]]; then
+  INSTALL_DIR="$HOME/legendsclaw"
+  TOTAL_STEPS=10
+else
+  INSTALL_DIR="/opt/legendsclaw"
+  TOTAL_STEPS=8
+fi
 
 # Cores ANSI
 readonly RED='\033[0;31m'
@@ -34,12 +50,17 @@ mkdir -p "$LOG_DIR"
 exec > >(tee -a "$LOG_FILE") 2>&1
 
 echo "=============================================="
-echo "  Legendsclaw Installer v${INSTALL_VERSION}"
+if [[ "$MODE" == "local" ]]; then
+  echo "  Legendsclaw Installer v${INSTALL_VERSION} (LOCAL)"
+else
+  echo "  Legendsclaw Installer v${INSTALL_VERSION}"
+fi
 echo "=============================================="
 echo "Data: $(date '+%Y-%m-%d %H:%M:%S')"
 echo "Hostname: $(hostname)"
-echo "OS: $(grep PRETTY_NAME /etc/os-release 2>/dev/null | cut -d'"' -f2 || echo 'Desconhecido')"
+echo "OS: $(grep PRETTY_NAME /etc/os-release 2>/dev/null | cut -d'"' -f2 || uname -s)"
 echo "User: $(whoami)"
+echo "Modo: ${MODE^^}"
 echo "Log: ${LOG_FILE}"
 echo "=============================================="
 echo ""
@@ -88,21 +109,38 @@ else
   REAL_GROUP="$(id -gn)"
 fi
 
-# Verificar se consegue usar sudo (necessario para /opt/)
-if [[ $EUID -ne 0 ]] && ! sudo -n true 2>/dev/null; then
-  feedback FAIL "Precisa de sudo para instalar em /opt/ (use: sudo bash install.sh)"
-  exit 1
+# Verificar sudo — so exigido no modo VPS
+if [[ "$MODE" == "vps" ]]; then
+  if [[ $EUID -ne 0 ]] && ! sudo -n true 2>/dev/null; then
+    feedback FAIL "Precisa de sudo para instalar em /opt/ (use: sudo bash install.sh)"
+    exit 1
+  fi
 fi
-feedback OK "User: ${REAL_USER} (executando como $(whoami))"
+feedback OK "User: ${REAL_USER} (modo: ${MODE^^})"
 
 # =============================================================================
 # STEP 2: OS check (soft gate)
 # =============================================================================
-OS_ID=$(grep -oP '^ID=\K\w+' /etc/os-release 2>/dev/null || echo "unknown")
-if [[ "$OS_ID" == "ubuntu" ]]; then
-  feedback OK "Sistema operacional: Ubuntu"
+if [[ "$MODE" == "local" ]]; then
+  OS_NAME=$(uname -s)
+  case "$OS_NAME" in
+    Linux)
+      if grep -qi microsoft /proc/version 2>/dev/null; then
+        feedback OK "Sistema operacional: WSL (Windows)"
+      else
+        feedback OK "Sistema operacional: Linux"
+      fi
+      ;;
+    Darwin) feedback OK "Sistema operacional: macOS" ;;
+    *)      feedback SKIP "OS detectado: ${OS_NAME} (suportado: Linux, macOS, WSL)" ;;
+  esac
 else
-  feedback SKIP "OS detectado: ${OS_ID} (recomendado: Ubuntu 22.04+)"
+  OS_ID=$(grep -oP '^ID=\K\w+' /etc/os-release 2>/dev/null || echo "unknown")
+  if [[ "$OS_ID" == "ubuntu" ]]; then
+    feedback OK "Sistema operacional: Ubuntu"
+  else
+    feedback SKIP "OS detectado: ${OS_ID} (recomendado: Ubuntu 22.04+)"
+  fi
 fi
 
 # =============================================================================
@@ -121,7 +159,19 @@ fi
 if command -v git > /dev/null 2>&1; then
   feedback SKIP "git ja instalado ($(git --version | cut -d' ' -f3))"
 else
-  apt-get update -qq > /dev/null 2>&1 && apt-get install -y git > /dev/null 2>&1
+  if [[ "$MODE" == "local" ]]; then
+    # No modo local, tentar instalar conforme SO
+    if command -v apt-get > /dev/null 2>&1; then
+      sudo apt-get update -qq > /dev/null 2>&1 && sudo apt-get install -y git > /dev/null 2>&1
+    elif command -v brew > /dev/null 2>&1; then
+      brew install git > /dev/null 2>&1
+    else
+      feedback FAIL "Instale git manualmente e rode novamente"
+      exit 1
+    fi
+  else
+    apt-get update -qq > /dev/null 2>&1 && apt-get install -y git > /dev/null 2>&1
+  fi
   feedback OK "git instalado"
 fi
 
@@ -142,11 +192,16 @@ elif [[ -d "$INSTALL_DIR" ]]; then
   feedback FAIL "${INSTALL_DIR} existe mas nao e um repositorio git"
   exit 1
 else
-  # Criar /opt/legendsclaw com sudo se necessario, clonar como user real
-  if [[ $EUID -ne 0 ]]; then
-    sudo mkdir -p "$INSTALL_DIR"
-    sudo chown "${REAL_USER}:${REAL_GROUP}" "$INSTALL_DIR"
+  if [[ "$MODE" == "vps" ]]; then
+    # VPS: criar /opt/legendsclaw com sudo se necessario
+    if [[ $EUID -ne 0 ]]; then
+      sudo mkdir -p "$INSTALL_DIR"
+      sudo chown "${REAL_USER}:${REAL_GROUP}" "$INSTALL_DIR"
+    else
+      mkdir -p "$INSTALL_DIR"
+    fi
   else
+    # Local: criar em $HOME (sem sudo)
     mkdir -p "$INSTALL_DIR"
   fi
   if git clone "$REPO_URL" "$INSTALL_DIR" > /dev/null 2>&1; then
@@ -162,30 +217,83 @@ else
 fi
 
 # =============================================================================
-# STEP 6: Executar setup.sh
+# STEP 6+: Execucao conforme modo
 # =============================================================================
-if bash "${INSTALL_DIR}/deployer/setup.sh"; then
-  feedback OK "Dependencias instaladas com sucesso"
+if [[ "$MODE" == "vps" ]]; then
+  # --- MODO VPS: setup.sh (original) ---
+
+  # STEP 6: Executar setup.sh
+  if bash "${INSTALL_DIR}/deployer/setup.sh"; then
+    feedback OK "Dependencias instaladas com sucesso"
+  else
+    feedback FAIL "setup.sh falhou (verifique o log acima)"
+    exit 1
+  fi
+
+  # STEP 7: Instrucoes finais
+  echo ""
+  echo -e "${BOLD}${CYAN}=============================================="
+  echo "  INSTALACAO CONCLUIDA!"
+  echo "==============================================${NC}"
+  echo ""
+  echo -e "  Proximo passo:"
+  echo -e "  ${BOLD}cd ${INSTALL_DIR}/deployer && bash deployer.sh${NC}"
+  echo ""
+  feedback OK "Instrucoes exibidas"
+
 else
-  feedback FAIL "setup.sh falhou (verifique o log acima)"
-  exit 1
+  # --- MODO LOCAL: setup-local → bridge → aios-init ---
+
+  FERRAMENTAS_DIR="${INSTALL_DIR}/deployer/ferramentas"
+
+  # STEP 6: Setup Local (git, Node.js, Claude Code, Tailscale)
+  echo ""
+  echo -e "${BOLD}${CYAN}--- Etapa 1/3: Setup Local ---${NC}"
+  if bash "${FERRAMENTAS_DIR}/setup-local.sh"; then
+    feedback OK "Setup local concluido (dependencias instaladas)"
+  else
+    feedback FAIL "setup-local.sh falhou"
+    exit 1
+  fi
+
+  # STEP 7: Bridge Local→VPS (Tailscale)
+  echo ""
+  echo -e "${BOLD}${CYAN}--- Etapa 2/3: Bridge Local→VPS ---${NC}"
+  if bash "${FERRAMENTAS_DIR}/setup-local-bridge.sh"; then
+    feedback OK "Bridge configurado com sucesso"
+  else
+    feedback FAIL "setup-local-bridge.sh falhou"
+    exit 1
+  fi
+
+  # STEP 8: AIOS Init + Registro de Agente
+  echo ""
+  echo -e "${BOLD}${CYAN}--- Etapa 3/3: AIOS Init ---${NC}"
+  if bash "${FERRAMENTAS_DIR}/setup-local-aios.sh"; then
+    feedback OK "AIOS inicializado e agente registrado"
+  else
+    feedback FAIL "setup-local-aios.sh falhou"
+    exit 1
+  fi
+
+  # STEP 9: Instrucoes finais
+  echo ""
+  echo -e "${BOLD}${CYAN}=============================================="
+  echo "  SETUP LOCAL CONCLUIDO!"
+  echo "==============================================${NC}"
+  echo ""
+  echo -e "  Seu ambiente local esta pronto."
+  echo -e "  Para ativar o agente no Claude Code:"
+  echo -e "  ${BOLD}cd ${INSTALL_DIR} && @seu-agente${NC}"
+  echo ""
+  echo -e "  Para verificar o bridge:"
+  echo -e "  ${BOLD}cd ${INSTALL_DIR}/.aios-core/infrastructure && node bridge.js status${NC}"
+  echo ""
+  feedback OK "Instrucoes exibidas"
 fi
 
 # =============================================================================
-# STEP 7: Instrucoes finais
-# =============================================================================
-echo ""
-echo -e "${BOLD}${CYAN}=============================================="
-echo "  INSTALACAO CONCLUIDA!"
-echo "==============================================${NC}"
-echo ""
-echo -e "  Proximo passo:"
-echo -e "  ${BOLD}cd ${INSTALL_DIR}/deployer && bash deployer.sh${NC}"
-echo ""
-feedback OK "Instrucoes exibidas"
-
-# =============================================================================
-# STEP 8: Resumo
+# STEP FINAL: Resumo
 # =============================================================================
 echo ""
 echo -e "${BOLD}RESUMO${NC}"
