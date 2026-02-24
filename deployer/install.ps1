@@ -810,11 +810,19 @@ if (Test-Path $whitelabelFile) {
     $idioma = Read-StateValue -FilePath $whitelabelFile -Key 'Idioma'
     Write-Host '  Dados do agente carregados de dados_whitelabel' -ForegroundColor Green
 } else {
-    Write-Host ''
-    Write-Host '  dados_whitelabel nao encontrado — coleta interativa' -ForegroundColor Yellow
-    Write-Host ''
+    # Fallback: reusar nome do agente do bridge (evita pedir 2x)
+    $bridgeFile = Join-Path $STATE_DIR 'dados_bridge'
+    if ([string]::IsNullOrWhiteSpace($nomeAgente) -and (Test-Path $bridgeFile)) {
+        $nomeAgente = Read-StateValue -FilePath $bridgeFile -Key 'Agente'
+        if (-not [string]::IsNullOrWhiteSpace($nomeAgente)) {
+            Write-Host "  Nome do agente recuperado do bridge: $nomeAgente" -ForegroundColor Green
+        }
+    }
 
     if ([string]::IsNullOrWhiteSpace($nomeAgente)) {
+        Write-Host ''
+        Write-Host '  dados_whitelabel nao encontrado — coleta interativa' -ForegroundColor Yellow
+        Write-Host ''
         $nomeAgente = Read-Input -Prompt 'Nome tecnico do agente (kebab-case, ex: jarvis)' -Default 'meu-agente'
     }
     while ($nomeAgente -notmatch '^[a-z][a-z0-9-]*$') {

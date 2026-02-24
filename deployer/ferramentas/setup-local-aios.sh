@@ -142,6 +142,7 @@ icone=""
 persona=""
 idioma=""
 
+# Tentar carregar de dados_whitelabel primeiro, depois dados_bridge como fallback
 if [[ -f "$STATE_DIR/dados_whitelabel" ]]; then
   nome_agente=$(grep "^Agente:" "$STATE_DIR/dados_whitelabel" 2>/dev/null | awk -F': ' '{print $2}' || true)
   display_name=$(grep "^Display Name:" "$STATE_DIR/dados_whitelabel" 2>/dev/null | awk -F': ' '{print $2}' || true)
@@ -150,23 +151,32 @@ if [[ -f "$STATE_DIR/dados_whitelabel" ]]; then
   idioma=$(grep "^Idioma:" "$STATE_DIR/dados_whitelabel" 2>/dev/null | awk -F': ' '{print $2}' || true)
   step_ok "Dados do agente carregados de dados_whitelabel"
 else
-  echo ""
-  echo "  dados_whitelabel nao encontrado — coleta interativa"
-  echo ""
+  # Fallback: reusar nome do agente do bridge (evita pedir 2x)
+  if [[ -f "$STATE_DIR/dados_bridge" ]]; then
+    nome_agente=$(grep "^Agente:" "$STATE_DIR/dados_bridge" 2>/dev/null | awk -F': ' '{print $2}' || true)
+    if [[ -n "$nome_agente" ]]; then
+      echo "  Nome do agente recuperado do bridge: ${nome_agente}"
+    fi
+  fi
 
-  input "aios.nome_agente" "Nome tecnico do agente (kebab-case, ex: jarvis): " nome_agente --default="meu-agente"
-  # Validar nome do agente
-  while [[ ! "$nome_agente" =~ ^[a-z][a-z0-9-]*$ ]]; do
-    echo -e "  ${UI_RED:-\033[0;31m}Nome invalido: use kebab-case (a-z, 0-9, hifens, comecando com letra)${UI_NC:-\033[0m}"
-    input "aios.nome_agente" "Nome tecnico do agente: " nome_agente --default="meu-agente"
-  done
+  if [[ -z "$nome_agente" ]]; then
+    echo ""
+    echo "  dados_whitelabel nao encontrado — coleta interativa"
+    echo ""
+    input "aios.nome_agente" "Nome tecnico do agente (kebab-case, ex: jarvis): " nome_agente --default="meu-agente"
+    while [[ ! "$nome_agente" =~ ^[a-z][a-z0-9-]*$ ]]; do
+      echo -e "  ${UI_RED:-\033[0;31m}Nome invalido: use kebab-case (a-z, 0-9, hifens, comecando com letra)${UI_NC:-\033[0m}"
+      input "aios.nome_agente" "Nome tecnico do agente: " nome_agente --default="meu-agente"
+    done
+  fi
 
+  # Dados complementares — sempre perguntar se nao vieram do whitelabel
   input "aios.display_name" "Display name [${nome_agente^}]: " display_name --default="${nome_agente^}"
   input "aios.icone" "Icone/emoji [🤖]: " icone --default="🤖"
   input "aios.persona" "Persona/descricao curta [Assistente IA especializado]: " persona --default="Assistente IA especializado"
   input "aios.idioma" "Idioma [pt-br]: " idioma --default="pt-br"
 
-  step_ok "Dados do agente coletados interativamente"
+  step_ok "Dados do agente coletados"
 fi
 
 # =============================================================================
