@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # =============================================================================
 # Legendsclaw Deployer — Environment Detection (Dual-Mode)
-# detectar_ambiente(), deploy_stack(), wait_stack_local()
+# detectar_ambiente(), detectar_so(), deploy_stack(), wait_stack_local()
 # Story 1.3: Supports local (docker compose) and VPS (docker stack deploy)
+# Story 11.1: Adds OS detection (Linux/macOS/WSL/Windows-no-WSL)
 # NOTE: This file is sourced (not executed standalone).
 #       It inherits set -euo pipefail from the calling script.
 # =============================================================================
@@ -18,6 +19,29 @@ detectar_ambiente() {
   else
     echo "local"
   fi
+}
+
+# Detecta o sistema operacional
+# Retorna: "linux", "macos", "wsl" ou "windows-no-wsl" via stdout
+# Uso: local so; so=$(detectar_so)
+detectar_so() {
+  local kernel
+  kernel=$(uname -s 2>/dev/null || echo "Unknown")
+  case "$kernel" in
+    Linux)
+      if [[ -n "${WSL_DISTRO_NAME:-}" ]] || grep -qi microsoft /proc/version 2>/dev/null; then
+        echo "wsl"
+      else
+        echo "linux"
+      fi
+      ;;
+    Darwin)
+      echo "macos"
+      ;;
+    *)
+      echo "windows-no-wsl"
+      ;;
+  esac
 }
 
 # Deploy wrapper dual-mode

@@ -50,6 +50,19 @@ run_ferramenta() {
   fi
 }
 
+show_menu_ambiente() {
+  clear
+  echo -e "${D_CYAN}${D_BOLD}"
+  echo "╔══════════════════════════════════════════════╗"
+  echo "║         LEGENDSCLAW DEPLOYER v${DEPLOYER_VERSION}            ║"
+  echo "╠══════════════════════════════════════════════╣"
+  echo -e "║  ${D_GREEN}[1] Setup Local (minha maquina)${D_CYAN}              ║"
+  echo -e "║  ${D_GREEN}[2] Deploy VPS (servidor remoto)${D_CYAN}             ║"
+  echo -e "║  ${D_GRAY}[0] Sair${D_CYAN}                                     ║"
+  echo "╚══════════════════════════════════════════════╝"
+  echo -e "${D_NC}"
+}
+
 show_menu() {
   clear
   echo -e "${D_CYAN}${D_BOLD}"
@@ -77,7 +90,7 @@ show_menu() {
   echo -e "${D_NC}"
 }
 
-main() {
+menu_vps() {
   while true; do
     show_menu
     read -rp "Escolha uma opcao: " opcao
@@ -105,6 +118,38 @@ main() {
         ;;
       *)
         echo -e "${D_YELLOW}Opcao invalida ou ainda nao disponivel.${D_NC}"
+        sleep 2
+        ;;
+    esac
+  done
+}
+
+main() {
+  # AUTO_MODE: pula menu seletor, vai direto para VPS (compatibilidade deployer-auto.sh)
+  if [[ "${AUTO_MODE:-false}" == "true" ]]; then
+    menu_vps
+    return
+  fi
+
+  # Menu seletor de ambiente
+  while true; do
+    show_menu_ambiente
+    read -rp "Escolha uma opcao: " ambiente
+
+    case "$ambiente" in
+      1)
+        run_ferramenta "ferramentas/setup-local.sh"
+        ;;
+      2)
+        menu_vps
+        return
+        ;;
+      0)
+        echo "Ate mais!"
+        exit 0
+        ;;
+      *)
+        echo -e "${D_YELLOW}Opcao invalida.${D_NC}"
         sleep 2
         ;;
     esac
