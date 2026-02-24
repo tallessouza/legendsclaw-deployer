@@ -850,3 +850,86 @@ hint_gateway_config() {
   echo "=============================================="
   echo ""
 }
+
+# Hint de uso do agente AIOS — instrucoes de ativacao
+# Uso: hint_aios_init_usage "$nome_agente" "$display_name" "$all_commands"
+hint_aios_init_usage() {
+  local nome_agente="${1:-meu-agente}"
+  local display_name="${2:-Meu Agente}"
+  local all_commands="${3:-help,status,chat}"
+
+  echo ""
+  echo -e "${UI_BOLD:-\033[1m}=============================================="
+  echo "  HINT: COMO USAR SEU AGENTE — ${display_name}"
+  echo -e "==============================================${UI_NC:-\033[0m}"
+  echo ""
+  echo "  Ativar agente no Claude Code:"
+  echo "    @${nome_agente}"
+  echo ""
+  echo "  Commands disponiveis:"
+
+  # Parsear e exibir cada command
+  IFS=',' read -ra cmds <<< "$all_commands"
+  for cmd in "${cmds[@]}"; do
+    cmd=$(echo "$cmd" | sed 's/^[[:space:]]*//; s/[[:space:]]*$//')
+    echo "    *${cmd}"
+  done
+
+  echo ""
+  echo "  Testar:"
+  echo "    @${nome_agente} *help"
+  echo "    @${nome_agente} *status"
+  echo ""
+  echo "=============================================="
+  echo ""
+}
+
+# Hint de proximos passos apos setup-local-aios
+# Uso: hint_aios_init_next_steps
+hint_aios_init_next_steps() {
+  echo ""
+  echo -e "${UI_BOLD:-\033[1m}=============================================="
+  echo "  HINT: PROXIMOS PASSOS — AIOS"
+  echo -e "==============================================${UI_NC:-\033[0m}"
+  echo ""
+  echo "  1. Testar ativacao do agente:"
+  echo "     Abra Claude Code e digite @{nome-agente}"
+  echo ""
+  echo "  2. Configurar bridge local→VPS (se ainda nao fez):"
+  echo "     ferramentas/setup-local-bridge.sh"
+  echo ""
+  echo "  3. Validar setup completo (E2E):"
+  echo "     ferramentas/validacao-local.sh"
+  echo ""
+  echo "=============================================="
+  echo ""
+}
+
+# Hint de proximos passos apos setup-local-bridge
+# Uso: hint_local_bridge_next_steps
+hint_local_bridge_next_steps() {
+  echo ""
+  echo -e "${UI_BOLD:-\033[1m}=============================================="
+  echo "  HINT: PROXIMOS PASSOS — SETUP LOCAL"
+  echo -e "==============================================${UI_NC:-\033[0m}"
+  echo ""
+  echo "  Bridge local→VPS configurada!"
+  echo ""
+  echo "  Proximos passos:"
+  echo ""
+  echo "    1. Inicializar AIOS no projeto local:"
+  echo "       ferramentas/setup-local-aios.sh"
+  echo ""
+  echo "    2. Validar setup completo (E2E):"
+  echo "       ferramentas/validacao-local.sh"
+  echo ""
+  echo "    3. Testar bridge manualmente:"
+  echo "       node .aios-core/infrastructure/services/bridge.js status"
+  echo ""
+  echo "    4. Se Tailscale estava offline, conecte agora:"
+  echo "       sudo tailscale up"
+  echo "       Depois re-execute este script para verificar conectividade."
+  echo ""
+  echo "=============================================="
+  echo ""
+}

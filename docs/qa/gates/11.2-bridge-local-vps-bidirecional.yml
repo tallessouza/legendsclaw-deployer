@@ -1,0 +1,13 @@
+schema: 1
+story: '11.2'
+gate: PASS_WITH_PENDING_E2E
+status_reason: 'Code review PASS (14 BATS tests, no regressions). E2E manual validation pending — requires Tailscale + gateway environment.'
+reviewer: 'Quinn + Pax'
+updated: '2026-02-24T19:00:00Z'
+top_issues:
+  - severity: medium
+    category: requirements
+    description: 'E2E validation not yet executed on real VM with Tailscale + gateway'
+    recommendation: 'Execute docs/qa/gates/11.2-validacao-manual-e2e.md checklist on target VM before marking Done'
+e2e_checklist: 'docs/qa/gates/11.2-validacao-manual-e2e.md'
+waiver: { active: false }
