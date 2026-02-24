@@ -246,10 +246,18 @@ else
 
   FERRAMENTAS_DIR="${INSTALL_DIR}/deployer/ferramentas"
 
+  # Quando rodando via pipe (curl | bash), stdin e o pipe — redirecionar
+  # para /dev/tty permite que scripts interativos leiam input do teclado
+  if [[ ! -t 0 ]] && [[ -e /dev/tty ]]; then
+    TTY_REDIRECT="</dev/tty"
+  else
+    TTY_REDIRECT=""
+  fi
+
   # STEP 6: Setup Local (git, Node.js, Claude Code, Tailscale)
   echo ""
   echo -e "${BOLD}${CYAN}--- Etapa 1/3: Setup Local ---${NC}"
-  if bash "${FERRAMENTAS_DIR}/setup-local.sh"; then
+  if eval bash "${FERRAMENTAS_DIR}/setup-local.sh" "$TTY_REDIRECT"; then
     feedback OK "Setup local concluido (dependencias instaladas)"
   else
     feedback FAIL "setup-local.sh falhou"
@@ -259,7 +267,7 @@ else
   # STEP 7: Bridge Local→VPS (Tailscale)
   echo ""
   echo -e "${BOLD}${CYAN}--- Etapa 2/3: Bridge Local→VPS ---${NC}"
-  if bash "${FERRAMENTAS_DIR}/setup-local-bridge.sh"; then
+  if eval bash "${FERRAMENTAS_DIR}/setup-local-bridge.sh" "$TTY_REDIRECT"; then
     feedback OK "Bridge configurado com sucesso"
   else
     feedback FAIL "setup-local-bridge.sh falhou"
@@ -269,7 +277,7 @@ else
   # STEP 8: AIOS Init + Registro de Agente
   echo ""
   echo -e "${BOLD}${CYAN}--- Etapa 3/3: AIOS Init ---${NC}"
-  if bash "${FERRAMENTAS_DIR}/setup-local-aios.sh"; then
+  if eval bash "${FERRAMENTAS_DIR}/setup-local-aios.sh" "$TTY_REDIRECT"; then
     feedback OK "AIOS inicializado e agente registrado"
   else
     feedback FAIL "setup-local-aios.sh falhou"
