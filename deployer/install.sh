@@ -254,6 +254,21 @@ else
     TTY_REDIRECT=""
   fi
 
+  # Helper para ler do tty quando rodando via pipe
+  read_tty() {
+    if [[ -e /dev/tty ]]; then
+      read "$@" </dev/tty
+    else
+      read "$@"
+    fi
+  }
+
+  pause_between_steps() {
+    echo ""
+    echo -e "${YELLOW}Pressione ENTER para continuar...${NC}"
+    read_tty -r
+  }
+
   # STEP 6: Setup Local (git, Node.js, Claude Code, Tailscale)
   echo ""
   echo -e "${BOLD}${CYAN}--- Etapa 1/3: Setup Local ---${NC}"
@@ -264,6 +279,8 @@ else
     exit 1
   fi
 
+  pause_between_steps
+
   # STEP 7: Bridge Local→VPS (Tailscale)
   echo ""
   echo -e "${BOLD}${CYAN}--- Etapa 2/3: Bridge Local→VPS ---${NC}"
@@ -273,6 +290,8 @@ else
     feedback FAIL "setup-local-bridge.sh falhou"
     exit 1
   fi
+
+  pause_between_steps
 
   # STEP 8: AIOS Init + Registro de Agente
   echo ""

@@ -58,17 +58,90 @@ if command -v tailscale &>/dev/null; then
 fi
 
 if [[ "$tailscale_installed" == "false" ]]; then
-  step_fail "Tailscale nao instalado"
-  echo "  Execute primeiro: ferramentas/setup-local.sh"
-  exit 1
+  echo ""
+  echo -e "  ${UI_YELLOW}Tailscale nao encontrado.${UI_NC}"
+  echo ""
+  echo "  [1] Instalar agora"
+  echo "  [2] Continuar sem Tailscale (bridge offline)"
+  echo ""
+  ts_install_opcao=""
+  input "bridge.ts_install" "Opcao [1]: " ts_install_opcao --default=1
+
+  if [[ "$ts_install_opcao" == "1" ]]; then
+    echo ""
+    so_detect=""
+    so_detect=$(detectar_so 2>/dev/null || echo "linux")
+    case "$so_detect" in
+      linux|wsl)
+        echo "  Instalando Tailscale..."
+        if curl -fsSL https://tailscale.com/install.sh | sh 2>/dev/null; then
+          tailscale_installed="true"
+          step_ok "Tailscale instalado"
+        else
+          echo -e "  ${UI_RED}Falha ao instalar Tailscale.${UI_NC}"
+          echo "  Instale manualmente: https://tailscale.com/download"
+          step_ok "Continuando sem Tailscale (bridge offline)"
+        fi
+        ;;
+      macos)
+        if command -v brew &>/dev/null; then
+          echo "  Instalando Tailscale via Homebrew..."
+          if brew install tailscale 2>/dev/null; then
+            tailscale_installed="true"
+            step_ok "Tailscale instalado via Homebrew"
+          else
+            echo -e "  ${UI_RED}Falha ao instalar Tailscale.${UI_NC}"
+            echo "  Baixe em: https://tailscale.com/download/mac"
+            step_ok "Continuando sem Tailscale (bridge offline)"
+          fi
+        else
+          echo -e "  ${UI_YELLOW}Homebrew nao encontrado.${UI_NC}"
+          echo "  Baixe em: https://tailscale.com/download/mac"
+          step_ok "Continuando sem Tailscale (bridge offline)"
+        fi
+        ;;
+    esac
+  else
+    step_ok "Continuando sem Tailscale (bridge offline)"
+  fi
 fi
 
 if [[ "$tailscale_connected" == "true" ]]; then
   step_ok "Dependencias verificadas — Node $(node --version), Tailscale conectado"
 else
-  step_fail "Tailscale instalado mas NAO conectado"
-  echo -e "  ${UI_YELLOW}WARNING: Tailscale nao conectado. Bridge sera configurada offline.${UI_NC}"
-  echo "  Para conectar: sudo tailscale up"
+  echo ""
+  echo -e "  ${UI_YELLOW}Tailscale instalado mas NAO conectado.${UI_NC}"
+  echo ""
+  echo "  [1] Conectar agora (sudo tailscale up)"
+  echo "  [2] Continuar offline (configurar bridge sem testar)"
+  echo ""
+  ts_opcao=""
+  input "bridge.ts_connect" "Opcao [1]: " ts_opcao --default=1
+
+  if [[ "$ts_opcao" == "1" ]]; then
+    echo ""
+    echo "  Executando: sudo tailscale up"
+    echo "  (siga as instrucoes de login no navegador)"
+    echo ""
+    if sudo tailscale up 2>&1; then
+      # Re-verificar conexao
+      sleep 2
+      if tailscale status &>/dev/null; then
+        tailscale_connected="true"
+        step_ok "Tailscale conectado com sucesso"
+      else
+        echo -e "  ${UI_YELLOW}Tailscale login executado mas status nao confirmado.${UI_NC}"
+        echo "  Continuando em modo offline."
+        step_ok "Dependencias verificadas — Node $(node --version), Tailscale offline"
+      fi
+    else
+      echo -e "  ${UI_YELLOW}Falha ao conectar Tailscale. Continuando offline.${UI_NC}"
+      step_ok "Dependencias verificadas — Node $(node --version), Tailscale offline"
+    fi
+  else
+    echo -e "  Continuando em modo offline."
+    step_ok "Dependencias verificadas — Node $(node --version), Tailscale offline"
+  fi
 fi
 
 # jq (necessario para merge de settings.json e Tailscale JSON)
@@ -102,47 +175,95 @@ if [[ -z "$nome_agente" ]]; then
   input "bridge.nome_agente" "Nome do agente: " nome_agente --required
 fi
 
-# Hostname Tailscale da VPS
+# Hostname Tailscale da VPS — auto-detectar peers se Tailscale conectado
 vps_hostname=""
-input "bridge.vps_hostname" "Hostname Tailscale da VPS (sem .ts.net): " vps_hostname --required
+tailnet=""
 
-# Validar hostname (regex: apenas alfanumerico e hifens)
-while [[ ! "$vps_hostname" =~ ^[a-zA-Z0-9-]+$ ]]; do
-  echo -e "  ${UI_RED}Hostname invalido: apenas letras, numeros e hifens permitidos${UI_NC}"
+if [[ "$tailscale_connected" == "true" ]]; then
+  # Detectar tailnet suffix
+  if [[ "$jq_available" == "true" ]]; then
+    tailnet=$(tailscale status --json 2>/dev/null | jq -r '.MagicDNSSuffix' 2>/dev/null || true)
+  else
+    tailnet=$(tailscale status --json 2>/dev/null | python3 -c "import sys,json; print(json.load(sys.stdin).get('MagicDNSSuffix',''))" 2>/dev/null || true)
+  fi
+
+  # Listar peers disponiveis
+  declare -a peer_names=()
+  declare -a peer_ips=()
+  declare -a peer_os=()
+
+  if [[ "$jq_available" == "true" ]]; then
+    while IFS=$'\t' read -r _name _ip _os; do
+      [[ -z "$_name" ]] && continue
+      peer_names+=("$_name")
+      peer_ips+=("$_ip")
+      peer_os+=("$_os")
+    done < <(tailscale status --json 2>/dev/null | jq -r '.Peer | to_entries[] | select(.value.Online == true) | [(.value.HostName // .value.DNSName | split(".")[0]), (.value.TailscaleIPs[0] // ""), (.value.OS // "")] | @tsv' 2>/dev/null || true)
+  else
+    while IFS=$'\t' read -r _name _ip _os; do
+      [[ -z "$_name" ]] && continue
+      peer_names+=("$_name")
+      peer_ips+=("$_ip")
+      peer_os+=("$_os")
+    done < <(tailscale status --json 2>/dev/null | python3 -c "
+import sys, json
+data = json.load(sys.stdin)
+for k, v in (data.get('Peer') or {}).items():
+    if v.get('Online'):
+        name = v.get('HostName') or v.get('DNSName','').split('.')[0]
+        ip = (v.get('TailscaleIPs') or [''])[0]
+        os_name = v.get('OS','')
+        print(f'{name}\t{ip}\t{os_name}')
+" 2>/dev/null || true)
+  fi
+
+  if [[ ${#peer_names[@]} -gt 0 ]]; then
+    echo ""
+    echo -e "  ${UI_BOLD:-\033[1m}Peers Tailscale online:${UI_NC:-\033[0m}"
+    echo ""
+    for i in "${!peer_names[@]}"; do
+      printf "    [%d] %-25s %-18s %s\n" "$((i+1))" "${peer_names[$i]}" "${peer_ips[$i]}" "${peer_os[$i]}"
+    done
+    echo "    [0] Digitar manualmente"
+    echo ""
+
+    peer_choice=""
+    input "bridge.peer_choice" "Selecione a VPS [1]: " peer_choice --default=1
+
+    if [[ "$peer_choice" =~ ^[0-9]+$ ]] && [[ "$peer_choice" -ge 1 ]] && [[ "$peer_choice" -le ${#peer_names[@]} ]]; then
+      vps_hostname="${peer_names[$((peer_choice-1))]}"
+      echo -e "  Selecionado: ${UI_GREEN:-\033[0;32m}${vps_hostname}${UI_NC:-\033[0m}"
+    fi
+    # peer_choice == 0 ou invalido → cai no input manual abaixo
+  fi
+fi
+
+# Fallback: input manual se nao auto-detectou
+if [[ -z "$vps_hostname" ]]; then
   input "bridge.vps_hostname" "Hostname Tailscale da VPS (sem .ts.net): " vps_hostname --required
-done
+  while [[ ! "$vps_hostname" =~ ^[a-zA-Z0-9-]+$ ]]; do
+    echo -e "  ${UI_RED}Hostname invalido: apenas letras, numeros e hifens permitidos${UI_NC}"
+    input "bridge.vps_hostname" "Hostname Tailscale da VPS (sem .ts.net): " vps_hostname --required
+  done
+fi
 
 # Porta do gateway
 porta_gateway=""
 input "bridge.porta_gateway" "Porta do gateway OpenClaw [18789]: " porta_gateway --default=18789
 
-# Detectar tailnet suffix
-tailnet=""
-if [[ "$tailscale_connected" == "true" && "$jq_available" == "true" ]]; then
-  tailnet=$(tailscale status --json 2>/dev/null | jq -r '.MagicDNSSuffix' 2>/dev/null || true)
-fi
-
-if [[ -z "$tailnet" ]]; then
-  if [[ "$tailscale_connected" == "true" && "$jq_available" == "false" ]]; then
-    # Fallback Python para extrair MagicDNSSuffix
-    tailnet=$(tailscale status --json 2>/dev/null | python3 -c "import sys,json; print(json.load(sys.stdin).get('MagicDNSSuffix',''))" 2>/dev/null || true)
-  fi
-fi
-
-if [[ -z "$tailnet" ]]; then
+# Montar GATEWAY_URL
+if [[ -n "$tailnet" ]]; then
+  GATEWAY_URL="http://${vps_hostname}.${tailnet}:${porta_gateway}"
+else
   echo ""
   echo -e "  ${UI_YELLOW}Nao foi possivel detectar o tailnet automaticamente.${UI_NC}"
   input "bridge.tailnet_fqdn" "FQDN completo da VPS (ex: meu-vps.tailnet-name.ts.net): " fqdn_completo --required
-  # Validar formato hostname.tailnet.ts.net
   while [[ ! "$fqdn_completo" =~ ^[a-zA-Z0-9-]+\..+\.ts\.net$ ]]; do
     echo -e "  ${UI_RED}Formato invalido. Esperado: hostname.tailnet-name.ts.net${UI_NC}"
     input "bridge.tailnet_fqdn" "FQDN completo da VPS: " fqdn_completo --required
   done
   GATEWAY_URL="http://${fqdn_completo}:${porta_gateway}"
-  # Extrair tailnet do FQDN para state file
   tailnet=$(echo "$fqdn_completo" | sed "s/^${vps_hostname}\.//" || echo "$fqdn_completo")
-else
-  GATEWAY_URL="http://${vps_hostname}.${tailnet}:${porta_gateway}"
 fi
 
 step_ok "Dados coletados"

@@ -411,26 +411,68 @@ if ([string]::IsNullOrWhiteSpace($nomeAgente)) {
     $nomeAgente = Read-Input -Prompt 'Nome do agente' -Required
 }
 
-$vpsHostname = Read-Input -Prompt 'Hostname Tailscale da VPS (sem .ts.net)' -Required
+# Hostname Tailscale da VPS — auto-detectar peers se conectado
+$vpsHostname = ''
+$tailnet = ''
 
-# Validar hostname
-while ($vpsHostname -notmatch '^[a-zA-Z0-9-]+$') {
-    Write-Host '  Hostname invalido: apenas letras, numeros e hifens permitidos' -ForegroundColor Red
+if ($tailscaleConnected) {
+    try {
+        $tsStatusJson = tailscale status --json 2>$null | ConvertFrom-Json
+        $tailnet = $tsStatusJson.MagicDNSSuffix
+
+        # Listar peers online
+        $peers = @()
+        if ($tsStatusJson.Peer) {
+            foreach ($key in $tsStatusJson.Peer.PSObject.Properties) {
+                $p = $key.Value
+                if ($p.Online -eq $true) {
+                    $peerName = if ($p.HostName) { $p.HostName } else { ($p.DNSName -split '\.')[0] }
+                    $peerIP = if ($p.TailscaleIPs -and $p.TailscaleIPs.Count -gt 0) { $p.TailscaleIPs[0] } else { '' }
+                    $peerOS = if ($p.OS) { $p.OS } else { '' }
+                    $peers += [PSCustomObject]@{ Name = $peerName; IP = $peerIP; OS = $peerOS }
+                }
+            }
+        }
+
+        if ($peers.Count -gt 0) {
+            Write-Host ''
+            Write-Host '  Peers Tailscale online:' -ForegroundColor White
+            Write-Host ''
+            for ($i = 0; $i -lt $peers.Count; $i++) {
+                $p = $peers[$i]
+                Write-Host ("    [{0}] {1,-25} {2,-18} {3}" -f ($i+1), $p.Name, $p.IP, $p.OS)
+            }
+            Write-Host '    [0] Digitar manualmente'
+            Write-Host ''
+
+            $peerChoice = Read-Input -Prompt 'Selecione a VPS' -Default '1'
+
+            if ($peerChoice -match '^\d+$') {
+                $idx = [int]$peerChoice
+                if ($idx -ge 1 -and $idx -le $peers.Count) {
+                    $vpsHostname = $peers[$idx - 1].Name
+                    Write-Host "  Selecionado: $vpsHostname" -ForegroundColor Green
+                }
+            }
+        }
+    } catch { }
+}
+
+# Fallback: input manual
+if ([string]::IsNullOrWhiteSpace($vpsHostname)) {
     $vpsHostname = Read-Input -Prompt 'Hostname Tailscale da VPS (sem .ts.net)' -Required
+    while ($vpsHostname -notmatch '^[a-zA-Z0-9-]+$') {
+        Write-Host '  Hostname invalido: apenas letras, numeros e hifens permitidos' -ForegroundColor Red
+        $vpsHostname = Read-Input -Prompt 'Hostname Tailscale da VPS (sem .ts.net)' -Required
+    }
 }
 
 $portaGateway = Read-Input -Prompt 'Porta do gateway OpenClaw' -Default '18789'
 
-# Detectar tailnet
-$tailnet = ''
-if ($tailscaleConnected) {
-    try {
-        $tsJson = tailscale status --json 2>$null | ConvertFrom-Json
-        $tailnet = $tsJson.MagicDNSSuffix
-    } catch { }
-}
-
-if ([string]::IsNullOrWhiteSpace($tailnet)) {
+# Montar GATEWAY_URL
+if (-not [string]::IsNullOrWhiteSpace($tailnet)) {
+    $GATEWAY_URL = "http://${vpsHostname}.${tailnet}:${portaGateway}"
+} else {
     Write-Host ''
     Write-Host '  Nao foi possivel detectar o tailnet automaticamente.' -ForegroundColor Yellow
     $fqdnCompleto = Read-Input -Prompt 'FQDN completo da VPS (ex: meu-vps.tailnet-name.ts.net)' -Required
@@ -441,8 +483,6 @@ if ([string]::IsNullOrWhiteSpace($tailnet)) {
     }
     $GATEWAY_URL = "http://${fqdnCompleto}:${portaGateway}"
     $tailnet = $fqdnCompleto -replace "^${vpsHostname}\.", ''
-} else {
-    $GATEWAY_URL = "http://${vpsHostname}.${tailnet}:${portaGateway}"
 }
 
 # --- Confirmar informacoes ---
