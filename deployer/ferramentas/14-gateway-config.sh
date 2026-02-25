@@ -24,7 +24,7 @@ source "${LIB_DIR}/env-detect.sh"
 log_init "gateway-config"
 [[ "${AUTO_MODE:-false}" == "true" ]] && auto_load_config
 setup_trap
-step_init 15
+step_init 16
 
 # =============================================================================
 # STEP 2: CARREGAR DADOS OBRIGATORIOS
@@ -539,7 +539,60 @@ else
 fi
 
 # =============================================================================
-# STEP 8: GERAR node.json
+# STEP 8: GERAR openclaw-local.json (Story 12.2)
+# Formato nativo OpenClaw com gateway.mode: "remote" para uso local via WSS.
+# O setup-local-openclaw.sh (Story 12.1) copia este arquivo para
+# ~/.openclaw/openclaw.json na máquina local.
+# =============================================================================
+
+# Determinar remote URL baseado na disponibilidade do Tailscale
+if [[ -n "$ts_hostname" && -n "$ts_tailnet" ]]; then
+  remote_url="wss://${ts_hostname}.${ts_tailnet}.ts.net"
+else
+  remote_url="ws://localhost:${openclaw_porta}"
+fi
+
+REMOTE_URL="$remote_url" \
+GATEWAY_PASSWORD="$gateway_password" \
+OUTPUT_PATH="$CONFIG_DIR/openclaw-local.json" \
+node -e '
+const fs = require("fs");
+const e = process.env;
+
+const config = {
+  gateway: {
+    mode: "remote",
+    remote: {
+      url: e.REMOTE_URL,
+      password: e.GATEWAY_PASSWORD
+    }
+  },
+  agents: {
+    defaults: {
+      model: { primary: "openrouter/auto" },
+      workspace: "~/.openclaw/workspace"
+    }
+  },
+  meta: {
+    lastTouchedVersion: "deployer-12.2",
+    lastTouchedAt: new Date().toISOString(),
+    generatedBy: "legendsclaw-deployer"
+  }
+};
+
+fs.writeFileSync(e.OUTPUT_PATH, JSON.stringify(config, null, 4) + "\n");
+'
+
+if node -e "JSON.parse(require('fs').readFileSync('$CONFIG_DIR/openclaw-local.json','utf8'))" 2>/dev/null; then
+  chmod 600 "$CONFIG_DIR/openclaw-local.json"
+  step_ok "openclaw-local.json gerado (mode: remote, url: ${remote_url})"
+else
+  step_fail "openclaw-local.json gerado com JSON invalido!"
+  exit 1
+fi
+
+# =============================================================================
+# STEP 9: GERAR node.json
 # =============================================================================
 node_uuid=$(uuidgen 2>/dev/null || cat /proc/sys/kernel/random/uuid 2>/dev/null || node -e "const c=require('crypto');console.log([c.randomBytes(4),c.randomBytes(2),c.randomBytes(2),c.randomBytes(2),c.randomBytes(6)].map((b,i)=>b.toString('hex')).join('-'))")
 node_display="${nome_servidor:-$nome_agente}"
@@ -566,7 +619,7 @@ else
 fi
 
 # =============================================================================
-# STEP 9: GERAR .env CONSOLIDADO
+# STEP 10: GERAR .env CONSOLIDADO
 # =============================================================================
 cat > "$ENV_DIR/.env" << EOF
 # ============================================
@@ -623,7 +676,7 @@ env_lines=$(wc -l < "$ENV_DIR/.env")
 step_ok ".env consolidado gerado (${env_lines} linhas)"
 
 # =============================================================================
-# STEP 10: GERAR mcp-config.json
+# STEP 11: GERAR mcp-config.json
 # =============================================================================
 
 # Construir JSON condicionalmente via node
@@ -674,17 +727,18 @@ else
 fi
 
 # =============================================================================
-# STEP 11: SALVAR ESTADO
+# STEP 12: SALVAR ESTADO
 # =============================================================================
 mkdir -p "$STATE_DIR"
 cat > "$STATE_DIR/dados_gateway_config" << EOF
 Agente: ${nome_agente}
 Config Dir: ${CONFIG_DIR}
 aiosbot.json: ${CONFIG_DIR}/aiosbot.json
+openclaw-local.json: ${CONFIG_DIR}/openclaw-local.json
 node.json: ${CONFIG_DIR}/node.json
 env: ${ENV_DIR}/.env
 mcp-config.json: ${MCP_DIR}/mcp-config.json
-Arquivos Gerados: 4
+Arquivos Gerados: 5
 Status: completo
 Data Criacao: $(date -u +%Y-%m-%dT%H:%M:%SZ)
 EOF
@@ -693,7 +747,7 @@ chmod 600 "$STATE_DIR/dados_gateway_config"
 step_ok "Estado salvo em dados_gateway_config"
 
 # =============================================================================
-# STEP 12: COPIAR CONFIGS PARA OPENCLAW WORKSPACE
+# STEP 13: COPIAR CONFIGS PARA OPENCLAW WORKSPACE
 # =============================================================================
 OPENCLAW_WORKSPACE="${REAL_HOME}/.openclaw/workspace"
 if [[ -d "$OPENCLAW_WORKSPACE" ]]; then
@@ -718,7 +772,7 @@ else
 fi
 
 # =============================================================================
-# STEP 12b: MERGE INTO ~/.openclaw/openclaw.json (Story 12.0)
+# STEP 13b: MERGE INTO ~/.openclaw/openclaw.json (Story 12.0)
 # Deep merge deployer-generated fields into the real OpenClaw config.
 # Fields NOT merged (preserved from onboard): gateway.port, gateway.bind,
 # wizard, auth.profiles, commands, meta.
@@ -825,7 +879,7 @@ fs.writeFileSync(e.OPENCLAW_PATH, JSON.stringify(openclaw, null, 2) + "\n");
 fi
 
 # =============================================================================
-# STEP 12c: RELOAD GATEWAY + HEALTH CHECK (Story 12.0 — AC12, AC13)
+# STEP 13c: RELOAD GATEWAY + HEALTH CHECK (Story 12.0 — AC12, AC13)
 # =============================================================================
 if [[ -f "$OPENCLAW_CONFIG" ]]; then
   if reload_gateway; then
@@ -856,7 +910,7 @@ if [[ -f "$OPENCLAW_CONFIG" ]]; then
 fi
 
 # =============================================================================
-# STEP 13: RESUMO FINAL
+# STEP 14: RESUMO FINAL
 # =============================================================================
 resumo_final
 
@@ -866,6 +920,7 @@ echo ""
 printf "  %-20s %-45s %s\n" "Artefato" "Path" "Tamanho"
 printf "  %-20s %-45s %s\n" "--------" "----" "-------"
 printf "  %-20s %-45s %s\n" "aiosbot.json" "$CONFIG_DIR/aiosbot.json" "$(wc -c < "$CONFIG_DIR/aiosbot.json") bytes"
+printf "  %-20s %-45s %s\n" "openclaw-local.json" "$CONFIG_DIR/openclaw-local.json" "$(wc -c < "$CONFIG_DIR/openclaw-local.json") bytes"
 printf "  %-20s %-45s %s\n" "node.json" "$CONFIG_DIR/node.json" "$(wc -c < "$CONFIG_DIR/node.json") bytes"
 printf "  %-20s %-45s %s\n" ".env" "$ENV_DIR/.env" "$(wc -c < "$ENV_DIR/.env") bytes"
 printf "  %-20s %-45s %s\n" "mcp-config.json" "$MCP_DIR/mcp-config.json" "$(wc -c < "$MCP_DIR/mcp-config.json") bytes"
