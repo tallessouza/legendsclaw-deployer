@@ -96,8 +96,15 @@ step_ok "Dados do projeto coletados"
 # =============================================================================
 
 aios_dir="${dir_destino}/.aios-core"
+# aios-core init pode criar subdiretorio com nome do projeto
+aios_dir_nested="${dir_destino}/${nome_projeto}/.aios-core"
 
 if [[ -d "$aios_dir" ]]; then
+  step_skip "AIOS ja inicializado em ${dir_destino}"
+elif [[ -d "$aios_dir_nested" ]]; then
+  # Init ja rodou antes e criou subdiretorio
+  dir_destino="${dir_destino}/${nome_projeto}"
+  aios_dir="$aios_dir_nested"
   step_skip "AIOS ja inicializado em ${dir_destino}"
 else
   echo ""
@@ -118,9 +125,15 @@ else
     exit 1
   fi
 
-  # Verificar que .aios-core/ foi criado
-  if [[ ! -d "$aios_dir" ]]; then
+  # aios-core init cria subdiretorio {nome_projeto}/.aios-core/
+  # Verificar ambos os paths possiveis
+  if [[ -d "$aios_dir_nested" ]]; then
+    dir_destino="${dir_destino}/${nome_projeto}"
+    aios_dir="$aios_dir_nested"
+  elif [[ ! -d "$aios_dir" ]]; then
     step_fail ".aios-core/ nao encontrado apos init"
+    echo "  Verificado: ${aios_dir}"
+    echo "  Verificado: ${aios_dir_nested}"
     echo "  Verifique manualmente: ls -la ${dir_destino}/"
     exit 1
   fi
