@@ -99,11 +99,18 @@ step_ok "Inputs coletados"
 DEPLOYER_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 APPS_DIR="${DEPLOYER_ROOT}/apps/${nome_agente}"
 if [[ -d "$APPS_DIR" ]]; then
-  step_fail "Agente '${nome_agente}' ja existe em ${APPS_DIR}"
-  echo "  Use outro nome ou remova manualmente: rm -rf ${APPS_DIR}"
-  exit 1
+  echo "  Agente '${nome_agente}' ja existe em ${APPS_DIR}"
+  sobrescrever=""
+  auto_confirm "  Deseja sobrescrever? (s/n): " sobrescrever
+  if [[ "$sobrescrever" != "s" ]]; then
+    step_fail "Operacao cancelada pelo usuario"
+    exit 1
+  fi
+  rm -rf "$APPS_DIR"
+  step_ok "Diretorio anterior removido, prosseguindo"
+else
+  step_ok "Nome '${nome_agente}' disponivel"
 fi
-step_ok "Nome '${nome_agente}' disponivel"
 
 # =============================================================================
 # STEP 5: CREATE STRUCTURE — diretorios e arquivos placeholder
