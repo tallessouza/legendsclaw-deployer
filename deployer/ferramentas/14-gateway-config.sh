@@ -836,6 +836,7 @@ else
   AGENT_ID="$nome_agente" \
   AGENT_WORKSPACE="$workspace_path" \
   AGENT_SKILLS_DIR="$agent_skills_dir" \
+  MCP_CONFIG_PATH="$MCP_DIR/mcp-config.json" \
   node -e '
 const fs = require("fs");
 const e = process.env;
@@ -904,6 +905,19 @@ if (aiosbot.channels?.whatsapp) {
 
 // 10. Hooks
 if (aiosbot.hooks) openclaw.hooks = { ...openclaw.hooks, ...aiosbot.hooks };
+
+// 11. MCP Servers — merge mcp-config.json into plugins.entries
+const mcpConfigPath = e.MCP_CONFIG_PATH;
+if (mcpConfigPath && fs.existsSync(mcpConfigPath)) {
+  const mcpConfig = JSON.parse(fs.readFileSync(mcpConfigPath, "utf8"));
+  if (mcpConfig.mcpServers) {
+    openclaw.plugins = openclaw.plugins || {};
+    openclaw.plugins.entries = openclaw.plugins.entries || {};
+    for (const [name, server] of Object.entries(mcpConfig.mcpServers)) {
+      openclaw.plugins.entries[name] = { enabled: true, ...server };
+    }
+  }
+}
 
 fs.writeFileSync(e.OPENCLAW_PATH, JSON.stringify(openclaw, null, 2) + "\n");
 '
