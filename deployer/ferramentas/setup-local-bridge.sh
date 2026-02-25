@@ -74,9 +74,16 @@ if [[ "$tailscale_installed" == "false" ]]; then
     case "$so_detect" in
       linux|wsl)
         echo "  Instalando Tailscale..."
-        if curl -fsSL https://tailscale.com/install.sh | sh 2>/dev/null; then
-          hash -r 2>/dev/null || true
-          export PATH="/usr/bin:/usr/sbin:/usr/local/bin:$PATH"
+        # Forcar reinstall se binario ausente (ex: removido manualmente)
+        if ! command -v tailscale &>/dev/null && [[ ! -x /usr/bin/tailscale ]]; then
+          sudo apt-get install --reinstall tailscale -y 2>/dev/null || true
+        fi
+        if ! command -v tailscale &>/dev/null && [[ ! -x /usr/bin/tailscale ]]; then
+          curl -fsSL https://tailscale.com/install.sh | sh 2>/dev/null || true
+        fi
+        hash -r 2>/dev/null || true
+        export PATH="/usr/bin:/usr/sbin:/usr/local/bin:$PATH"
+        if command -v tailscale &>/dev/null || [[ -x /usr/bin/tailscale ]]; then
           tailscale_installed="true"
           step_ok "Tailscale instalado"
         else

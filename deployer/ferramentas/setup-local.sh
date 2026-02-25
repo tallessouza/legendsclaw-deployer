@@ -198,7 +198,16 @@ instalar_tailscale() {
 
   case "$so" in
     linux|wsl)
-      if curl -fsSL https://tailscale.com/install.sh | sh 2>/dev/null; then
+      # Forcar reinstall se binario ausente (ex: removido manualmente)
+      if ! command -v tailscale &>/dev/null && [[ ! -x /usr/bin/tailscale ]]; then
+        sudo apt-get install --reinstall tailscale -y 2>/dev/null || true
+      fi
+      if ! command -v tailscale &>/dev/null && [[ ! -x /usr/bin/tailscale ]]; then
+        curl -fsSL https://tailscale.com/install.sh | sh 2>/dev/null || true
+      fi
+      hash -r 2>/dev/null || true
+      export PATH="/usr/bin:/usr/sbin:/usr/local/bin:$PATH"
+      if command -v tailscale &>/dev/null || [[ -x /usr/bin/tailscale ]]; then
         step_ok "Tailscale instalado" >&2
         echo "not_connected"
         return 0
