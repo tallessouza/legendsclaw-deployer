@@ -1,5 +1,6 @@
 # Runtime — gerado pelo deployer em cada VPS
-apps/
+apps/*
+!apps/_template/
 *.bak
 .env
 node_modules/

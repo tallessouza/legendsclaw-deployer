@@ -23,7 +23,7 @@ source "${LIB_DIR}/auto.sh"
 log_init "llm-router"
 [[ "${AUTO_MODE:-false}" == "true" ]] && auto_load_config
 setup_trap
-step_init 10
+step_init 13
 
 # =============================================================================
 # STEP 2: LOAD STATE + VERIFICAR DEPENDENCIA WHITELABEL
@@ -433,6 +433,7 @@ upsert_env_block() {
     sed -i '/^LLM_ROUTER_ENABLED=/d' "$temp_file" 2>/dev/null || true
     sed -i '/^LLM_ROUTER_CONFIG_PATH=/d' "$temp_file" 2>/dev/null || true
     sed -i '/^LLM_ROUTER_DEFAULT_TIER=/d' "$temp_file" 2>/dev/null || true
+    sed -i '/^LLM_ROUTER_PORT=/d' "$temp_file" 2>/dev/null || true
     sed -i '/^OPENROUTER_API_KEY=/d' "$temp_file" 2>/dev/null || true
     sed -i '/^ANTHROPIC_API_KEY=/d' "$temp_file" 2>/dev/null || true
     sed -i '/^DEEPSEEK_API_KEY=/d' "$temp_file" 2>/dev/null || true
@@ -448,6 +449,7 @@ upsert_env_block() {
     echo "LLM_ROUTER_ENABLED=true"
     echo "LLM_ROUTER_CONFIG_PATH=apps/${nome_agente}/config/llm-router-config.yaml"
     echo "LLM_ROUTER_DEFAULT_TIER=${tier_padrao}"
+    echo "LLM_ROUTER_PORT=55119"
     echo "OPENROUTER_API_KEY=${openrouter_key}"
     if [[ -n "$anthropic_key" ]]; then
       echo "ANTHROPIC_API_KEY=${anthropic_key}"
@@ -503,7 +505,72 @@ fi
 step_skip "Teste Anthropic: skip (manual)"
 
 # =============================================================================
-# STEP 9: SAVE STATE — dados_llm_router (expandido)
+# STEP 9: COPIAR RUNTIME PRO WORKSPACE DO OPENCLAW
+# =============================================================================
+WORKSPACE_SKILLS="$HOME/.openclaw/workspace/apps/${nome_agente}"
+mkdir -p "$WORKSPACE_SKILLS/lib"
+mkdir -p "$WORKSPACE_SKILLS/config"
+
+cp "${DEPLOYER_ROOT}/apps/${nome_agente}/lib/llm-router.js" "$WORKSPACE_SKILLS/lib/"
+cp "${DEPLOYER_ROOT}/apps/${nome_agente}/lib/llm-router-server.js" "$WORKSPACE_SKILLS/lib/"
+cp "$CONFIG_FILE" "$WORKSPACE_SKILLS/config/"
+
+# Atualizar llm-extractor.js se existir
+if [[ -f "${DEPLOYER_ROOT}/apps/${nome_agente}/skills/elicitation/lib/llm-extractor.js" ]]; then
+  mkdir -p "$WORKSPACE_SKILLS/skills/elicitation/lib"
+  cp "${DEPLOYER_ROOT}/apps/${nome_agente}/skills/elicitation/lib/llm-extractor.js" \
+     "$WORKSPACE_SKILLS/skills/elicitation/lib/"
+fi
+
+workspace_sync="sim"
+step_ok "Runtime copiado para workspace (${WORKSPACE_SKILLS})"
+
+# =============================================================================
+# STEP 10: INSTALAR SYSTEMD SERVICE llm-router
+# =============================================================================
+current_user=$(whoami)
+
+sudo tee /etc/systemd/system/llm-router.service > /dev/null << SVCEOF
+[Unit]
+Description=LLM Router (Smart Tier Routing)
+After=network.target
+Before=openclaw.service
+
+[Service]
+Type=simple
+User=${current_user}
+WorkingDirectory=${HOME}/.openclaw/workspace/apps/${nome_agente}
+ExecStart=$(command -v node) lib/llm-router-server.js
+Restart=always
+RestartSec=5
+Environment=NODE_ENV=production
+EnvironmentFile=${OPENCLAW_DIR}/.env
+
+[Install]
+WantedBy=multi-user.target
+SVCEOF
+
+sudo systemctl daemon-reload
+sudo systemctl enable --now llm-router
+
+step_ok "Service llm-router instalado e ativo (porta 55119)"
+
+# =============================================================================
+# STEP 11: HEALTH CHECK DO SERVICE
+# =============================================================================
+llm_router_service="ativo"
+sleep 2
+if curl -sf http://localhost:55119/health > /dev/null 2>&1; then
+  step_ok "Health check OK — llm-router respondendo na porta 55119"
+else
+  llm_router_service="falha"
+  step_fail "Health check falhou — llm-router nao respondeu na porta 55119"
+  echo "  Verifique: journalctl -u llm-router -n 20"
+  echo "  (Nao bloqueante — config pode precisar de ajuste)"
+fi
+
+# =============================================================================
+# STEP 12: SAVE STATE — dados_llm_router (expandido)
 # =============================================================================
 mkdir -p "$STATE_DIR"
 cat > "$STATE_DIR/dados_llm_router" << EOF
@@ -523,6 +590,9 @@ Skill Mappings: ${skill_mapping_count}
 Keywords: true
 Fallback: true
 Metrics: ${metrics_enabled}
+LLM Router Service: ${llm_router_service}
+LLM Router Port: 55119
+Workspace Sync: ${workspace_sync}
 Data Configuracao: $(date '+%Y-%m-%d %H:%M:%S')
 EOF
 chmod 600 "$STATE_DIR/dados_llm_router"
@@ -530,7 +600,7 @@ chmod 600 "$STATE_DIR/dados_llm_router"
 step_ok "Estado salvo em ~/dados_vps/dados_llm_router"
 
 # =============================================================================
-# STEP 10: RESUMO + HINTS
+# STEP 13: RESUMO + HINTS
 # =============================================================================
 resumo_final
 
@@ -548,8 +618,11 @@ echo "  OpenRouter:    $(mask_key "$openrouter_key")"
 echo "  Anthropic:     $(if [[ -n "$anthropic_key" ]]; then mask_key "$anthropic_key"; else echo "nao configurado"; fi)"
 echo "  DeepSeek:      $(if [[ -n "$deepseek_key" ]]; then mask_key "$deepseek_key"; else echo "nao configurado"; fi)"
 echo "  Teste budget:  ${teste_resultado}"
+echo "  Service:       ${llm_router_service} (porta 55119)"
+echo "  Workspace:     ${workspace_sync}"
 echo ""
 echo "  Config:        ${CONFIG_FILE} (${yaml_lines} linhas)"
+echo "  Workspace:     ${WORKSPACE_SKILLS}"
 echo "  Env:           ${ENV_FILE}"
 echo "  Estado:        ~/dados_vps/dados_llm_router"
 echo "  Log:           ${LOG_FILE}"

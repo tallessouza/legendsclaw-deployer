@@ -84,8 +84,16 @@ else
 fi
 
 # =============================================================================
-# STEP 5: GERAR ARQUIVOS DA SKILL
+# STEP 5: COPIAR ARQUIVOS DA SKILL DO TEMPLATE
 # =============================================================================
+TEMPLATE_ELICIT="${DEPLOYER_ROOT}/apps/_template/skills/elicitation"
+
+if [[ -d "$TEMPLATE_ELICIT" ]]; then
+  cp -r "${TEMPLATE_ELICIT}/"* "${ELICIT_DIR}/"
+  step_ok "Arquivos da skill copiados do template (index.js, SKILL.md, tools/, lib/)"
+else
+  # Fallback: gerar inline (caso template nao exista)
+  step_ok "Template nao encontrado — gerando arquivos inline"
 
 # --- SKILL.md ---
 cat > "${ELICIT_DIR}/SKILL.md" << 'MDEOF'
@@ -1119,7 +1127,8 @@ module.exports = {
 };
 JSEOF
 
-step_ok "Arquivos da skill gerados (index.js, SKILL.md, tools/, lib/)"
+step_ok "Arquivos da skill gerados inline (index.js, SKILL.md, tools/, lib/)"
+fi # fim do fallback inline
 
 # =============================================================================
 # STEP 5b: CRIAR DIRETORIO MEMORY (Story 4.4)

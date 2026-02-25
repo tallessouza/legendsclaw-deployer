@@ -1,0 +1,7 @@
+{
+  "name": "@legendsclaw/agent-skills",
+  "version": "0.1.0",
+  "description": "Skills for Legendsclaw agent",
+  "main": "index.js",
+  "dependencies": {}
+}

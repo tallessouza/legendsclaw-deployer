@@ -109,13 +109,20 @@ step_ok "Nome '${nome_agente}' disponivel"
 # STEP 5: CREATE STRUCTURE — diretorios e arquivos placeholder
 # =============================================================================
 
+# Template source
+TEMPLATE_DIR="${DEPLOYER_ROOT}/apps/_template"
+
 # Diretorios
 mkdir -p "${APPS_DIR}/config"
-mkdir -p "${APPS_DIR}/hooks/session-digest"
-mkdir -p "${APPS_DIR}/lib"
-mkdir -p "${APPS_DIR}/skills/lib"
 
-# config/llm-router-config.yaml
+# Copy from template: lib/, hooks/, skills/lib/, skills/package.json
+cp -r "${TEMPLATE_DIR}/lib" "${APPS_DIR}/"
+cp -r "${TEMPLATE_DIR}/hooks" "${APPS_DIR}/"
+mkdir -p "${APPS_DIR}/skills/lib"
+cp -r "${TEMPLATE_DIR}/skills/lib/"* "${APPS_DIR}/skills/lib/"
+cp "${TEMPLATE_DIR}/skills/package.json" "${APPS_DIR}/skills/"
+
+# config/llm-router-config.yaml (stub — ferramenta 07 gera o real)
 cat > "${APPS_DIR}/config/llm-router-config.yaml" << 'YAML_EOF'
 # LLM Router Configuration
 # Story 3.2 will configure API keys and test routing
@@ -156,104 +163,13 @@ skill_mapping:
   alerts: budget
 YAML_EOF
 
-# hooks/session-digest/ — 7 placeholder files
-for file in handler.js index.js ingester.js scorer.js templates.js types.js; do
-  cat > "${APPS_DIR}/hooks/session-digest/${file}" << EOF
-// TODO: Implement session-digest ${file%.js}
-// See: docs/architecture/legendsclaw-architecture.md#7
-module.exports = {};
-EOF
-done
-
-cat > "${APPS_DIR}/hooks/session-digest/hook.yml" << 'EOF'
-# Session Digest Hook Configuration
-# TODO: Configure hook triggers and behavior
-name: session-digest
-trigger: SessionEnd
-enabled: false
-EOF
-
-# lib/ — 4 placeholder files
-for file in llm-router.js metrics-alerts.js metrics-collector.js metrics-queries.js; do
-  cat > "${APPS_DIR}/lib/${file}" << EOF
-// TODO: Implement ${file%.js}
-// See: docs/architecture/legendsclaw-architecture.md#7
-module.exports = {};
-EOF
-done
-
-# skills/index.js
+# skills/index.js (vazio — ferramenta 08 registra skills ativas)
 cat > "${APPS_DIR}/skills/index.js" << EOF
 // Skills Registry for ${display_name}
 // Register active skills here
 module.exports = {
   skills: [],
   getSkill: (name) => null,
-};
-EOF
-
-# skills/package.json
-cat > "${APPS_DIR}/skills/package.json" << EOF
-{
-  "name": "@legendsclaw/${nome_agente}-skills",
-  "version": "0.1.0",
-  "description": "Skills for ${display_name} agent",
-  "main": "index.js",
-  "dependencies": {}
-}
-EOF
-
-# skills/lib/blocklist.yaml
-cat > "${APPS_DIR}/skills/lib/blocklist.yaml" << 'EOF'
-# Command Safety — Blocked Commands
-# Layer 1 security: prevent dangerous operations
-
-blocked_commands:
-  - rm -rf /
-  - rm -rf /*
-  - sudo su
-  - dd if=
-  - mkfs
-  - iptables -F
-  - shutdown
-  - reboot
-  - kill -9 1
-
-validation:
-  mode: regex
-  log_blocked: true
-  whitelist_per_skill: true
-EOF
-
-# skills/lib/command-safety.js
-cat > "${APPS_DIR}/skills/lib/command-safety.js" << 'EOF'
-// TODO: Implement command safety validation
-// See: docs/architecture/legendsclaw-architecture.md#10
-module.exports = {
-  validate: (command) => ({ safe: true, reason: null }),
-};
-EOF
-
-# skills/lib/errors.js
-cat > "${APPS_DIR}/skills/lib/errors.js" << 'EOF'
-// TODO: Implement error handling utilities
-module.exports = {
-  SkillError: class SkillError extends Error {
-    constructor(message, code) {
-      super(message);
-      this.code = code;
-    }
-  },
-};
-EOF
-
-# skills/lib/logger.js
-cat > "${APPS_DIR}/skills/lib/logger.js" << 'EOF'
-// TODO: Implement skill logger
-module.exports = {
-  log: (level, message) => console.log(`[${level}] ${message}`),
-  info: (message) => console.log(`[INFO] ${message}`),
-  error: (message) => console.error(`[ERROR] ${message}`),
 };
 EOF
 
@@ -362,7 +278,7 @@ echo ""
 echo "  Arquivos criados:"
 echo "    apps/${nome_agente}/config/llm-router-config.yaml"
 echo "    apps/${nome_agente}/hooks/session-digest/ (7 arquivos)"
-echo "    apps/${nome_agente}/lib/ (4 arquivos)"
+echo "    apps/${nome_agente}/lib/ (5 arquivos)"
 echo "    apps/${nome_agente}/skills/config.js"
 echo "    apps/${nome_agente}/skills/index.js"
 echo "    apps/${nome_agente}/skills/package.json"
