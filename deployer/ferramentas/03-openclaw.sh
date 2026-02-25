@@ -262,6 +262,30 @@ fi
 popd > /dev/null
 
 # =============================================================================
+# STEP 9b: GARANTIR PORTA NO openclaw.json
+# O onboard pode ignorar --gateway-port e usar a porta padrao no config.
+# Forcamos a porta definida pelo usuario no openclaw.json.
+# =============================================================================
+OPENCLAW_CONFIG="$HOME/.openclaw/openclaw.json"
+if [[ -f "$OPENCLAW_CONFIG" ]]; then
+  if command -v jq &>/dev/null; then
+    jq --argjson port "${porta_openclaw}" '.gateway.port = $port' "$OPENCLAW_CONFIG" > "${OPENCLAW_CONFIG}.tmp" \
+      && mv "${OPENCLAW_CONFIG}.tmp" "$OPENCLAW_CONFIG"
+  elif command -v python3 &>/dev/null; then
+    python3 -c "
+import json, sys
+with open('$OPENCLAW_CONFIG') as f: cfg = json.load(f)
+cfg.setdefault('gateway', {})['port'] = ${porta_openclaw}
+with open('$OPENCLAW_CONFIG', 'w') as f: json.dump(cfg, f, indent=2)
+"
+  else
+    # Fallback: sed simples
+    sed -i "s/\"port\": [0-9]*/\"port\": ${porta_openclaw}/" "$OPENCLAW_CONFIG"
+  fi
+  echo "  Porta ${porta_openclaw} configurada em ${OPENCLAW_CONFIG}"
+fi
+
+# =============================================================================
 # STEP 10: SYSTEMD SERVICE
 # =============================================================================
 # Parar service anterior se existir
