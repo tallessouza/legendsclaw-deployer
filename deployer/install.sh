@@ -25,7 +25,7 @@ done
 # --- Configurar por modo ---
 if [[ "$MODE" == "local" ]]; then
   INSTALL_DIR="$HOME/legendsclaw"
-  TOTAL_STEPS=10
+  TOTAL_STEPS=11
 else
   INSTALL_DIR="/opt/legendsclaw"
   TOTAL_STEPS=8
@@ -272,7 +272,7 @@ else
 
   # STEP 6: Setup Local (git, Node.js, Claude Code, Tailscale)
   echo ""
-  echo -e "${BOLD}${CYAN}--- Etapa 1/3: Setup Local ---${NC}"
+  echo -e "${BOLD}${CYAN}--- Etapa 1/4: Setup Local ---${NC}"
   if eval bash "${FERRAMENTAS_DIR}/setup-local.sh" "$TTY_REDIRECT"; then
     feedback OK "Setup local concluido (dependencias instaladas)"
   else
@@ -284,7 +284,7 @@ else
 
   # STEP 7: Bridge Local→VPS (Tailscale)
   echo ""
-  echo -e "${BOLD}${CYAN}--- Etapa 2/3: Bridge Local→VPS ---${NC}"
+  echo -e "${BOLD}${CYAN}--- Etapa 2/4: Bridge Local→VPS ---${NC}"
   if eval bash "${FERRAMENTAS_DIR}/setup-local-bridge.sh" "$TTY_REDIRECT"; then
     feedback OK "Bridge configurado com sucesso"
   else
@@ -294,9 +294,21 @@ else
 
   pause_between_steps
 
-  # STEP 8: AIOS Init + Registro de Agente
+  # STEP 8: OpenClaw Remote (mode:remote via WSS/Tailscale)
   echo ""
-  echo -e "${BOLD}${CYAN}--- Etapa 3/3: AIOS Init ---${NC}"
+  echo -e "${BOLD}${CYAN}--- Etapa 3/4: OpenClaw Remote ---${NC}"
+  if eval bash "${FERRAMENTAS_DIR}/setup-local-openclaw.sh" "$TTY_REDIRECT"; then
+    feedback OK "OpenClaw configurado em mode:remote"
+  else
+    feedback FAIL "setup-local-openclaw.sh falhou"
+    exit 1
+  fi
+
+  pause_between_steps
+
+  # STEP 9: AIOS Init + Registro de Agente
+  echo ""
+  echo -e "${BOLD}${CYAN}--- Etapa 4/4: AIOS Init ---${NC}"
   if eval bash "${FERRAMENTAS_DIR}/setup-local-aios.sh" "$TTY_REDIRECT"; then
     feedback OK "AIOS inicializado e agente registrado"
   else
@@ -304,7 +316,7 @@ else
     exit 1
   fi
 
-  # STEP 9: Instrucoes finais (delegado ao script do repo, que está atualizado)
+  # STEP 10: Instrucoes finais (delegado ao script do repo, que está atualizado)
   if [[ -f "${INSTALL_DIR}/deployer/ferramentas/setup-local-finish.sh" ]]; then
     source "${INSTALL_DIR}/deployer/ferramentas/setup-local-finish.sh"
   else
