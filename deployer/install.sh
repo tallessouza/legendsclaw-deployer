@@ -305,17 +305,24 @@ else
   fi
 
   # STEP 9: Instrucoes finais
+  # Ler dados reais dos state files
+  local _agent_name _aios_dir
+  _agent_name=$(grep "Agente:" "$HOME/dados_vps/dados_bridge" 2>/dev/null | awk -F': ' '{print $2}' || true)
+  _agent_name="${_agent_name:-seu-agente}"
+  _aios_dir=$(grep "Diretorio:" "$HOME/dados_vps/dados_aios_init" 2>/dev/null | awk -F': ' '{print $2}' || true)
+  _aios_dir="${_aios_dir:-${INSTALL_DIR}}"
+
   echo ""
   echo -e "${BOLD}${CYAN}=============================================="
-  echo "  SETUP LOCAL CONCLUIDO!"
-  echo "==============================================${NC}"
+  echo -e "  SETUP LOCAL CONCLUIDO!"
+  echo -e "===============================================${NC}"
   echo ""
   echo -e "  Seu ambiente local esta pronto."
   echo -e "  Para ativar o agente no Claude Code:"
-  echo -e "  ${BOLD}cd ${INSTALL_DIR} && @seu-agente${NC}"
+  echo -e "  ${BOLD}cd ${_aios_dir} && @${_agent_name}${NC}"
   echo ""
   echo -e "  Para verificar o bridge:"
-  echo -e "  ${BOLD}cd ${INSTALL_DIR} && node .aios-core/infrastructure/services/bridge.js status${NC}"
+  echo -e "  ${BOLD}cd ${_aios_dir} && node .aios-core/infrastructure/services/bridge.js status${NC}"
   echo ""
   feedback OK "Instrucoes exibidas"
 fi
