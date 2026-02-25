@@ -371,7 +371,7 @@ if ($tailscaleCmd) {
 } else {
     if ($wingetAvailable) {
         Write-Host '  Instalando Tailscale via winget...' -ForegroundColor Yellow
-        winget install --id tailscale.tailscale -e --accept-source-agreements --accept-package-agreements --silent 2>$null
+        winget install --id Tailscale.Tailscale -e --accept-source-agreements --accept-package-agreements --silent 2>$null
         $env:Path = [System.Environment]::GetEnvironmentVariable('Path', 'Machine') + ';' + [System.Environment]::GetEnvironmentVariable('Path', 'User')
         $tailscaleCmd = Get-Command tailscale -ErrorAction SilentlyContinue
     }
@@ -418,10 +418,22 @@ if (-not $nodeCmd) {
 }
 
 if ($tsInstalled -ne 'true') {
-    Feedback-FAIL 'Tailscale nao instalado'
-    Write-Host '  Execute primeiro a etapa 1 ou instale Tailscale manualmente.' -ForegroundColor Yellow
-    Show-Summary
-    exit 1
+    Write-Host ''
+    Write-Host '  Tailscale nao instalado.' -ForegroundColor Yellow
+    Write-Host ''
+    Write-Host '  [1] Baixar e instalar manualmente (abre navegador)'
+    Write-Host '  [2] Continuar sem Tailscale (bridge offline)'
+    Write-Host ''
+    $tsChoice = Read-Input -Prompt 'Opcao' -Default '2'
+
+    if ($tsChoice -eq '1') {
+        Start-Process 'https://tailscale.com/download/windows'
+        Write-Host '  Apos instalar Tailscale, rode o install.ps1 novamente.' -ForegroundColor Yellow
+        Show-Summary
+        exit 0
+    } else {
+        Feedback-SKIP 'Continuando sem Tailscale (bridge offline)'
+    }
 }
 
 $tailscaleConnected = ($tsStatus -eq 'connected')
