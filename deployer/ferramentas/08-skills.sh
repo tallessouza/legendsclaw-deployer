@@ -1148,7 +1148,7 @@ fi
 OPENCLAW_CONFIG="${REAL_HOME}/.openclaw/openclaw.json"
 if [[ -f "$OPENCLAW_CONFIG" ]]; then
   # Adicionar skills.entries.mcporter = { enabled: true } se nao existir
-  node -e '
+  OPENCLAW_CONFIG="$OPENCLAW_CONFIG" node -e '
 const fs = require("fs");
 const configPath = process.env.OPENCLAW_CONFIG;
 const config = JSON.parse(fs.readFileSync(configPath, "utf8"));
@@ -1165,7 +1165,7 @@ if (!config.skills.entries.mcporter) {
 } else {
   console.log("ALREADY_ENABLED");
 }
-' 2>/dev/null
+' 2>/dev/null || true
   mcporter_entry_status=$?
   if [[ $mcporter_entry_status -eq 0 ]]; then
     step_ok "mcporter habilitado em skills.entries do openclaw.json"
