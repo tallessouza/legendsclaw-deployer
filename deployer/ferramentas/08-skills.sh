@@ -1012,12 +1012,25 @@ echo ""
 echo "  Health check: ${health_ok}/${health_total} OK"
 step_ok "Health check concluido (${health_ok}/${health_total} OK)"
 
-# Step 14 removido (Story 12.5) — skills.load.extraDirs aponta direto para
-# apps/{agent}/skills/, OpenClaw descobre SKILL.md automaticamente.
-# Sync manual para ~/.openclaw/workspace/ e desnecessario.
+# =============================================================================
+# STEP 14: SYNC SKILLS PARA OPENCLAW WORKSPACE
+# =============================================================================
+OPENCLAW_WORKSPACE_SKILLS="$HOME/.openclaw/workspace/apps/${nome_agente}/skills"
+if [[ -d "$SKILLS_DIR" ]]; then
+  mkdir -p "$OPENCLAW_WORKSPACE_SKILLS"
+  for category in "${SKILL_CATEGORIES[@]}"; do
+    src="${SKILLS_DIR}/${category}"
+    if [[ -d "$src" ]]; then
+      cp -r "$src" "$OPENCLAW_WORKSPACE_SKILLS/"
+    fi
+  done
+  step_ok "Skills sincronizadas para ${OPENCLAW_WORKSPACE_SKILLS} (${#SKILL_CATEGORIES[@]} categorias)"
+else
+  step_skip "Skills dir nao encontrado — sync ignorado"
+fi
 
 # =============================================================================
-# STEP 14: REINICIAR OPENCLAW GATEWAY
+# STEP 15: REINICIAR OPENCLAW GATEWAY
 # =============================================================================
 if reload_gateway; then
   step_ok "OpenClaw Gateway reiniciado — skills atualizadas"
@@ -1031,7 +1044,7 @@ else
 fi
 
 # =============================================================================
-# STEP 15: SAVE STATE + RESUMO + HINTS
+# STEP 16: SAVE STATE + RESUMO + HINTS
 # =============================================================================
 mkdir -p "$STATE_DIR"
 
