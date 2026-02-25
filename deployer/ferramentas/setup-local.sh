@@ -48,150 +48,146 @@ get_node_major() {
 # Funcoes de instalacao
 # =============================================================================
 
+# Uso: instalar_git "linux" _resultado _mensagem
+# Seta _resultado=versao e _mensagem=texto via nameref (sem subshell)
 instalar_git() {
   local so="$1"
+  local -n _out_ver="$2"
+  local -n _out_msg="$3"
+  _out_ver=""
+
   if cmd_exists git; then
-    local ver
-    ver=$(get_version "git --version")
-    step_ok "Git ja instalado (v${ver})" >&2
-    echo "$ver"
+    _out_ver=$(get_version "git --version")
+    _out_msg="Git ja instalado (v${_out_ver})"
     return 0
   fi
 
   case "$so" in
     linux|wsl)
       if sudo apt-get update -qq && sudo apt-get install -y -qq git; then
-        local ver
-        ver=$(get_version "git --version")
-        step_ok "Git instalado (v${ver})" >&2
-        echo "$ver"
+        _out_ver=$(get_version "git --version")
+        _out_msg="Git instalado (v${_out_ver})"
         return 0
       else
-        step_fail "Falha ao instalar git via apt" >&2
+        _out_msg="Falha ao instalar git via apt"
         return 1
       fi
       ;;
     macos)
       if cmd_exists brew; then
         if brew install git 2>/dev/null; then
-          local ver
-          ver=$(get_version "git --version")
-          step_ok "Git instalado via Homebrew (v${ver})" >&2
-          echo "$ver"
+          _out_ver=$(get_version "git --version")
+          _out_msg="Git instalado via Homebrew (v${_out_ver})"
           return 0
         fi
       fi
-      # Xcode CLT pode ter git
       if cmd_exists git; then
-        local ver
-        ver=$(get_version "git --version")
-        step_ok "Git disponivel via Xcode CLT (v${ver})" >&2
-        echo "$ver"
+        _out_ver=$(get_version "git --version")
+        _out_msg="Git disponivel via Xcode CLT (v${_out_ver})"
         return 0
       fi
-      step_fail "Git nao encontrado. Instale Xcode CLT: xcode-select --install" >&2
+      _out_msg="Git nao encontrado. Instale Xcode CLT: xcode-select --install"
       return 1
       ;;
   esac
 }
 
+# Uso: instalar_nodejs "linux" _resultado _mensagem
 instalar_nodejs() {
   local so="$1"
+  local -n _out_ver="$2"
+  local -n _out_msg="$3"
+  _out_ver=""
   local node_major
   node_major=$(get_node_major)
 
   if [[ "$node_major" -ge "$NODE_MIN_VERSION" ]]; then
-    local ver
-    ver=$(get_version "node --version")
-    step_ok "Node.js ja instalado (v${ver})" >&2
-    echo "$ver"
+    _out_ver=$(get_version "node --version")
+    _out_msg="Node.js ja instalado (v${_out_ver})"
     return 0
   fi
 
   case "$so" in
     linux|wsl)
-      # Tentar NodeSource
       if curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash - 2>/dev/null \
          && sudo apt-get install -y -qq nodejs 2>/dev/null; then
-        local ver
-        ver=$(get_version "node --version")
-        step_ok "Node.js instalado via NodeSource (v${ver})" >&2
-        echo "$ver"
+        _out_ver=$(get_version "node --version")
+        _out_msg="Node.js instalado via NodeSource (v${_out_ver})"
         return 0
       fi
-      # Fallback: nvm
       if cmd_exists nvm || [[ -s "$HOME/.nvm/nvm.sh" ]]; then
         # shellcheck disable=SC1091
         [[ -s "$HOME/.nvm/nvm.sh" ]] && source "$HOME/.nvm/nvm.sh"
         if nvm install 22 && nvm use 22; then
-          local ver
-          ver=$(get_version "node --version")
-          step_ok "Node.js instalado via nvm (v${ver})" >&2
-          echo "$ver"
+          _out_ver=$(get_version "node --version")
+          _out_msg="Node.js instalado via nvm (v${_out_ver})"
           return 0
         fi
       fi
-      step_fail "Falha ao instalar Node.js >= ${NODE_MIN_VERSION}" >&2
+      _out_msg="Falha ao instalar Node.js >= ${NODE_MIN_VERSION}"
       return 1
       ;;
     macos)
       if cmd_exists brew; then
         if brew install node@22 2>/dev/null; then
-          # Adicionar ao PATH se necessario
           if [[ -d "$(brew --prefix)/opt/node@22/bin" ]]; then
             export PATH="$(brew --prefix)/opt/node@22/bin:$PATH"
           fi
-          local ver
-          ver=$(get_version "node --version")
-          step_ok "Node.js instalado via Homebrew (v${ver})" >&2
-          echo "$ver"
+          _out_ver=$(get_version "node --version")
+          _out_msg="Node.js instalado via Homebrew (v${_out_ver})"
           return 0
         fi
       fi
-      step_fail "Falha ao instalar Node.js. Instale Homebrew primeiro: https://brew.sh" >&2
+      _out_msg="Falha ao instalar Node.js. Instale Homebrew primeiro: https://brew.sh"
       return 1
       ;;
   esac
 }
 
+# Uso: instalar_claude_code _resultado _mensagem
 instalar_claude_code() {
+  local -n _out_ver="$1"
+  local -n _out_msg="$2"
+  _out_ver=""
+
   if cmd_exists claude; then
-    local ver
-    ver=$(claude --version 2>/dev/null | head -1 || echo "unknown")
-    step_ok "Claude Code CLI ja instalado (${ver})" >&2
-    echo "$ver"
+    _out_ver=$(claude --version 2>/dev/null | head -1 || echo "unknown")
+    _out_msg="Claude Code CLI ja instalado (${_out_ver})"
     return 0
   fi
 
   if ! cmd_exists npm; then
-    step_fail "npm nao encontrado. Instale Node.js primeiro" >&2
+    _out_msg="npm nao encontrado. Instale Node.js primeiro"
     return 1
   fi
 
   if npm install -g @anthropic-ai/claude-code 2>/dev/null; then
-    local ver
-    ver=$(claude --version 2>/dev/null | head -1 || echo "unknown")
-    step_ok "Claude Code CLI instalado (${ver})" >&2
-    echo "$ver"
+    _out_ver=$(claude --version 2>/dev/null | head -1 || echo "unknown")
+    _out_msg="Claude Code CLI instalado (${_out_ver})"
     return 0
   else
-    step_fail "Falha ao instalar Claude Code CLI via npm" >&2
+    _out_msg="Falha ao instalar Claude Code CLI via npm"
     return 1
   fi
 }
 
+# Uso: instalar_tailscale "linux" _resultado _mensagem
+# _resultado: connected | disconnected | not_connected | not_installed
 instalar_tailscale() {
   local so="$1"
+  local -n _out_status="$2"
+  local -n _out_msg="$3"
+  _out_status="not_installed"
 
   if cmd_exists tailscale; then
-    local ts_status
-    ts_status=$(tailscale status --json 2>/dev/null | grep -o '"BackendState":"[^"]*"' | cut -d'"' -f4 || echo "unknown")
-    if [[ "$ts_status" == "Running" ]]; then
-      step_ok "Tailscale instalado e conectado" >&2
-      echo "connected"
+    local ts_state
+    ts_state=$(tailscale status --json 2>/dev/null | grep -o '"BackendState":"[^"]*"' | cut -d'"' -f4 || echo "unknown")
+    if [[ "$ts_state" == "Running" ]]; then
+      _out_status="connected"
+      _out_msg="Tailscale instalado e conectado"
     else
-      step_ok "Tailscale instalado (status: ${ts_status})" >&2
-      echo "disconnected"
+      _out_status="disconnected"
+      _out_msg="Tailscale instalado (status: ${ts_state})"
     fi
     return 0
   fi
@@ -208,25 +204,25 @@ instalar_tailscale() {
       hash -r 2>/dev/null || true
       export PATH="/usr/bin:/usr/sbin:/usr/local/bin:$PATH"
       if command -v tailscale &>/dev/null || [[ -x /usr/bin/tailscale ]]; then
-        step_ok "Tailscale instalado" >&2
-        echo "not_connected"
+        _out_status="not_connected"
+        _out_msg="Tailscale instalado"
         return 0
       else
-        step_fail "Falha ao instalar Tailscale" >&2
-        echo "not_installed"
+        _out_status="not_installed"
+        _out_msg="Falha ao instalar Tailscale"
         return 1
       fi
       ;;
     macos)
       if cmd_exists brew; then
         if brew install tailscale 2>/dev/null; then
-          step_ok "Tailscale instalado via Homebrew" >&2
-          echo "not_connected"
+          _out_status="not_connected"
+          _out_msg="Tailscale instalado via Homebrew"
           return 0
         fi
       fi
-      step_fail "Falha ao instalar Tailscale. Baixe em: https://tailscale.com/download/mac" >&2
-      echo "not_installed"
+      _out_status="not_installed"
+      _out_msg="Falha ao instalar Tailscale. Baixe em: https://tailscale.com/download/mac"
       return 1
       ;;
   esac
@@ -321,21 +317,37 @@ main() {
   step_init "$TOTAL_STEPS"
 
   # Variaveis de estado
-  local git_ver="" node_ver="" claude_ver=""
+  local git_ver="" node_ver="" claude_ver="" _msg=""
   local ts_installed="false" ts_status="not_installed"
 
   # --- Step 1: Git ---
-  git_ver=$(instalar_git "$so") || git_ver=""
+  if instalar_git "$so" git_ver _msg; then
+    step_ok "$_msg"
+  else
+    step_fail "$_msg"
+  fi
 
   # --- Step 2: Node.js ---
-  node_ver=$(instalar_nodejs "$so") || node_ver=""
+  if instalar_nodejs "$so" node_ver _msg; then
+    step_ok "$_msg"
+  else
+    step_fail "$_msg"
+  fi
 
   # --- Step 3: Claude Code CLI ---
-  claude_ver=$(instalar_claude_code) || claude_ver=""
+  if instalar_claude_code claude_ver _msg; then
+    step_ok "$_msg"
+  else
+    step_fail "$_msg"
+  fi
 
   # --- Step 4: Tailscale ---
-  local ts_result
-  ts_result=$(instalar_tailscale "$so") || ts_result="not_installed"
+  local ts_result=""
+  if instalar_tailscale "$so" ts_result _msg; then
+    step_ok "$_msg"
+  else
+    step_fail "$_msg"
+  fi
   case "$ts_result" in
     connected)     ts_installed="true"; ts_status="connected" ;;
     disconnected)  ts_installed="true"; ts_status="disconnected" ;;
