@@ -281,7 +281,7 @@ fi
 if [[ -n "$ts_hostname" && -n "$ts_tailnet" ]]; then
   gateway_host="${ts_hostname}.${ts_tailnet}.ts.net"
   ts_mode="funnel"
-  gw_bind="all"
+  gw_bind="0.0.0.0"
 else
   gateway_host="localhost"
   ts_mode="off"
@@ -856,11 +856,12 @@ if (e.GW_BIND) openclaw.gateway.bind = e.GW_BIND;
 // 7. Gateway auth
 if (aiosbot.gateway?.auth) openclaw.gateway.auth = aiosbot.gateway.auth;
 
-// 8. Tools (shell deny patterns, filesystem)
+// 8. Tools — only merge web/media into openclaw.json
+// NOTE: shell and filesystem are aiosbot-only configs, NOT valid in openclaw.json
 if (aiosbot.tools) {
   openclaw.tools = openclaw.tools || {};
-  if (aiosbot.tools.shell) openclaw.tools.shell = { ...openclaw.tools.shell, ...aiosbot.tools.shell };
-  if (aiosbot.tools.filesystem) openclaw.tools.filesystem = { ...openclaw.tools.filesystem, ...aiosbot.tools.filesystem };
+  if (aiosbot.tools.web) openclaw.tools.web = { ...openclaw.tools.web, ...aiosbot.tools.web };
+  if (aiosbot.tools.media) openclaw.tools.media = { ...openclaw.tools.media, ...aiosbot.tools.media };
 }
 
 // 9. Channels (whatsapp if Evolution configured)
