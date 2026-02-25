@@ -6,6 +6,7 @@
 
 LOG_DIR="$HOME/legendsclaw-logs"
 LOG_FILE=""
+_LOGGER_TEE_PID=""
 
 # Inicializa logging para uma ferramenta
 # Uso: log_init "base"
@@ -21,7 +22,10 @@ log_init() {
   # Evita tee duplo quando rodando como subscript (install.sh → ferramenta.sh)
   if [[ -z "${LEGENDSCLAW_TEE_ACTIVE:-}" ]]; then
     export LEGENDSCLAW_TEE_ACTIVE=1
+    # Salvar fd originais para restaurar no log_finish
+    exec 3>&1 4>&2
     exec > >(tee -a "$LOG_FILE") 2>&1
+    _LOGGER_TEE_PID=$!
   fi
 
   # Header do log
@@ -47,9 +51,23 @@ log() {
 # Finaliza logging
 # Uso: log_finish
 log_finish() {
-  echo ""
-  echo "=============================================="
-  echo "Log finalizado: $(date '+%Y-%m-%d %H:%M:%S')"
-  echo "Arquivo: ${LOG_FILE}"
-  echo "=============================================="
+  local msg
+  msg=$(cat <<EOF
+
+==============================================
+Log finalizado: $(date '+%Y-%m-%d %H:%M:%S')
+Arquivo: ${LOG_FILE}
+==============================================
+EOF
+)
+  # Se temos fd originais salvos, restaurar para evitar duplicacao pelo tee
+  if [[ -n "${_LOGGER_TEE_PID:-}" ]]; then
+    # Flush tee e restaurar stdout/stderr originais
+    echo "$msg"
+    sleep 0.1
+    exec 1>&3 2>&4 3>&- 4>&-
+    _LOGGER_TEE_PID=""
+  else
+    echo "$msg"
+  fi
 }

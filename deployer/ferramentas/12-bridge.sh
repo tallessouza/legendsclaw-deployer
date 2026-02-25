@@ -64,8 +64,10 @@ if [[ ! -f "$STATE_DIR/dados_openclaw" ]]; then
   echo "  Execute primeiro: Ferramenta [05] OpenClaw Gateway"
   exit 1
 fi
-gateway_url=$(grep -E "Gateway URL:|URL Gateway:" "$STATE_DIR/dados_openclaw" 2>/dev/null | awk -F': ' '{print $2}' || true)
-gateway_url="${gateway_url:-http://localhost:18789}"
+# Na VPS, o gateway roda localmente — usar localhost ao inves de dominio publico
+gateway_porta=$(grep "Porta:" "$STATE_DIR/dados_openclaw" 2>/dev/null | awk -F': ' '{print $2}' || true)
+gateway_porta="${gateway_porta:-18789}"
+gateway_url="http://localhost:${gateway_porta}"
 
 # Tailscale
 tailscale_connected="false"
