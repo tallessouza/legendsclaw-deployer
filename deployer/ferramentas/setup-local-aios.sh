@@ -386,8 +386,16 @@ if [[ -f "$settings_src" ]]; then
   bridge_copied=$((bridge_copied + 1))
 fi
 
+# Registrar agente como Claude Code command (skill invocavel via /AIOS:agents:{nome})
+commands_dst="${dir_destino}/.claude/commands/AIOS/agents"
+mkdir -p "$commands_dst"
+if [[ -f "$agent_file" ]]; then
+  cp -p "$agent_file" "${commands_dst}/${nome_agente}.md"
+  bridge_copied=$((bridge_copied + 1))
+fi
+
 if [[ "$bridge_copied" -gt 0 ]]; then
-  step_ok "Bridge + hooks copiados para ${dir_destino} (${bridge_copied} itens)"
+  step_ok "Bridge + hooks + agent command copiados para ${dir_destino} (${bridge_copied} itens)"
 else
   step_skip "Bridge nao encontrado no repo — configure manualmente com setup-local-bridge.sh"
 fi
