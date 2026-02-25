@@ -47,6 +47,7 @@ COUNT_FAIL=0
 
 # --- Logging (inline — roda antes do clone) ---
 mkdir -p "$LOG_DIR"
+export LEGENDSCLAW_TEE_ACTIVE=1
 exec > >(tee -a "$LOG_FILE") 2>&1
 
 echo "=============================================="
