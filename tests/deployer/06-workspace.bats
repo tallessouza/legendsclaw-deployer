@@ -233,6 +233,8 @@ BOOTSTRAP: apps/jarvis/workspace/BOOTSTRAP.md
 MEMORY: apps/jarvis/workspace/MEMORY.md
 IDENTITY: apps/jarvis/workspace/IDENTITY.md
 USER: apps/jarvis/workspace/USER.md
+TOOLS: apps/jarvis/workspace/TOOLS.md
+HEARTBEAT: apps/jarvis/workspace/HEARTBEAT.md
 Status: completo
 Data Criacao: 2026-02-20 14:30:00
 EOF
@@ -243,6 +245,8 @@ EOF
   [[ "$output" == *"AGENTS:"* ]]
   [[ "$output" == *"IDENTITY:"* ]]
   [[ "$output" == *"USER:"* ]]
+  [[ "$output" == *"TOOLS:"* ]]
+  [[ "$output" == *"HEARTBEAT:"* ]]
   [[ "$output" == *"Status: completo"* ]]
 }
 
@@ -332,4 +336,80 @@ EOF
 @test "MEMORY.md template has Active Projects section" {
   run cat "$SCRIPT_DIR/ferramentas/06-workspace.sh"
   [[ "$output" == *"## Active Projects"* ]]
+}
+
+# =============================================================================
+# TOOLS.md and HEARTBEAT.md (Story 12.4)
+# =============================================================================
+
+@test "06-workspace.sh generates TOOLS.md" {
+  run cat "$SCRIPT_DIR/ferramentas/06-workspace.sh"
+  [[ "$output" == *"TOOLS.md"* ]]
+}
+
+@test "TOOLS.md template has Environment section" {
+  run cat "$SCRIPT_DIR/ferramentas/06-workspace.sh"
+  [[ "$output" == *"# Tools Configuration"* ]]
+}
+
+@test "TOOLS.md template has SSH Hosts section" {
+  run cat "$SCRIPT_DIR/ferramentas/06-workspace.sh"
+  [[ "$output" == *"## SSH Hosts"* ]]
+}
+
+@test "TOOLS.md template has Filesystem section" {
+  run cat "$SCRIPT_DIR/ferramentas/06-workspace.sh"
+  [[ "$output" == *"## Filesystem"* ]]
+}
+
+@test "TOOLS.md template has Restrictions section" {
+  run cat "$SCRIPT_DIR/ferramentas/06-workspace.sh"
+  [[ "$output" == *"## Restrictions"* ]]
+}
+
+@test "TOOLS.md uses WORKSPACE_DIR variable" {
+  run cat "$SCRIPT_DIR/ferramentas/06-workspace.sh"
+  [[ "$output" == *'Workspace: ${WORKSPACE_DIR}'* ]]
+}
+
+@test "06-workspace.sh generates HEARTBEAT.md" {
+  run cat "$SCRIPT_DIR/ferramentas/06-workspace.sh"
+  [[ "$output" == *"HEARTBEAT.md"* ]]
+}
+
+@test "HEARTBEAT.md template has Trigger Pattern section" {
+  run cat "$SCRIPT_DIR/ferramentas/06-workspace.sh"
+  [[ "$output" == *"## Trigger Pattern"* ]]
+}
+
+@test "HEARTBEAT.md template has Background Tasks section" {
+  run cat "$SCRIPT_DIR/ferramentas/06-workspace.sh"
+  [[ "$output" == *"## Background Tasks"* ]]
+}
+
+@test "06-workspace.sh copies 8 files to openclaw workspace" {
+  run cat "$SCRIPT_DIR/ferramentas/06-workspace.sh"
+  [[ "$output" == *"SOUL.md IDENTITY.md USER.md AGENTS.md BOOTSTRAP.md MEMORY.md TOOLS.md HEARTBEAT.md"* ]]
+}
+
+@test "dados_workspace state file includes TOOLS field" {
+  run cat "$SCRIPT_DIR/ferramentas/06-workspace.sh"
+  [[ "$output" == *'TOOLS: ${WORKSPACE_DIR}/TOOLS.md'* ]]
+}
+
+@test "dados_workspace state file includes HEARTBEAT field" {
+  run cat "$SCRIPT_DIR/ferramentas/06-workspace.sh"
+  [[ "$output" == *'HEARTBEAT: ${WORKSPACE_DIR}/HEARTBEAT.md'* ]]
+}
+
+# =============================================================================
+# Template Reference Files (Story 12.4)
+# =============================================================================
+
+@test "_template/workspace/TOOLS.md exists" {
+  [[ -f "$SCRIPT_DIR/apps/_template/workspace/TOOLS.md" ]]
+}
+
+@test "_template/workspace/HEARTBEAT.md exists" {
+  [[ -f "$SCRIPT_DIR/apps/_template/workspace/HEARTBEAT.md" ]]
 }

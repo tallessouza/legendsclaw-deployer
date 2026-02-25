@@ -557,13 +557,56 @@ BOOTSTRAP_EOF
 step_ok "MEMORY.md e BOOTSTRAP.md gerados"
 
 # =============================================================================
+# STEP 8.5: GERAR TOOLS.md
+# =============================================================================
+cat > "${WORKSPACE_DIR}/TOOLS.md" << TOOLS_EOF
+# Tools Configuration
+
+## Environment
+- Platform: Linux VPS
+- Shell: bash
+
+## SSH Hosts
+(Configure SSH hosts the agent can access)
+
+## Filesystem
+- Workspace: ${WORKSPACE_DIR}
+- Logs: ${LOG_FILE:-/var/log/legendsclaw}
+
+## Restrictions
+- No destructive operations without confirmation
+- No access to system-critical paths
+TOOLS_EOF
+
+step_ok "TOOLS.md gerado"
+
+# =============================================================================
+# STEP 8.6: GERAR HEARTBEAT.md
+# =============================================================================
+cat > "${WORKSPACE_DIR}/HEARTBEAT.md" << 'HEARTBEAT_EOF'
+# Heartbeat
+
+This agent uses periodic heartbeat sessions to maintain context and perform background tasks.
+
+## Trigger Pattern
+- Frequency: on-demand
+- Mode: passive (only when invoked)
+
+## Background Tasks
+- Memory consolidation
+- Context recovery check
+HEARTBEAT_EOF
+
+step_ok "HEARTBEAT.md gerado"
+
+# =============================================================================
 # STEP 9: COPIAR WORKSPACE PARA OPENCLAW (~/.openclaw/workspace/)
 # O OpenClaw le os arquivos de personalidade de ~/.openclaw/workspace/
 # O deployer gera em apps/{agente}/workspace/ mas precisa copiar pro destino.
 # =============================================================================
 OPENCLAW_WORKSPACE="${REAL_HOME}/.openclaw/workspace"
 if [[ -d "$OPENCLAW_WORKSPACE" ]]; then
-  for arquivo in SOUL.md IDENTITY.md USER.md AGENTS.md BOOTSTRAP.md MEMORY.md; do
+  for arquivo in SOUL.md IDENTITY.md USER.md AGENTS.md BOOTSTRAP.md MEMORY.md TOOLS.md HEARTBEAT.md; do
     if [[ -f "${WORKSPACE_DIR}/${arquivo}" ]]; then
       cp "${WORKSPACE_DIR}/${arquivo}" "${OPENCLAW_WORKSPACE}/${arquivo}"
     fi
@@ -591,6 +634,8 @@ BOOTSTRAP: ${WORKSPACE_DIR}/BOOTSTRAP.md
 MEMORY: ${WORKSPACE_DIR}/MEMORY.md
 IDENTITY: ${WORKSPACE_DIR}/IDENTITY.md
 USER: ${WORKSPACE_DIR}/USER.md
+TOOLS: ${WORKSPACE_DIR}/TOOLS.md
+HEARTBEAT: ${WORKSPACE_DIR}/HEARTBEAT.md
 Status: completo
 Data Criacao: $(date '+%Y-%m-%d %H:%M:%S')
 EOF
@@ -615,6 +660,8 @@ echo "    ${WORKSPACE_DIR}/BOOTSTRAP.md     (primeiro boot)"
 echo "    ${WORKSPACE_DIR}/MEMORY.md        (memoria longo prazo)"
 echo "    ${WORKSPACE_DIR}/IDENTITY.md      (identidade do agente)"
 echo "    ${WORKSPACE_DIR}/USER.md          (perfil do usuario)"
+echo "    ${WORKSPACE_DIR}/TOOLS.md         (configuracao de tools)"
+echo "    ${WORKSPACE_DIR}/HEARTBEAT.md     (heartbeat session trigger)"
 echo ""
 echo "  Estado:      ~/dados_vps/dados_workspace"
 echo "  Log:         ${LOG_FILE}"
