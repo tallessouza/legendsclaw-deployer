@@ -1055,6 +1055,51 @@ else
 fi
 
 # =============================================================================
+# STEP 14b: INSTALAR MCPORTER (MCP MANAGEMENT SKILL)
+# =============================================================================
+if command -v openclaw &>/dev/null; then
+  echo "  Instalando mcporter skill..."
+  if openclaw skill install mcporter 2>/dev/null; then
+    step_ok "mcporter instalado — agente pode gerenciar MCPs via chat"
+  else
+    # Fallback: tentar via npm se openclaw skill install falhar
+    echo -e "  ${UI_YELLOW}WARNING: openclaw skill install falhou — tentando fallback manual${UI_NC}"
+    MCPORTER_DIR="${OPENCLAW_WORKSPACE_SKILLS}/system/mcporter"
+    if [[ ! -d "$MCPORTER_DIR" ]]; then
+      mkdir -p "$MCPORTER_DIR"
+      cat > "$MCPORTER_DIR/SKILL.md" << 'MCPORTER_EOF'
+---
+name: mcporter
+description: List, configure, authenticate, and call MCP servers/tools. Use when the user asks about MCP servers, wants to add new tools, or needs to manage integrations.
+---
+
+# MCPorter — MCP Server Management
+
+## Overview
+Manage MCP (Model Context Protocol) servers from chat. List available servers, add new ones, check authentication, and call tools directly.
+
+## Commands
+- **List MCPs**: Show all configured MCP servers and their status
+- **Add MCP**: Configure a new MCP server (needs command + args + optional env)
+- **Test MCP**: Verify an MCP server is responding
+- **Call Tool**: Execute a specific tool from an MCP server
+
+## Configuration
+MCP servers are configured in `~/.openclaw/openclaw.json` under `plugins.entries`.
+Only native plugin format is supported: `{ "name": { "enabled": true } }`.
+
+For stdio-based MCP servers, use the mcp-config.json format for Claude Code LOCAL.
+MCPORTER_EOF
+      step_ok "mcporter placeholder criado em ${MCPORTER_DIR}"
+    else
+      step_skip "mcporter ja existe"
+    fi
+  fi
+else
+  step_skip "OpenClaw CLI nao encontrado — mcporter nao instalado"
+fi
+
+# =============================================================================
 # STEP 15: REINICIAR OPENCLAW GATEWAY
 # =============================================================================
 if reload_gateway; then
