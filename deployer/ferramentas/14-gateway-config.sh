@@ -339,38 +339,45 @@ const config = {
   },
   models: {
     mode: "merge",
-    providers: {
-      "openrouter": {
-        apiKey: e.OPENROUTER_KEY
-      },
-      "anthropic-router": {
+    providers: (() => {
+      const p = {};
+      // Registrar providers com base nas keys disponíveis
+      if (e.OPENROUTER_KEY) p["openrouter"] = { apiKey: e.OPENROUTER_KEY };
+      if (e.ANTHROPIC_KEY) p["anthropic"] = { apiKey: e.ANTHROPIC_KEY };
+      // LLM Router local (sempre disponível)
+      p["anthropic-router"] = {
         baseUrl: "http://localhost:55119/v1",
         apiKey: "dummy",
         api: "openai-completions",
         models: [{
           id: "router-auto",
-          name: "Anthropic Smart Router (Auto)",
+          name: "Smart Router (Auto)",
           reasoning: false,
           input: ["text"],
           cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
           contextWindow: 200000,
           maxTokens: 8192
         }]
-      }
-    }
+      };
+      return p;
+    })()
   },
   agents: {
     defaults: {
-      model: {
-        primary: "openrouter/auto",
-        fallbacks: [
-          "anthropic-router/router-auto",
-          "openrouter/anthropic/claude-3.5-haiku",
-          "openrouter/google/gemini-3-flash-preview"
-        ]
-      },
+      model: (() => {
+        // Primary: Anthropic direto > OpenRouter > LLM Router
+        const primary = e.ANTHROPIC_KEY ? "anthropic/claude-sonnet-4"
+          : e.OPENROUTER_KEY ? "openrouter/auto"
+          : "anthropic-router/router-auto";
+        const fallbacks = [];
+        if (primary !== "anthropic-router/router-auto") fallbacks.push("anthropic-router/router-auto");
+        if (e.OPENROUTER_KEY && primary !== "openrouter/auto") fallbacks.push("openrouter/auto");
+        fallbacks.push("openrouter/google/gemini-3-flash-preview");
+        return { primary, fallbacks };
+      })(),
       models: {
-        "openrouter/auto": { alias: "OpenRouter" },
+        ...(e.ANTHROPIC_KEY ? { "anthropic/claude-sonnet-4": { alias: "primary" } } : {}),
+        ...(e.OPENROUTER_KEY ? { "openrouter/auto": { alias: "OpenRouter" } } : {}),
         "anthropic-router/router-auto": { alias: "smart" }
       },
       workspace: e.WORKSPACE_PATH,
