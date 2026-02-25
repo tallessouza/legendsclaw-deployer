@@ -91,7 +91,7 @@ teardown() {
 
 @test "14-gateway-config.sh has step_init" {
   run cat "$SCRIPT_PATH"
-  [[ "$output" == *'step_init 12'* ]]
+  [[ "$output" == *'step_init 15'* ]]
 }
 
 @test "14-gateway-config.sh passes syntax check" {

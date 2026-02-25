@@ -24,7 +24,7 @@ source "${LIB_DIR}/env-detect.sh"
 log_init "gateway-config"
 [[ "${AUTO_MODE:-false}" == "true" ]] && auto_load_config
 setup_trap
-step_init 13
+step_init 15
 
 # =============================================================================
 # STEP 2: CARREGAR DADOS OBRIGATORIOS
@@ -718,6 +718,144 @@ else
 fi
 
 # =============================================================================
+# STEP 12b: MERGE INTO ~/.openclaw/openclaw.json (Story 12.0)
+# Deep merge deployer-generated fields into the real OpenClaw config.
+# Fields NOT merged (preserved from onboard): gateway.port, gateway.bind,
+# wizard, auth.profiles, commands, meta.
+# =============================================================================
+OPENCLAW_CONFIG="${REAL_HOME}/.openclaw/openclaw.json"
+
+if [[ ! -f "$OPENCLAW_CONFIG" ]]; then
+  step_skip "openclaw.json nao encontrado — onboard nao executado ainda. Merge pulado."
+else
+  # Backup before merge (AC3)
+  cp "$OPENCLAW_CONFIG" "${OPENCLAW_CONFIG}.bak"
+
+  # Skills directory for this agent
+  agent_skills_dir="${SCRIPT_DIR}/../apps/${nome_agente}/skills"
+
+  # Deep merge via Node.js inline (AC1, AC2, AC6, AC7, AC8, AC9, AC11)
+  OPENCLAW_PATH="$OPENCLAW_CONFIG" \
+  AIOSBOT_PATH="$CONFIG_DIR/aiosbot.json" \
+  AGENT_ID="$nome_agente" \
+  AGENT_WORKSPACE="$workspace_path" \
+  AGENT_SKILLS_DIR="$agent_skills_dir" \
+  node -e '
+const fs = require("fs");
+const e = process.env;
+
+const openclaw = JSON.parse(fs.readFileSync(e.OPENCLAW_PATH, "utf8"));
+const aiosbot = JSON.parse(fs.readFileSync(e.AIOSBOT_PATH, "utf8"));
+
+// 1. Merge models.providers (AC9)
+openclaw.models = openclaw.models || {};
+openclaw.models.providers = { ...openclaw.models.providers, ...aiosbot.models?.providers };
+
+// 2. Merge agents.defaults (model, models)
+openclaw.agents = openclaw.agents || {};
+openclaw.agents.defaults = openclaw.agents.defaults || {};
+if (aiosbot.agents?.defaults?.model) openclaw.agents.defaults.model = aiosbot.agents.defaults.model;
+if (aiosbot.agents?.defaults?.models) openclaw.agents.defaults.models = { ...openclaw.agents.defaults.models, ...aiosbot.agents.defaults.models };
+
+// 3. Register agent in agents.list[] (AC6, AC11)
+openclaw.agents.list = openclaw.agents.list || [];
+const existingIdx = openclaw.agents.list.findIndex(a => a.id === e.AGENT_ID);
+const agentEntry = {
+  id: e.AGENT_ID,
+  workspace: e.AGENT_WORKSPACE,
+  skills: aiosbot.agents?.list?.[0]?.skills || undefined
+};
+if (existingIdx >= 0) {
+  openclaw.agents.list[existingIdx] = { ...openclaw.agents.list[existingIdx], ...agentEntry };
+} else {
+  openclaw.agents.list.push(agentEntry);
+}
+
+// 4. Register skills.load.extraDirs (AC7)
+openclaw.skills = openclaw.skills || {};
+openclaw.skills.load = openclaw.skills.load || {};
+openclaw.skills.load.extraDirs = openclaw.skills.load.extraDirs || [];
+if (!openclaw.skills.load.extraDirs.includes(e.AGENT_SKILLS_DIR)) {
+  openclaw.skills.load.extraDirs.push(e.AGENT_SKILLS_DIR);
+}
+
+// 5. Merge skills.entries
+if (aiosbot.skills?.entries) {
+  openclaw.skills.entries = { ...openclaw.skills.entries, ...aiosbot.skills.entries };
+}
+
+// 6. Gateway tailscale mode (AC8) — preserve other tailscale fields
+openclaw.gateway = openclaw.gateway || {};
+openclaw.gateway.tailscale = { ...openclaw.gateway.tailscale, mode: "serve" };
+
+// 7. Gateway auth
+if (aiosbot.gateway?.auth) openclaw.gateway.auth = aiosbot.gateway.auth;
+
+// 8. Tools (shell deny patterns, filesystem)
+if (aiosbot.tools) {
+  openclaw.tools = openclaw.tools || {};
+  if (aiosbot.tools.shell) openclaw.tools.shell = { ...openclaw.tools.shell, ...aiosbot.tools.shell };
+  if (aiosbot.tools.filesystem) openclaw.tools.filesystem = { ...openclaw.tools.filesystem, ...aiosbot.tools.filesystem };
+}
+
+// 9. Channels (whatsapp if Evolution configured)
+if (aiosbot.channels?.whatsapp) {
+  openclaw.channels = openclaw.channels || {};
+  openclaw.channels.whatsapp = { ...openclaw.channels.whatsapp, ...aiosbot.channels.whatsapp };
+}
+
+// 10. Hooks
+if (aiosbot.hooks) openclaw.hooks = { ...openclaw.hooks, ...aiosbot.hooks };
+
+fs.writeFileSync(e.OPENCLAW_PATH, JSON.stringify(openclaw, null, 2) + "\n");
+'
+
+  # Validate merged JSON (AC4)
+  if node -e "JSON.parse(require('fs').readFileSync('$OPENCLAW_CONFIG','utf8'))" 2>/dev/null; then
+    chmod 600 "$OPENCLAW_CONFIG"
+    # Count merged fields for reporting
+    agent_count=$(node -e "const c=JSON.parse(require('fs').readFileSync('$OPENCLAW_CONFIG','utf8'));console.log((c.agents?.list||[]).length)" 2>/dev/null || echo "?")
+    step_ok "openclaw.json mergeado (${agent_count} agente(s) registrados, backup em .bak)"
+  else
+    # Rollback on invalid JSON
+    cp "${OPENCLAW_CONFIG}.bak" "$OPENCLAW_CONFIG"
+    step_fail "Merge gerou JSON invalido — restaurado backup .bak"
+    exit 1
+  fi
+fi
+
+# =============================================================================
+# STEP 12c: RELOAD GATEWAY + HEALTH CHECK (Story 12.0 — AC12, AC13)
+# =============================================================================
+if [[ -f "$OPENCLAW_CONFIG" ]]; then
+  if reload_gateway; then
+    # Health check (AC12) — curl com timeout 10s
+    gw_port=$(node -e "const c=JSON.parse(require('fs').readFileSync('$OPENCLAW_CONFIG','utf8'));console.log(c.gateway?.port||19888)" 2>/dev/null || echo "19888")
+    health_ok=false
+    for i in 1 2 3; do
+      if curl -sf --max-time 5 "http://localhost:${gw_port}/health" >/dev/null 2>&1; then
+        health_ok=true
+        break
+      fi
+      sleep 2
+    done
+
+    if [[ "$health_ok" == "true" ]]; then
+      step_ok "Gateway reiniciado — health check OK (porta ${gw_port})"
+    else
+      # Auto-rollback (AC13)
+      echo -e "  ${UI_YELLOW:-}Health check falhou apos reload — restaurando backup...${UI_NC:-}"
+      cp "${OPENCLAW_CONFIG}.bak" "$OPENCLAW_CONFIG"
+      reload_gateway || true
+      step_fail "Gateway nao respondeu ao health check — restaurado openclaw.json.bak"
+      exit 1
+    fi
+  else
+    step_skip "Gateway nao encontrado ou nao reiniciou — merge aplicado, reload manual necessario"
+  fi
+fi
+
+# =============================================================================
 # STEP 13: RESUMO FINAL
 # =============================================================================
 resumo_final
@@ -731,6 +869,9 @@ printf "  %-20s %-45s %s\n" "aiosbot.json" "$CONFIG_DIR/aiosbot.json" "$(wc -c <
 printf "  %-20s %-45s %s\n" "node.json" "$CONFIG_DIR/node.json" "$(wc -c < "$CONFIG_DIR/node.json") bytes"
 printf "  %-20s %-45s %s\n" ".env" "$ENV_DIR/.env" "$(wc -c < "$ENV_DIR/.env") bytes"
 printf "  %-20s %-45s %s\n" "mcp-config.json" "$MCP_DIR/mcp-config.json" "$(wc -c < "$MCP_DIR/mcp-config.json") bytes"
+if [[ -f "$OPENCLAW_CONFIG" ]]; then
+  printf "  %-20s %-45s %s\n" "openclaw.json" "$OPENCLAW_CONFIG" "$(wc -c < "$OPENCLAW_CONFIG") bytes (merged)"
+fi
 echo ""
 echo "  Model aliases: ${alias_count}"
 echo "  MCP servers: ${mcp_count}"
