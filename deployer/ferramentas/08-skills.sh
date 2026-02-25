@@ -1176,7 +1176,70 @@ else
   step_skip "openclaw.json nao encontrado — mcporter sera habilitado apos onboard"
 fi
 
-# 6. Verificar skill check no OpenClaw (se CLI disponivel)
+# 6. Gerar mcporter.json com MCPs pre-instanciados (Context7, Playwright, EXA)
+# Salva em ~/.mcporter/mcporter.json (system config) para funcionar globalmente.
+MCPORTER_SYSTEM_DIR="${REAL_HOME}/.mcporter"
+MCPORTER_SYSTEM_CONFIG="${MCPORTER_SYSTEM_DIR}/mcporter.json"
+mkdir -p "$MCPORTER_SYSTEM_DIR"
+
+# Buscar EXA_API_KEY se disponivel (do .env do deployer ou do ambiente)
+EXA_KEY="${EXA_API_KEY:-}"
+if [[ -z "$EXA_KEY" ]] && [[ -f "${SCRIPT_DIR}/../apps/${nome_agente:-master}/.env" ]]; then
+  EXA_KEY=$(grep -oP '^EXA_API_KEY=\K.*' "${SCRIPT_DIR}/../apps/${nome_agente:-master}/.env" 2>/dev/null || true)
+fi
+
+EXA_API_KEY_VAL="$EXA_KEY" \
+MCPORTER_CONFIG_PATH="$MCPORTER_SYSTEM_CONFIG" \
+node -e '
+const fs = require("fs");
+const e = process.env;
+const configPath = e.MCPORTER_CONFIG_PATH;
+
+// Carregar config existente ou criar nova
+let config = { mcpServers: {}, imports: [] };
+try { config = JSON.parse(fs.readFileSync(configPath, "utf8")); } catch {}
+config.mcpServers = config.mcpServers || {};
+config.imports = config.imports || [];
+
+// Context7 — docs de libs em tempo real (sem key obrigatoria)
+if (!config.mcpServers["context7"]) {
+  config.mcpServers["context7"] = {
+    command: "npx",
+    args: ["-y", "@upstash/context7-mcp@latest"]
+  };
+}
+
+// Playwright — browser automation headless
+if (!config.mcpServers["playwright"]) {
+  config.mcpServers["playwright"] = {
+    command: "npx",
+    args: ["-y", "@playwright/mcp@latest"]
+  };
+}
+
+// EXA — web search (so adiciona se tiver API key)
+if (e.EXA_API_KEY_VAL && !config.mcpServers["exa"]) {
+  config.mcpServers["exa"] = {
+    command: "npx",
+    args: ["-y", "exa-mcp-server"],
+    env: { EXA_API_KEY: e.EXA_API_KEY_VAL }
+  };
+}
+
+fs.writeFileSync(configPath, JSON.stringify(config, null, 2) + "\n");
+const count = Object.keys(config.mcpServers).length;
+console.log(count);
+' 2>/dev/null || true
+
+if [[ -f "$MCPORTER_SYSTEM_CONFIG" ]]; then
+  mcp_pre_count=$(node -e "console.log(Object.keys(JSON.parse(require('fs').readFileSync('$MCPORTER_SYSTEM_CONFIG','utf8')).mcpServers).length)" 2>/dev/null || echo "?")
+  chmod 600 "$MCPORTER_SYSTEM_CONFIG"
+  step_ok "mcporter.json gerado com ${mcp_pre_count} MCPs pre-instanciados (~/.mcporter/mcporter.json)"
+else
+  step_fail "Falha ao gerar mcporter.json"
+fi
+
+# 7. Verificar skill check no OpenClaw (se CLI disponivel)
 if [[ "$mcporter_installed" == "true" ]]; then
   if command -v openclaw &>/dev/null || [[ -f /opt/openclaw/openclaw.mjs ]]; then
     OPENCLAW_CMD="openclaw"
