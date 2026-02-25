@@ -340,6 +340,9 @@ const config = {
   models: {
     mode: "merge",
     providers: {
+      "openrouter": {
+        apiKey: e.OPENROUTER_KEY
+      },
       "anthropic-router": {
         baseUrl: "http://localhost:55119/v1",
         apiKey: "dummy",
@@ -359,14 +362,15 @@ const config = {
   agents: {
     defaults: {
       model: {
-        primary: "anthropic-router/router-auto",
+        primary: "openrouter/auto",
         fallbacks: [
-          "anthropic/claude-sonnet-4",
+          "anthropic-router/router-auto",
           "openrouter/anthropic/claude-3.5-haiku",
           "openrouter/google/gemini-3-flash-preview"
         ]
       },
       models: {
+        "openrouter/auto": { alias: "OpenRouter" },
         "anthropic-router/router-auto": { alias: "smart" }
       },
       workspace: e.WORKSPACE_PATH,
