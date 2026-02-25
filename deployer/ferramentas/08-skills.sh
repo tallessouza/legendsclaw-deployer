@@ -1056,18 +1056,63 @@ fi
 
 # =============================================================================
 # STEP 14b: INSTALAR MCPORTER (MCP MANAGEMENT SKILL)
+# O mcporter e um CLI npm + skill bundled no OpenClaw.
+# A skill ja vem no OpenClaw mas requer o binario 'mcporter' instalado.
 # =============================================================================
-if command -v openclaw &>/dev/null; then
-  echo "  Instalando mcporter skill..."
-  if openclaw skill install mcporter 2>/dev/null; then
-    step_ok "mcporter instalado — agente pode gerenciar MCPs via chat"
+mcporter_installed="false"
+
+# 1. Verificar se mcporter CLI ja esta instalado
+if command -v mcporter &>/dev/null; then
+  mcporter_installed="true"
+  step_skip "mcporter CLI ja instalado ($(mcporter --version 2>/dev/null || echo 'ok'))"
+else
+  # 2. Instalar mcporter CLI via npm (user-local, sem sudo)
+  echo "  Instalando mcporter CLI..."
+  NPM_PREFIX="${HOME}/.npm-global"
+  mkdir -p "$NPM_PREFIX"
+  npm config set prefix "$NPM_PREFIX" 2>/dev/null || true
+  export PATH="${NPM_PREFIX}/bin:${PATH}"
+
+  if npm install -g mcporter 2>/dev/null; then
+    mcporter_installed="true"
+    step_ok "mcporter CLI instalado em ${NPM_PREFIX}/bin/mcporter"
   else
-    # Fallback: tentar via npm se openclaw skill install falhar
-    echo -e "  ${UI_YELLOW}WARNING: openclaw skill install falhou — tentando fallback manual${UI_NC}"
-    MCPORTER_DIR="${OPENCLAW_WORKSPACE_SKILLS}/system/mcporter"
-    if [[ ! -d "$MCPORTER_DIR" ]]; then
-      mkdir -p "$MCPORTER_DIR"
-      cat > "$MCPORTER_DIR/SKILL.md" << 'MCPORTER_EOF'
+    step_fail "mcporter CLI — npm install falhou"
+    echo -e "  ${UI_YELLOW}Dica: Instale manualmente com: npm install -g mcporter${UI_NC}"
+  fi
+fi
+
+# 3. Verificar se a skill esta registrada no OpenClaw
+if [[ "$mcporter_installed" == "true" ]]; then
+  # Garantir que PATH inclui npm-global para o gateway
+  PROFILE_FILE="${HOME}/.bashrc"
+  NPM_PATH_LINE='export PATH="${HOME}/.npm-global/bin:${PATH}"'
+  if ! grep -qF '.npm-global/bin' "$PROFILE_FILE" 2>/dev/null; then
+    echo "" >> "$PROFILE_FILE"
+    echo "# mcporter CLI (instalado por legendsclaw deployer)" >> "$PROFILE_FILE"
+    echo "$NPM_PATH_LINE" >> "$PROFILE_FILE"
+    echo "  PATH adicionado ao ${PROFILE_FILE}"
+  fi
+
+  # Verificar skill check no OpenClaw
+  if command -v openclaw &>/dev/null || [[ -f /opt/openclaw/openclaw.mjs ]]; then
+    OPENCLAW_CMD="openclaw"
+    command -v openclaw &>/dev/null || OPENCLAW_CMD="node /opt/openclaw/openclaw.mjs"
+    skill_status=$($OPENCLAW_CMD skills check 2>/dev/null | grep -i mcporter || true)
+    if echo "$skill_status" | grep -qi "ready\|ok\|✓" 2>/dev/null; then
+      step_ok "mcporter skill pronta no OpenClaw"
+    else
+      step_ok "mcporter CLI instalado — skill sera detectada no proximo restart do gateway"
+    fi
+  else
+    step_ok "mcporter CLI instalado — OpenClaw CLI nao encontrado para verificar skill"
+  fi
+else
+  # Fallback: criar placeholder SKILL.md para referencia
+  MCPORTER_DIR="${OPENCLAW_WORKSPACE_SKILLS}/system/mcporter"
+  if [[ ! -d "$MCPORTER_DIR" ]]; then
+    mkdir -p "$MCPORTER_DIR"
+    cat > "$MCPORTER_DIR/SKILL.md" << 'MCPORTER_EOF'
 ---
 name: mcporter
 description: List, configure, authenticate, and call MCP servers/tools. Use when the user asks about MCP servers, wants to add new tools, or needs to manage integrations.
@@ -1090,13 +1135,10 @@ Only native plugin format is supported: `{ "name": { "enabled": true } }`.
 
 For stdio-based MCP servers, use the mcp-config.json format for Claude Code LOCAL.
 MCPORTER_EOF
-      step_ok "mcporter placeholder criado em ${MCPORTER_DIR}"
-    else
-      step_skip "mcporter ja existe"
-    fi
+    step_ok "mcporter placeholder criado (CLI nao instalado — instale com: npm install -g mcporter)"
+  else
+    step_skip "mcporter placeholder ja existe"
   fi
-else
-  step_skip "OpenClaw CLI nao encontrado — mcporter nao instalado"
 fi
 
 # =============================================================================
