@@ -8,7 +8,7 @@ set -euo pipefail
 # Compativel: Ubuntu 22.04+ (VPS), Linux/macOS/WSL (Local)
 # =============================================================================
 
-readonly INSTALL_VERSION="1.1.0"
+readonly INSTALL_VERSION="1.2.0"
 readonly REPO_URL="https://github.com/tallessouza/legendsclaw-deployer.git"
 readonly TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 readonly LOG_DIR="$HOME/legendsclaw-logs"
@@ -304,26 +304,14 @@ else
     exit 1
   fi
 
-  # STEP 9: Instrucoes finais
-  # Ler dados reais dos state files
-  local _agent_name _aios_dir
-  _agent_name=$(grep "Agente:" "$HOME/dados_vps/dados_bridge" 2>/dev/null | awk -F': ' '{print $2}' || true)
-  _agent_name="${_agent_name:-seu-agente}"
-  _aios_dir=$(grep "Diretorio:" "$HOME/dados_vps/dados_aios_init" 2>/dev/null | awk -F': ' '{print $2}' || true)
-  _aios_dir="${_aios_dir:-${INSTALL_DIR}}"
-
-  echo ""
-  echo -e "${BOLD}${CYAN}=============================================="
-  echo -e "  SETUP LOCAL CONCLUIDO!"
-  echo -e "===============================================${NC}"
-  echo ""
-  echo -e "  Seu ambiente local esta pronto."
-  echo -e "  Para ativar o agente no Claude Code:"
-  echo -e "  ${BOLD}cd ${_aios_dir} && @${_agent_name}${NC}"
-  echo ""
-  echo -e "  Para verificar o bridge:"
-  echo -e "  ${BOLD}cd ${INSTALL_DIR} && node .aios-core/infrastructure/services/bridge.js status${NC}"
-  echo ""
+  # STEP 9: Instrucoes finais (delegado ao script do repo, que está atualizado)
+  if [[ -f "${INSTALL_DIR}/deployer/ferramentas/setup-local-finish.sh" ]]; then
+    source "${INSTALL_DIR}/deployer/ferramentas/setup-local-finish.sh"
+  else
+    echo ""
+    echo "  Setup local concluido! Veja os hints acima para proximos passos."
+    echo ""
+  fi
   feedback OK "Instrucoes exibidas"
 fi
 
