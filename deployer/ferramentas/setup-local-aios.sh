@@ -105,13 +105,12 @@ else
   echo "  (isto pode demorar na primeira execucao)"
   echo ""
 
-  init_output=""
-  init_exit=0
-  init_output=$(cd "$dir_destino" && npx aios-core init "$nome_projeto" </dev/tty 2>&1) || init_exit=$?
+  # Rodar direto no terminal (sem captura) — aios-core init e interativo
+  (cd "$dir_destino" && npx aios-core init "$nome_projeto" </dev/tty >/dev/tty 2>&1)
+  init_exit=$?
 
   if [[ "$init_exit" -ne 0 ]]; then
     step_fail "npx aios-core init falhou (exit code: ${init_exit})"
-    echo "  Output: ${init_output}"
     echo ""
     echo "  Tente manualmente:"
     echo "    cd ${dir_destino}"
@@ -122,8 +121,6 @@ else
   # Verificar que .aios-core/ foi criado
   if [[ ! -d "$aios_dir" ]]; then
     step_fail ".aios-core/ nao encontrado apos init"
-    echo "  O comando executou sem erro mas o diretorio nao foi criado."
-    echo "  Output: ${init_output}"
     echo "  Verifique manualmente: ls -la ${dir_destino}/"
     exit 1
   fi

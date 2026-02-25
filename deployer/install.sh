@@ -315,7 +315,7 @@ else
   echo -e "  ${BOLD}cd ${INSTALL_DIR} && @seu-agente${NC}"
   echo ""
   echo -e "  Para verificar o bridge:"
-  echo -e "  ${BOLD}cd ${INSTALL_DIR}/.aios-core/infrastructure && node bridge.js status${NC}"
+  echo -e "  ${BOLD}cd ${INSTALL_DIR} && node .aios-core/infrastructure/services/bridge.js status${NC}"
   echo ""
   feedback OK "Instrucoes exibidas"
 fi

@@ -60,13 +60,14 @@ Arquivo: ${LOG_FILE}
 ==============================================
 EOF
 )
-  # Se temos fd originais salvos, restaurar para evitar duplicacao pelo tee
+  # Se temos fd originais salvos, restaurar ANTES de imprimir
+  # para evitar duplicacao por race condition do process substitution
   if [[ -n "${_LOGGER_TEE_PID:-}" ]]; then
-    # Flush tee e restaurar stdout/stderr originais
-    echo "$msg"
-    sleep 0.1
     exec 1>&3 2>&4 3>&- 4>&-
     _LOGGER_TEE_PID=""
+    # Imprimir direto (sem tee) e gravar no log manualmente
+    echo "$msg"
+    echo "$msg" >> "$LOG_FILE" 2>/dev/null
   else
     echo "$msg"
   fi
