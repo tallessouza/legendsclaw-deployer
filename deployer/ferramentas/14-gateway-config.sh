@@ -250,7 +250,7 @@ backup_count=0
 for cfg_file in "$CONFIG_DIR/aiosbot.json" "$CONFIG_DIR/node.json" "$ENV_DIR/.env" "$MCP_DIR/mcp-config.json"; do
   if [[ -f "$cfg_file" ]]; then
     cp "$cfg_file" "${cfg_file}.bak"
-    ((backup_count++))
+    backup_count=$((backup_count + 1))
   fi
 done
 
