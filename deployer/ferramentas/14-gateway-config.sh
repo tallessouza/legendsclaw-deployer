@@ -906,8 +906,13 @@ if (aiosbot.channels?.whatsapp) {
 if (aiosbot.hooks) openclaw.hooks = { ...openclaw.hooks, ...aiosbot.hooks };
 
 // 11. MCP Servers — mcp-config.json is for Claude Code LOCAL only.
-// OpenClaw plugins.entries only accepts { enabled: true/false } for native plugins.
-// MCP servers are managed via mcporter skill or openclaw CLI, not via plugins.entries.
+// OpenClaw uses mcporter skill to manage MCP servers from chat.
+// Ensure mcporter skill is enabled in skills.entries so the gateway exposes it.
+openclaw.skills = openclaw.skills || {};
+openclaw.skills.entries = openclaw.skills.entries || {};
+if (!openclaw.skills.entries.mcporter) {
+  openclaw.skills.entries.mcporter = { enabled: true };
+}
 
 fs.writeFileSync(e.OPENCLAW_PATH, JSON.stringify(openclaw, null, 2) + "\n");
 '

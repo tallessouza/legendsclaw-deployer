@@ -1056,8 +1056,10 @@ fi
 
 # =============================================================================
 # STEP 14b: INSTALAR MCPORTER (MCP MANAGEMENT SKILL)
-# O mcporter e um CLI npm + skill bundled no OpenClaw.
-# A skill ja vem no OpenClaw mas requer o binario 'mcporter' instalado.
+# mcporter = CLI npm (v0.7.3+) + skill oficial no ClawHub.
+# Requer: 1) binario mcporter no PATH, 2) SKILL.md na camada de skills,
+#          3) entry habilitado em skills.entries do openclaw.json.
+# Ref: https://github.com/steipete/mcporter
 # =============================================================================
 mcporter_installed="false"
 
@@ -1082,9 +1084,8 @@ else
   fi
 fi
 
-# 3. Verificar se a skill esta registrada no OpenClaw
+# 3. Garantir PATH inclui npm-global para o gateway e sessoes futuras
 if [[ "$mcporter_installed" == "true" ]]; then
-  # Garantir que PATH inclui npm-global para o gateway
   PROFILE_FILE="${HOME}/.bashrc"
   NPM_PATH_LINE='export PATH="${HOME}/.npm-global/bin:${PATH}"'
   if ! grep -qF '.npm-global/bin' "$PROFILE_FILE" 2>/dev/null; then
@@ -1093,29 +1094,21 @@ if [[ "$mcporter_installed" == "true" ]]; then
     echo "$NPM_PATH_LINE" >> "$PROFILE_FILE"
     echo "  PATH adicionado ao ${PROFILE_FILE}"
   fi
+fi
 
-  # Verificar skill check no OpenClaw
-  if command -v openclaw &>/dev/null || [[ -f /opt/openclaw/openclaw.mjs ]]; then
-    OPENCLAW_CMD="openclaw"
-    command -v openclaw &>/dev/null || OPENCLAW_CMD="node /opt/openclaw/openclaw.mjs"
-    skill_status=$($OPENCLAW_CMD skills check 2>/dev/null | grep -i mcporter || true)
-    if echo "$skill_status" | grep -qi "ready\|ok\|✓" 2>/dev/null; then
-      step_ok "mcporter skill pronta no OpenClaw"
-    else
-      step_ok "mcporter CLI instalado — skill sera detectada no proximo restart do gateway"
-    fi
-  else
-    step_ok "mcporter CLI instalado — OpenClaw CLI nao encontrado para verificar skill"
-  fi
-else
-  # Fallback: criar placeholder SKILL.md para referencia
-  MCPORTER_DIR="${OPENCLAW_WORKSPACE_SKILLS}/system/mcporter"
-  if [[ ! -d "$MCPORTER_DIR" ]]; then
-    mkdir -p "$MCPORTER_DIR"
-    cat > "$MCPORTER_DIR/SKILL.md" << 'MCPORTER_EOF'
+# 4. Registrar skill mcporter no OpenClaw (3 camadas: workspace > managed > bundled)
+# A skill precisa existir como diretorio com SKILL.md + estar em skills.entries
+MCPORTER_SKILL_DIR="${REAL_HOME}/.openclaw/skills/mcporter"
+if [[ ! -f "$MCPORTER_SKILL_DIR/SKILL.md" ]]; then
+  mkdir -p "$MCPORTER_SKILL_DIR"
+  cat > "$MCPORTER_SKILL_DIR/SKILL.md" << 'MCPORTER_EOF'
 ---
 name: mcporter
-description: List, configure, authenticate, and call MCP servers/tools. Use when the user asks about MCP servers, wants to add new tools, or needs to manage integrations.
+description: Use the mcporter CLI to list, configure, auth, and call MCP servers/tools directly (HTTP or stdio), including ad-hoc servers, config edits, and CLI/type generation.
+homepage: https://mcporter.dev
+install:
+  - name: mcporter
+    type: node
 ---
 
 # MCPorter — MCP Server Management
@@ -1123,22 +1116,83 @@ description: List, configure, authenticate, and call MCP servers/tools. Use when
 ## Overview
 Manage MCP (Model Context Protocol) servers from chat. List available servers, add new ones, check authentication, and call tools directly.
 
-## Commands
-- **List MCPs**: Show all configured MCP servers and their status
-- **Add MCP**: Configure a new MCP server (needs command + args + optional env)
-- **Test MCP**: Verify an MCP server is responding
-- **Call Tool**: Execute a specific tool from an MCP server
+## Quick Start
+- `mcporter list` — Show all configured MCP servers
+- `mcporter list <server> --schema` — Show tools for a server
+- `mcporter call <server.tool> key=value` — Call a tool
 
-## Configuration
-MCP servers are configured in `~/.openclaw/openclaw.json` under `plugins.entries`.
-Only native plugin format is supported: `{ "name": { "enabled": true } }`.
+## Tool Invocation
+- Selector: `mcporter call linear.list_issues team=ENG limit:5`
+- Function: `mcporter call "linear.create_issue(title: \"Bug\")"`
+- Full URL: `mcporter call https://api.example.com/mcp.fetch url:https://example.com`
+- Stdio: `mcporter call --stdio "bun run ./server.ts" scrape url=https://example.com`
+- JSON: `mcporter call <server.tool> --args '{"limit":5}'`
 
-For stdio-based MCP servers, use the mcp-config.json format for Claude Code LOCAL.
+## Auth & Config
+- `mcporter auth <server|url>` — Authenticate with an MCP server
+- `mcporter config list|get|add|remove|import` — Manage config
+- Default config: `./config/mcporter.json` (override with `--config <path>`)
+
+## Daemon
+- `mcporter daemon start|status|stop|restart` — Background daemon control
+
+## Machine-Readable Output
+Add `--output json` to any command for JSON output.
 MCPORTER_EOF
-    step_ok "mcporter placeholder criado (CLI nao instalado — instale com: npm install -g mcporter)"
+  step_ok "mcporter SKILL.md registrado em ~/.openclaw/skills/mcporter/"
+else
+  step_skip "mcporter SKILL.md ja existe em ~/.openclaw/skills/mcporter/"
+fi
+
+# 5. Habilitar mcporter em skills.entries do openclaw.json
+OPENCLAW_CONFIG="${REAL_HOME}/.openclaw/openclaw.json"
+if [[ -f "$OPENCLAW_CONFIG" ]]; then
+  # Adicionar skills.entries.mcporter = { enabled: true } se nao existir
+  node -e '
+const fs = require("fs");
+const configPath = process.env.OPENCLAW_CONFIG;
+const config = JSON.parse(fs.readFileSync(configPath, "utf8"));
+config.skills = config.skills || {};
+config.skills.entries = config.skills.entries || {};
+if (!config.skills.entries.mcporter) {
+  config.skills.entries.mcporter = { enabled: true };
+  fs.writeFileSync(configPath, JSON.stringify(config, null, 2) + "\n");
+  console.log("ADDED");
+} else if (!config.skills.entries.mcporter.enabled) {
+  config.skills.entries.mcporter.enabled = true;
+  fs.writeFileSync(configPath, JSON.stringify(config, null, 2) + "\n");
+  console.log("ENABLED");
+} else {
+  console.log("ALREADY_ENABLED");
+}
+' 2>/dev/null
+  mcporter_entry_status=$?
+  if [[ $mcporter_entry_status -eq 0 ]]; then
+    step_ok "mcporter habilitado em skills.entries do openclaw.json"
   else
-    step_skip "mcporter placeholder ja existe"
+    step_fail "Falha ao atualizar skills.entries — verifique openclaw.json manualmente"
   fi
+else
+  step_skip "openclaw.json nao encontrado — mcporter sera habilitado apos onboard"
+fi
+
+# 6. Verificar skill check no OpenClaw (se CLI disponivel)
+if [[ "$mcporter_installed" == "true" ]]; then
+  if command -v openclaw &>/dev/null || [[ -f /opt/openclaw/openclaw.mjs ]]; then
+    OPENCLAW_CMD="openclaw"
+    command -v openclaw &>/dev/null || OPENCLAW_CMD="node /opt/openclaw/openclaw.mjs"
+    skill_status=$($OPENCLAW_CMD skills check 2>/dev/null | grep -i mcporter || true)
+    if echo "$skill_status" | grep -qi "ready\|ok\|✓" 2>/dev/null; then
+      step_ok "mcporter skill pronta no OpenClaw"
+    else
+      step_ok "mcporter CLI + SKILL.md + entry prontos — detectado no proximo restart"
+    fi
+  else
+    step_ok "mcporter CLI + SKILL.md + entry prontos — OpenClaw CLI nao disponivel para check"
+  fi
+else
+  echo -e "  ${UI_YELLOW}mcporter SKILL.md e entry registrados, mas CLI nao instalado.${UI_NC}"
+  echo -e "  ${UI_YELLOW}Instale com: npm install -g mcporter${UI_NC}"
 fi
 
 # =============================================================================
