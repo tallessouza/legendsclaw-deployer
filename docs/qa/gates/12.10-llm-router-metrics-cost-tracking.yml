@@ -1,0 +1,12 @@
+schema: 1
+story: '12.10'
+gate: CONCERNS
+status_reason: 'All ACs met, 16/16 new tests pass, no regressions. One medium-severity maintainability concern: ((found_skills++)) may fail with set -e on first increment.'
+reviewer: 'Quinn'
+updated: '2026-02-25T06:00:00Z'
+top_issues:
+  - id: 'MNT-001'
+    severity: medium
+    finding: '((found_skills++)) can fail with set -e when incrementing from 0 (exit code 1 in bash arithmetic)'
+    suggested_action: 'Replace with found_skills=$((found_skills + 1))'
+waiver: { active: false }

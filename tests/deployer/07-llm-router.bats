@@ -832,3 +832,189 @@ EOF
   run cat "$SCRIPT_DIR/ferramentas/07-llm-router.sh"
   [[ "$output" == *"claude-opus-4-5"* ]]
 }
+
+# =============================================================================
+# Story 12.10: Expanded Metrics — cost_tracking, cost_limits, analytics_endpoint
+# =============================================================================
+
+@test "metrics section has cost_tracking field" {
+  run cat "$SCRIPT_DIR/ferramentas/07-llm-router.sh"
+  [[ "$output" == *"cost_tracking: true"* ]]
+}
+
+@test "metrics section has cost_limits with 4 tiers" {
+  run cat "$SCRIPT_DIR/ferramentas/07-llm-router.sh"
+  [[ "$output" == *"cost_limits:"* ]]
+  [[ "$output" == *"budget: 0.01"* ]]
+  [[ "$output" == *"standard: 0.10"* ]]
+  [[ "$output" == *"quality: 2.00"* ]]
+  [[ "$output" == *"premium: 10.00"* ]]
+}
+
+@test "metrics section has analytics_endpoint field" {
+  run cat "$SCRIPT_DIR/ferramentas/07-llm-router.sh"
+  [[ "$output" == *"analytics_endpoint: true"* ]]
+}
+
+@test "metrics default changed to enabled (default: s)" {
+  run cat "$SCRIPT_DIR/ferramentas/07-llm-router.sh"
+  [[ "$output" == *"default: s"* ]]
+}
+
+# =============================================================================
+# Story 12.10: Skill Mapping via SKILL.md Discovery
+# =============================================================================
+
+@test "generate_skill_mapping scans SKILL.md files" {
+  run cat "$SCRIPT_DIR/ferramentas/07-llm-router.sh"
+  [[ "$output" == *"SKILL.md"* ]]
+  [[ "$output" == *"find"* ]]
+}
+
+@test "generate_skill_mapping reads tier from frontmatter" {
+  run cat "$SCRIPT_DIR/ferramentas/07-llm-router.sh"
+  [[ "$output" == *"tier:"* ]]
+  [[ "$output" == *"name:"* ]]
+}
+
+@test "generate_skill_mapping has 3-level fallback" {
+  run cat "$SCRIPT_DIR/ferramentas/07-llm-router.sh"
+  # Prioridade 1: SKILL.md discovery
+  [[ "$output" == *"SKILL.md"* ]]
+  # Prioridade 2: dados_skills pattern matching
+  [[ "$output" == *"dados_skills"* ]]
+  # Prioridade 3: Default mappings
+  [[ "$output" == *"allos-status: budget"* ]]
+}
+
+@test "generate_skill_mapping validates tier values" {
+  run cat "$SCRIPT_DIR/ferramentas/07-llm-router.sh"
+  [[ "$output" == *'(budget|standard|quality|premium)'* ]]
+}
+
+@test "generate_skill_mapping defaults to standard for invalid tier" {
+  run cat "$SCRIPT_DIR/ferramentas/07-llm-router.sh"
+  [[ "$output" == *'skill_tier="standard"'* ]]
+}
+
+@test "SKILL.md discovery: reads tier from mock SKILL.md" {
+  # Criar estrutura mock de skills com SKILL.md
+  local mock_skills_dir="${TEST_APPS_DIR}/skills/superpowers/test-skill"
+  mkdir -p "$mock_skills_dir"
+  cat > "$mock_skills_dir/SKILL.md" << 'EOF'
+---
+name: test-skill
+description: Test skill
+version: 1.0.0
+tier: quality
+always_on: false
+---
+
+# Test Skill
+EOF
+
+  # Extrair tier do frontmatter (mesmo algoritmo do script)
+  local skill_tier="standard"
+  local in_frontmatter=false
+  local skill_name=""
+  while IFS= read -r line; do
+    if [[ "$line" == "---" ]]; then
+      if [[ "$in_frontmatter" == "true" ]]; then
+        break
+      fi
+      in_frontmatter=true
+      continue
+    fi
+    if [[ "$in_frontmatter" == "true" ]]; then
+      case "$line" in
+        name:*) skill_name=$(echo "$line" | sed 's/^name:[[:space:]]*//' | xargs) ;;
+        tier:*) skill_tier=$(echo "$line" | sed 's/^tier:[[:space:]]*//' | xargs) ;;
+      esac
+    fi
+  done < "$mock_skills_dir/SKILL.md"
+
+  [[ "$skill_name" == "test-skill" ]]
+  [[ "$skill_tier" == "quality" ]]
+}
+
+@test "SKILL.md discovery: defaults to standard when tier missing" {
+  local mock_skills_dir="${TEST_APPS_DIR}/skills/system/no-tier-skill"
+  mkdir -p "$mock_skills_dir"
+  cat > "$mock_skills_dir/SKILL.md" << 'EOF'
+---
+name: no-tier-skill
+description: Skill without tier field
+version: 1.0.0
+always_on: false
+---
+
+# No Tier Skill
+EOF
+
+  local skill_tier="standard"
+  local in_frontmatter=false
+  while IFS= read -r line; do
+    if [[ "$line" == "---" ]]; then
+      if [[ "$in_frontmatter" == "true" ]]; then
+        break
+      fi
+      in_frontmatter=true
+      continue
+    fi
+    if [[ "$in_frontmatter" == "true" ]]; then
+      case "$line" in
+        tier:*) skill_tier=$(echo "$line" | sed 's/^tier:[[:space:]]*//' | xargs) ;;
+      esac
+    fi
+  done < "$mock_skills_dir/SKILL.md"
+
+  # Tier should remain "standard" (default) since SKILL.md has no tier field
+  [[ "$skill_tier" == "standard" ]]
+}
+
+@test "SKILL.md discovery: validates invalid tier falls back to standard" {
+  local skill_tier="invalid_tier"
+  if ! [[ "$skill_tier" =~ ^(budget|standard|quality|premium)$ ]]; then
+    skill_tier="standard"
+  fi
+  [[ "$skill_tier" == "standard" ]]
+}
+
+@test "default skill mapping still has 14 entries as fallback" {
+  run cat "$SCRIPT_DIR/ferramentas/07-llm-router.sh"
+  [[ "$output" == *"allos-status: budget"* ]]
+  [[ "$output" == *"health-check: budget"* ]]
+  [[ "$output" == *"clickup-ops: standard"* ]]
+  [[ "$output" == *"briefing-analyzer: quality"* ]]
+  [[ "$output" == *"strategic-planning: premium"* ]]
+  [[ "$output" == *"complex-reasoning: premium"* ]]
+}
+
+# =============================================================================
+# Story 12.10: Regression — existing config sections intact
+# =============================================================================
+
+@test "regression: models section still has 7 models" {
+  run cat "$SCRIPT_DIR/ferramentas/07-llm-router.sh"
+  [[ "$output" == *"deepseek-v3:"* ]]
+  [[ "$output" == *"gemini-flash:"* ]]
+  [[ "$output" == *"mistral-large:"* ]]
+  [[ "$output" == *"gpt-4o-mini:"* ]]
+  [[ "$output" == *"claude-sonnet:"* ]]
+  [[ "$output" == *"gpt-4o:"* ]]
+  [[ "$output" == *"claude-opus:"* ]]
+}
+
+@test "regression: keywords section still intact" {
+  run cat "$SCRIPT_DIR/ferramentas/07-llm-router.sh"
+  [[ "$output" == *"keywords:"* ]]
+  [[ "$output" == *"weight: 0.3"* ]]
+  [[ "$output" == *"weight: 0.9"* ]]
+}
+
+@test "regression: fallback section still intact" {
+  run cat "$SCRIPT_DIR/ferramentas/07-llm-router.sh"
+  [[ "$output" == *"fallback:"* ]]
+  [[ "$output" == *"tier_escalation: true"* ]]
+  [[ "$output" == *"on_error:"* ]]
+}

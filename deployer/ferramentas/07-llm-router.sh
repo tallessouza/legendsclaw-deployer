@@ -149,11 +149,11 @@ while true; do
   done
 
   # Metricas (opcional)
-  input "llm_router.metrics" "Habilitar metricas? (s/n, default: n): " metrics_input --default=n
-  if [[ "$metrics_input" =~ ^[Ss]$ ]]; then
-    metrics_enabled="true"
-  else
+  input "llm_router.metrics" "Habilitar metricas? (s/n, default: s): " metrics_input --default=s
+  if [[ "$metrics_input" =~ ^[Nn]$ ]]; then
     metrics_enabled="false"
+  else
+    metrics_enabled="true"
   fi
 
   # Conferindo as info (keys mascaradas)
@@ -183,13 +183,60 @@ if [[ -z "$deepseek_key" ]]; then
   deepseek_enabled="false"
 fi
 
-# Gerar skill_mapping dinamico ou default
+# Gerar skill_mapping dinamico via SKILL.md discovery ou default
 generate_skill_mapping() {
+  local skills_dir="${DEPLOYER_ROOT}/apps/${nome_agente}/skills"
+  local found_skills=0
+
+  # Prioridade 1: Discovery via SKILL.md frontmatter (6 categorias)
+  if [[ -d "$skills_dir" ]]; then
+    local skill_md_files
+    skill_md_files=$(find "$skills_dir" -name "SKILL.md" -type f 2>/dev/null)
+    if [[ -n "$skill_md_files" ]]; then
+      while IFS= read -r skill_file; do
+        local skill_name=""
+        local skill_tier="standard"
+        local in_frontmatter=false
+
+        while IFS= read -r line; do
+          if [[ "$line" == "---" ]]; then
+            if [[ "$in_frontmatter" == "true" ]]; then
+              break
+            fi
+            in_frontmatter=true
+            continue
+          fi
+          if [[ "$in_frontmatter" == "true" ]]; then
+            case "$line" in
+              name:*) skill_name=$(echo "$line" | sed 's/^name:[[:space:]]*//' | xargs) ;;
+              tier:*) skill_tier=$(echo "$line" | sed 's/^tier:[[:space:]]*//' | xargs) ;;
+            esac
+          fi
+        done < "$skill_file"
+
+        # Validar tier
+        if ! [[ "$skill_tier" =~ ^(budget|standard|quality|premium)$ ]]; then
+          skill_tier="standard"
+        fi
+
+        if [[ -n "$skill_name" ]]; then
+          echo "  ${skill_name}: ${skill_tier}"
+          found_skills=$((found_skills + 1))
+        fi
+      done <<< "$skill_md_files"
+    fi
+  fi
+
+  # Se encontrou skills via SKILL.md, usar esse resultado
+  if [[ $found_skills -gt 0 ]]; then
+    return
+  fi
+
+  # Prioridade 2: dados_skills pattern matching (fallback legado)
   if [[ -f "$STATE_DIR/dados_skills" ]]; then
     local skills_ativas
     skills_ativas=$(grep "Skills Ativas:" "$STATE_DIR/dados_skills" 2>/dev/null | awk -F': ' '{print $2}')
     if [[ -n "$skills_ativas" ]]; then
-      # Mapear skills dinamicamente
       IFS=',' read -ra SKILLS <<< "$skills_ativas"
       for skill in "${SKILLS[@]}"; do
         skill=$(echo "$skill" | xargs) # trim
@@ -205,7 +252,8 @@ generate_skill_mapping() {
       return
     fi
   fi
-  # Default 14 mappings do stack de referencia
+
+  # Prioridade 3: Default mappings do stack de referencia
   cat << 'MAPPING'
   allos-status: budget
   n8n-trigger: budget
@@ -378,11 +426,18 @@ fallback:
 
 metrics:
   enabled: ${metrics_enabled}
+  cost_tracking: true
   storage: none
   table: llm_metrics
   batch_size: 10
   flush_interval_ms: 30000
   retention_days: 30
+  cost_limits:
+    budget: 0.01
+    standard: 0.10
+    quality: 2.00
+    premium: 10.00
+  analytics_endpoint: true
 YAML_EOF
 
 # Validacao do YAML gerado
