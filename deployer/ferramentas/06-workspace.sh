@@ -396,7 +396,7 @@ ${skills_section}
 | **infrastructure** | supabase-query, n8n-trigger, clickup-ops, allos-status | \`read_file skills/infrastructure/{name}/SKILL.md\` |
 | **memory** | knowledge-graph, unified-memory, todo-tracker | \`read_file skills/memory/{name}/SKILL.md\` |
 | **dev** | react-best-practices, composition-patterns, web-design-guidelines, vercel-deploy | \`read_file skills/dev/{name}/SKILL.md\` |
-| **superpowers** | brainstorming, writing-plans, test-driven-development, executing-plans, verification-before-completion, requesting-code-review, dispatching-parallel-agents, systematic-debugging | \`read_file skills/superpowers/{name}/SKILL.md\` |
+| **superpowers** | brainstorming, writing-plans, test-driven-development, executing-plans, verification-before-completion, requesting-code-review, dispatching-parallel-agents, systematic-debugging, using-git-worktrees, writing-skills, finishing-a-development-branch, receiving-code-review, subagent-driven-development, using-superpowers (14 total) | \`read_file skills/superpowers/{name}/SKILL.md\` |
 | **orchestration** | task-orchestrator | \`read_file skills/orchestration/{name}/SKILL.md\` |
 | **system** | model-router, cost-monitor, skill-creator | \`read_file skills/system/{name}/SKILL.md\` |
 
@@ -404,6 +404,8 @@ ${skills_section}
 1. When you need a skill, read its full SKILL.md first. Don't guess what a skill does — read the definition.
 2. **NEVER create a new skill if a similar one already exists.** Before creating anything, run \`ls skills/*/\` and check ALL categories. The superpowers skills are complete and battle-tested — USE them, don't reinvent them.
 3. The skill-creator tool is ONLY for genuinely new capabilities that don't overlap with existing skills.
+
+For category overviews, read \`skills/{category}/README.md\`.
 
 AGENTS_SKILLS
 
