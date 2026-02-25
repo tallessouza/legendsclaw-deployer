@@ -353,9 +353,15 @@ if command -v tailscale &>/dev/null && tailscale status &>/dev/null; then
   echo ""
   echo "  Configurando Tailscale Serve para expor gateway na tailnet..."
   if sudo tailscale serve --bg "${porta_openclaw}" 2>/dev/null; then
-    # Extrair hostname Tailscale
-    ts_hostname=$(tailscale status --json 2>/dev/null | grep -o '"Self":{"ID[^}]*"HostName":"[^"]*"' | grep -o '"HostName":"[^"]*"' | cut -d'"' -f4 || true)
-    ts_tailnet=$(tailscale status --json 2>/dev/null | grep -o '"MagicDNSSuffix":"[^"]*"' | cut -d'"' -f4 || true)
+    # Extrair hostname Tailscale (jq com fallback node)
+    ts_status_json=$(tailscale status --json 2>/dev/null || true)
+    if command -v jq &>/dev/null; then
+      ts_hostname=$(echo "$ts_status_json" | jq -r '.Self.HostName // empty' 2>/dev/null || true)
+      ts_tailnet=$(echo "$ts_status_json" | jq -r '.MagicDNSSuffix // empty' 2>/dev/null || true)
+    else
+      ts_hostname=$(echo "$ts_status_json" | node -pe 'JSON.parse(require("fs").readFileSync("/dev/stdin","utf8")).Self.HostName' 2>/dev/null || true)
+      ts_tailnet=$(echo "$ts_status_json" | node -pe 'JSON.parse(require("fs").readFileSync("/dev/stdin","utf8")).MagicDNSSuffix' 2>/dev/null || true)
+    fi
     if [[ -n "$ts_hostname" && -n "$ts_tailnet" ]]; then
       tailscale_serve_url="https://${ts_hostname}.${ts_tailnet}"
     fi

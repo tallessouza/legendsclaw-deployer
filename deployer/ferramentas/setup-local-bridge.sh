@@ -258,30 +258,25 @@ if [[ -z "$vps_hostname" ]]; then
   done
 fi
 
-# Verificar se Tailscale Serve esta ativo na VPS (HTTPS sem porta)
-# Testa https://hostname.tailnet primeiro — se responder, usa essa URL
-tailscale_serve_url=""
+# Montar GATEWAY_URL
+# O gateway na VPS faz bind em loopback (127.0.0.1) por seguranca.
+# Acesso remoto DEVE ser via Tailscale Serve (HTTPS proxy → localhost).
+# Porta direta via IP Tailscale NAO funciona com bind loopback.
 porta_gateway=""
 if [[ -n "$tailnet" ]]; then
-  ts_serve_candidate="https://${vps_hostname}.${tailnet}"
-  echo "  Testando Tailscale Serve (${ts_serve_candidate})..."
-  if curl -skf --max-time 5 "${ts_serve_candidate}/health" &>/dev/null 2>&1; then
-    tailscale_serve_url="$ts_serve_candidate"
-    echo -e "  ${UI_GREEN:-\033[0;32m}Tailscale Serve detectado!${UI_NC:-\033[0m}"
-  else
-    echo -e "  ${UI_YELLOW:-\033[0;33m}Tailscale Serve nao respondeu — usando porta direta.${UI_NC:-\033[0m}"
-  fi
-fi
-
-# Montar GATEWAY_URL
-if [[ -n "$tailscale_serve_url" ]]; then
-  # Tailscale Serve ativo — HTTPS via tailnet, sem porta
-  GATEWAY_URL="$tailscale_serve_url"
+  # Tailscale conectado — usar HTTPS via Tailscale Serve (unica via com loopback bind)
+  GATEWAY_URL="https://${vps_hostname}.${tailnet}"
   porta_gateway="443"
-elif [[ -n "$tailnet" ]]; then
-  # Sem Serve — usar HTTP direto com porta
-  input "bridge.porta_gateway" "Porta do gateway OpenClaw [18789]: " porta_gateway --default=18789
-  GATEWAY_URL="http://${vps_hostname}.${tailnet}:${porta_gateway}"
+
+  # Teste de conectividade (informativo, nao bloqueia configuracao)
+  echo "  Testando Tailscale Serve (${GATEWAY_URL})..."
+  if curl -skf --max-time 10 "${GATEWAY_URL}/health" &>/dev/null 2>&1; then
+    echo -e "  ${UI_GREEN:-\033[0;32m}Tailscale Serve respondeu — conexao OK!${UI_NC:-\033[0m}"
+  else
+    echo -e "  ${UI_YELLOW:-\033[0;33m}Tailscale Serve nao respondeu agora — URL sera configurada mesmo assim.${UI_NC:-\033[0m}"
+    echo -e "  ${UI_YELLOW:-\033[0;33m}Dica: Verifique na VPS se Tailscale Serve esta ativo (sudo tailscale serve status).${UI_NC:-\033[0m}"
+    echo -e "  ${UI_YELLOW:-\033[0;33m}      O gateway faz bind em loopback — porta direta via IP nao funciona.${UI_NC:-\033[0m}"
+  fi
 else
   echo ""
   echo -e "  ${UI_YELLOW}Nao foi possivel detectar o tailnet automaticamente.${UI_NC}"
@@ -290,9 +285,13 @@ else
     echo -e "  ${UI_RED}Formato invalido. Esperado: hostname.tailnet-name.ts.net${UI_NC}"
     input "bridge.tailnet_fqdn" "FQDN completo da VPS: " fqdn_completo --required
   done
-  input "bridge.porta_gateway" "Porta do gateway OpenClaw [18789]: " porta_gateway --default=18789
-  GATEWAY_URL="http://${fqdn_completo}:${porta_gateway}"
+  # Com FQDN manual, usar HTTPS (Tailscale Serve) por padrao
+  GATEWAY_URL="https://${fqdn_completo}"
+  porta_gateway="443"
   tailnet=$(echo "$fqdn_completo" | sed "s/^${vps_hostname}\.//" || echo "$fqdn_completo")
+
+  echo -e "  ${UI_YELLOW:-\033[0;33m}Dica: Certifique-se que Tailscale Serve esta configurado na VPS.${UI_NC:-\033[0m}"
+  echo -e "  ${UI_YELLOW:-\033[0;33m}      O gateway faz bind em loopback — porta direta via IP nao funciona.${UI_NC:-\033[0m}"
 fi
 
 step_ok "Dados coletados"
