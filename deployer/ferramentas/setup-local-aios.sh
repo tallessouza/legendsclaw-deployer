@@ -21,7 +21,7 @@ source "${LIB_DIR}/hints.sh"
 source "${LIB_DIR}/env-detect.sh"
 
 readonly NODE_MIN_VERSION=22
-readonly TOTAL_STEPS=8
+readonly TOTAL_STEPS=9
 
 # =============================================================================
 # STEP 1: LOGGING + STEP INIT
@@ -342,7 +342,58 @@ AGENTEOF
 step_ok "Agente '${nome_agente}' registrado em ${agent_file}"
 
 # =============================================================================
-# STEP 8: SALVAR ESTADO (AC: 10) + HINTS (AC: 11) + RESUMO
+# STEP 8: COPIAR BRIDGE + HOOKS PRO PROJETO
+# O bridge e hooks sao criados pelo setup-local-bridge.sh no repo legendsclaw.
+# Copiar pro projeto AIOS para que o Claude Code funcione nele diretamente.
+# =============================================================================
+
+bridge_src="${REPO_ROOT}/.aios-core/infrastructure/services"
+bridge_dst="${dir_destino}/.aios-core/infrastructure/services"
+settings_src="${REPO_ROOT}/.claude/settings.json"
+settings_dst="${dir_destino}/.claude/settings.json"
+
+bridge_copied=0
+
+# Copiar bridge.js (orquestrador)
+if [[ -f "${bridge_src}/bridge.js" ]]; then
+  mkdir -p "$bridge_dst"
+  cp -p "${bridge_src}/bridge.js" "${bridge_dst}/bridge.js"
+  bridge_copied=$((bridge_copied + 1))
+fi
+
+# Copiar service index do agente
+if [[ -d "${bridge_src}/${nome_agente}" ]]; then
+  mkdir -p "${bridge_dst}/${nome_agente}"
+  cp -rp "${bridge_src}/${nome_agente}/." "${bridge_dst}/${nome_agente}/"
+  bridge_copied=$((bridge_copied + 1))
+fi
+
+# Copiar .claude/settings.json (hooks)
+if [[ -f "$settings_src" ]]; then
+  mkdir -p "${dir_destino}/.claude"
+  if [[ -f "$settings_dst" ]]; then
+    # Merge hooks no settings existente
+    if command -v jq &>/dev/null; then
+      hooks_json=$(jq '.hooks // {}' "$settings_src" 2>/dev/null || echo '{}')
+      jq --argjson hooks "$hooks_json" '.hooks = $hooks' "$settings_dst" > "${settings_dst}.tmp" \
+        && mv "${settings_dst}.tmp" "$settings_dst"
+    else
+      cp -p "$settings_src" "$settings_dst"
+    fi
+  else
+    cp -p "$settings_src" "$settings_dst"
+  fi
+  bridge_copied=$((bridge_copied + 1))
+fi
+
+if [[ "$bridge_copied" -gt 0 ]]; then
+  step_ok "Bridge + hooks copiados para ${dir_destino} (${bridge_copied} itens)"
+else
+  step_skip "Bridge nao encontrado no repo — configure manualmente com setup-local-bridge.sh"
+fi
+
+# =============================================================================
+# STEP 9: SALVAR ESTADO (AC: 10) + HINTS (AC: 11) + RESUMO
 # =============================================================================
 
 # Montar lista de commands para state file
