@@ -723,7 +723,7 @@ fi
 step_ok "index.js atualizado — ${num_skills} skills registradas (backup em .bak)"
 
 # =============================================================================
-# STEP 10b: COPIAR CATEGORIAS DE SKILLS DO TEMPLATE (Story 12.5)
+# STEP 10b: COPIAR CATEGORIAS DE SKILLS DO TEMPLATE + SUPERPOWERS (Story 12.5)
 # =============================================================================
 TEMPLATE_SKILLS_DIR="${DEPLOYER_ROOT}/apps/_template/skills"
 SKILL_CATEGORIES=("dev" "infrastructure" "memory" "orchestration" "superpowers" "system")
@@ -735,9 +735,34 @@ if [[ ! -d "$TEMPLATE_SKILLS_DIR" ]]; then
   exit 1
 fi
 
+# Clonar superpowers do repositorio oficial (obra/superpowers)
+SUPERPOWERS_REPO="https://github.com/obra/superpowers.git"
+SUPERPOWERS_TMP="/tmp/superpowers-$$"
+
+echo "  Clonando superpowers de ${SUPERPOWERS_REPO}..."
+if git clone --depth 1 --quiet "$SUPERPOWERS_REPO" "$SUPERPOWERS_TMP" 2>/dev/null; then
+  superpowers_dest="${SKILLS_DIR}/superpowers"
+  rm -rf "$superpowers_dest"
+  cp -r "$SUPERPOWERS_TMP/skills" "$superpowers_dest"
+  # Copiar tambem agents, commands, hooks, lib se existirem
+  for extra in agents commands hooks lib; do
+    if [[ -d "$SUPERPOWERS_TMP/$extra" ]]; then
+      cp -r "$SUPERPOWERS_TMP/$extra" "$superpowers_dest/_${extra}"
+    fi
+  done
+  rm -rf "$SUPERPOWERS_TMP"
+  echo "  Superpowers: $(ls -1 "$superpowers_dest" | wc -l) skills clonadas do repo oficial"
+else
+  echo -e "  ${UI_YELLOW}WARNING: Falha ao clonar superpowers — usando template local${UI_NC}"
+  rm -rf "$SUPERPOWERS_TMP"
+fi
+
 for category in "${SKILL_CATEGORIES[@]}"; do
   src_dir="${TEMPLATE_SKILLS_DIR}/${category}"
   dest_dir="${SKILLS_DIR}/${category}"
+
+  # superpowers ja foi tratado acima via clone
+  [[ "$category" == "superpowers" && -d "$dest_dir" ]] && { categories_copied=$((categories_copied + 1)); continue; }
 
   if [[ ! -d "$src_dir" ]]; then
     echo -e "  ${UI_YELLOW}WARNING: Categoria '${category}' nao encontrada no template${UI_NC}"
@@ -772,7 +797,7 @@ for category in "${SKILL_CATEGORIES[@]}"; do
   categories_copied=$((categories_copied + 1))
 done
 
-step_ok "${categories_copied} categorias de skills copiadas do template (${SKILL_CATEGORIES[*]})"
+step_ok "${categories_copied} categorias de skills copiadas (superpowers clonadas do repo oficial)"
 
 # =============================================================================
 # STEP 10c: REGISTRAR ALWAYS-ON SKILLS NO INDEX.JS (Story 12.5 — AC4)
