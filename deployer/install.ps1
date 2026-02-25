@@ -4,7 +4,7 @@
     Legendsclaw Installer — Windows nativo (PowerShell)
 .DESCRIPTION
     Equivalente ao install.sh --local para Windows.
-    Executa 3 etapas: Setup Local, Bridge Local→VPS, AIOS Init.
+    Executa 4 etapas: Setup Local, Bridge Local→VPS, OpenClaw Remote, AIOS Init.
 .EXAMPLE
     # One-liner (download + execute)
     irm https://raw.githubusercontent.com/tallessouza/legendsclaw-deployer/main/deployer/install.ps1 | iex
@@ -23,7 +23,7 @@ $ErrorActionPreference = 'Stop'
 # Constantes
 # =============================================================================
 
-$INSTALL_VERSION = '1.1.0'
+$INSTALL_VERSION = '1.2.0'
 $REPO_URL = 'https://github.com/tallessouza/legendsclaw-deployer.git'
 $TIMESTAMP = Get-Date -Format 'yyyyMMdd_HHmmss'
 $LOG_DIR = Join-Path $HOME 'legendsclaw-logs'
@@ -31,7 +31,7 @@ $LOG_FILE = Join-Path $LOG_DIR "install-${TIMESTAMP}.log"
 $INSTALL_DIR = Join-Path $HOME 'legendsclaw'
 $STATE_DIR = Join-Path $HOME 'dados_vps'
 $NODE_MIN_VERSION = 22
-$TOTAL_STEPS = 10
+$TOTAL_STEPS = 12
 
 # Contadores
 $script:CURRENT_STEP = 0
@@ -99,15 +99,30 @@ function Read-Input {
     param(
         [string]$Prompt,
         [string]$Default = '',
-        [switch]$Required
+        [switch]$Required,
+        [switch]$Secret
     )
     $display = if ($Default) { "$Prompt[$Default]: " } else { "${Prompt}: " }
-    $value = Read-Host $display
+    if ($Secret) {
+        $secureValue = Read-Host $display -AsSecureString
+        $value = [Runtime.InteropServices.Marshal]::PtrToStringAuto(
+            [Runtime.InteropServices.Marshal]::SecureStringToBSTR($secureValue)
+        )
+    } else {
+        $value = Read-Host $display
+    }
     if ([string]::IsNullOrWhiteSpace($value)) { $value = $Default }
     if ($Required -and [string]::IsNullOrWhiteSpace($value)) {
         while ([string]::IsNullOrWhiteSpace($value)) {
             Write-Host '  Valor obrigatorio.' -ForegroundColor Red
-            $value = Read-Host $display
+            if ($Secret) {
+                $secureValue = Read-Host $display -AsSecureString
+                $value = [Runtime.InteropServices.Marshal]::PtrToStringAuto(
+                    [Runtime.InteropServices.Marshal]::SecureStringToBSTR($secureValue)
+                )
+            } else {
+                $value = Read-Host $display
+            }
         }
     }
     return $value
@@ -137,6 +152,12 @@ function Read-StateValue {
         return ($line -replace "^${Key}:\s*", '').Trim()
     }
     return ''
+}
+
+function Pause-BetweenSteps {
+    Write-Host ''
+    Write-Host 'Pressione ENTER para continuar...' -ForegroundColor Yellow
+    Read-Host | Out-Null
 }
 
 # =============================================================================
@@ -262,12 +283,12 @@ if (Test-Path (Join-Path $INSTALL_DIR '.git')) {
 
 # =============================================================================
 # =============================================================================
-#  ETAPA 1/3: SETUP LOCAL
+#  ETAPA 1/4: SETUP LOCAL
 # =============================================================================
 # =============================================================================
 
 Write-Host ''
-Write-Host '--- Etapa 1/3: Setup Local ---' -ForegroundColor Cyan
+Write-Host '--- Etapa 1/4: Setup Local ---' -ForegroundColor Cyan
 Write-Host ''
 
 # --- Node.js 22+ ---
@@ -377,14 +398,16 @@ Save-StateFile -FilePath (Join-Path $STATE_DIR 'dados_local_setup') -Data $setup
 
 Feedback-OK 'Setup local concluido (dependencias instaladas)'
 
+Pause-BetweenSteps
+
 # =============================================================================
 # =============================================================================
-#  ETAPA 2/3: BRIDGE LOCAL→VPS
+#  ETAPA 2/4: BRIDGE LOCAL→VPS
 # =============================================================================
 # =============================================================================
 
 Write-Host ''
-Write-Host '--- Etapa 2/3: Bridge Local→VPS ---' -ForegroundColor Cyan
+Write-Host '--- Etapa 2/4: Bridge Local→VPS ---' -ForegroundColor Cyan
 Write-Host ''
 
 # --- Verificar dependencias bridge ---
@@ -467,10 +490,28 @@ if ([string]::IsNullOrWhiteSpace($vpsHostname)) {
     }
 }
 
-$portaGateway = Read-Input -Prompt 'Porta do gateway OpenClaw' -Default '18789'
+# --- Detectar Tailscale Serve (HTTPS sem porta) ---
+$tailscaleServeUrl = ''
+$portaGateway = ''
+
+if (-not [string]::IsNullOrWhiteSpace($tailnet)) {
+    $tsServeCandidate = "https://${vpsHostname}.${tailnet}"
+    Write-Host "  Testando Tailscale Serve (${tsServeCandidate})..."
+    try {
+        $null = Invoke-WebRequest -Uri "${tsServeCandidate}/health" -TimeoutSec 5 -SkipCertificateCheck -ErrorAction Stop
+        $tailscaleServeUrl = $tsServeCandidate
+        Write-Host '  Tailscale Serve detectado!' -ForegroundColor Green
+    } catch {
+        Write-Host '  Tailscale Serve nao respondeu — usando porta direta.' -ForegroundColor Yellow
+    }
+}
 
 # Montar GATEWAY_URL
-if (-not [string]::IsNullOrWhiteSpace($tailnet)) {
+if (-not [string]::IsNullOrWhiteSpace($tailscaleServeUrl)) {
+    $GATEWAY_URL = $tailscaleServeUrl
+    $portaGateway = '443'
+} elseif (-not [string]::IsNullOrWhiteSpace($tailnet)) {
+    $portaGateway = Read-Input -Prompt 'Porta do gateway OpenClaw' -Default '18789'
     $GATEWAY_URL = "http://${vpsHostname}.${tailnet}:${portaGateway}"
 } else {
     Write-Host ''
@@ -481,6 +522,7 @@ if (-not [string]::IsNullOrWhiteSpace($tailnet)) {
         Write-Host '  Formato invalido. Esperado: hostname.tailnet-name.ts.net' -ForegroundColor Red
         $fqdnCompleto = Read-Input -Prompt 'FQDN completo da VPS' -Required
     }
+    $portaGateway = Read-Input -Prompt 'Porta do gateway OpenClaw' -Default '18789'
     $GATEWAY_URL = "http://${fqdnCompleto}:${portaGateway}"
     $tailnet = $fqdnCompleto -replace "^${vpsHostname}\.", ''
 }
@@ -531,6 +573,16 @@ if ($tailscaleConnected) {
 $servicesDir = Join-Path $INSTALL_DIR '.aios-core' 'infrastructure' 'services'
 $agentServiceDir = Join-Path $servicesDir $nomeAgente
 
+# Limpar servicos antigos (manter apenas o agente atual)
+if (Test-Path $servicesDir) {
+    Get-ChildItem -Path $servicesDir -Directory -ErrorAction SilentlyContinue | ForEach-Object {
+        if ($_.Name -ne $nomeAgente) {
+            Remove-Item -Path $_.FullName -Recurse -Force -ErrorAction SilentlyContinue
+            Write-Host "  Servico antigo removido: $($_.Name)"
+        }
+    }
+}
+
 if (-not (Test-Path $agentServiceDir)) {
     New-Item -ItemType Directory -Path $agentServiceDir -Force | Out-Null
 }
@@ -561,7 +613,7 @@ module.exports = {
     const start = Date.now();
 
     return new Promise((resolve) => {
-      const req = mod.get(url, { timeout: 5000 }, (res) => {
+      const req = mod.get(url, { timeout: 5000, rejectUnauthorized: false }, (res) => {
         const latency_ms = Date.now() - start;
         let body = '';
         res.on('data', (chunk) => { body += chunk; });
@@ -593,17 +645,61 @@ module.exports = {
 Set-Content -Path (Join-Path $agentServiceDir 'index.js') -Value $serviceIndex -Encoding UTF8
 Write-Host "  Service index criado: $agentServiceDir\index.js" -ForegroundColor Green
 
+# --- Criar Session Check Script (Story 12.3) ---
+$sessionCheckFile = Join-Path $servicesDir 'session-check.ps1'
+
+$sessionCheckContent = @"
+# Session check — Tailscale, Gateway, OpenClaw config, Bridge services
+# Generated by install.ps1 (Story 12.3)
+
+# 1. Tailscale
+`$TS = 'offline'
+try {
+    `$tsJson = tailscale status --json 2>`$null | ConvertFrom-Json
+    if (`$tsJson.BackendState -eq 'Running') { `$TS = 'OK' }
+} catch { }
+
+# 2. Gateway health
+`$GW = 'offline'
+try {
+    `$null = Invoke-WebRequest -Uri '${GATEWAY_URL}/health' -TimeoutSec 5 -SkipCertificateCheck -ErrorAction Stop
+    `$GW = 'OK'
+} catch { }
+
+# 3. OpenClaw config
+`$OC = 'not configured'
+`$ocFile = Join-Path `$HOME '.openclaw' 'openclaw.json'
+if (Test-Path `$ocFile) {
+    try {
+        `$ocJson = Get-Content `$ocFile -Raw | ConvertFrom-Json
+        if (`$ocJson.gateway.mode) { `$OC = `$ocJson.gateway.mode }
+    } catch { }
+}
+
+# 4. Bridge services
+`$svcCount = 0
+try {
+    `$listOut = node .aios-core/infrastructure/services/bridge.js list 2>`$null
+    `$svcCount = (`$listOut | Where-Object { `$_ -match '^\s+[a-z]' }).Count
+} catch { }
+
+Write-Output "[Bridge] Tailscale: `$TS | Gateway: `$GW | OpenClaw: `$OC | Services: `$svcCount"
+"@
+
+Set-Content -Path $sessionCheckFile -Value $sessionCheckContent -Encoding UTF8
+Write-Host "  Session check criado: $sessionCheckFile" -ForegroundColor Green
+
 # --- Configurar Claude Code Hooks ---
 $settingsFile = Join-Path $INSTALL_DIR '.claude' 'settings.json'
 
-# Hooks no formato real do settings.json (com matcher + hooks aninhados)
+# Hooks no formato real do settings.json — usa session-check.ps1 no SessionStart
 $hooksObj = @{
     'SessionStart' = @(
         @{
             hooks = @(
                 @{
                     type    = 'command'
-                    command = "node .aios-core/infrastructure/services/bridge.js status 2>/dev/null || echo '[Bridge] Offline — VPN may be disconnected'"
+                    command = "powershell -ExecutionPolicy Bypass -File .aios-core/infrastructure/services/session-check.ps1 2>`$null || echo '[Bridge] Session check unavailable'"
                 }
             )
         }
@@ -614,7 +710,7 @@ $hooksObj = @{
             hooks   = @(
                 @{
                     type    = 'command'
-                    command = 'node .aios-core/infrastructure/services/bridge.js validate-call 2>/dev/null || true'
+                    command = 'node .aios-core/infrastructure/services/bridge.js validate-call 2>$null || echo ""'
                 }
             )
         }
@@ -625,7 +721,7 @@ $hooksObj = @{
             hooks   = @(
                 @{
                     type    = 'command'
-                    command = 'node .aios-core/infrastructure/services/bridge.js log-execution 2>/dev/null || true'
+                    command = 'node .aios-core/infrastructure/services/bridge.js log-execution 2>$null || echo ""'
                 }
             )
         }
@@ -634,7 +730,7 @@ $hooksObj = @{
 
 if (Test-Path $settingsFile) {
     $settingsContent = Get-Content $settingsFile -Raw -ErrorAction SilentlyContinue
-    if ($settingsContent -match 'bridge\.js') {
+    if ($settingsContent -match 'bridge\.js|session-check') {
         Write-Host "  Hooks ja configurados em $settingsFile" -ForegroundColor Yellow
     } else {
         # Backup
@@ -643,7 +739,6 @@ if (Test-Path $settingsFile) {
 
         # Merge hooks
         $settings = $settingsContent | ConvertFrom-Json
-        # Remover hooks antigo se existir e adicionar novo
         $settings | Add-Member -MemberType NoteProperty -Name 'hooks' -Value $hooksObj -Force
         $settings | ConvertTo-Json -Depth 10 | Set-Content -Path $settingsFile -Encoding UTF8
         Write-Host "  Hooks configurados em $settingsFile (backup em .bak)" -ForegroundColor Green
@@ -709,14 +804,166 @@ Save-StateFile -FilePath (Join-Path $STATE_DIR 'dados_bridge') -Data $bridgeStat
 
 Feedback-OK 'Bridge configurado com sucesso'
 
+Pause-BetweenSteps
+
 # =============================================================================
 # =============================================================================
-#  ETAPA 3/3: AIOS INIT + REGISTRO DE AGENTE
+#  ETAPA 3/4: OPENCLAW REMOTE (mode:remote via WSS/Tailscale)
 # =============================================================================
 # =============================================================================
 
 Write-Host ''
-Write-Host '--- Etapa 3/3: AIOS Init ---' -ForegroundColor Cyan
+Write-Host '--- Etapa 3/4: OpenClaw Remote ---' -ForegroundColor Cyan
+Write-Host ''
+
+$openclawDir = Join-Path $HOME '.openclaw'
+$openclawConfig = Join-Path $openclawDir 'openclaw.json'
+
+# --- Idempotencia: skip se ja configurado ---
+$skipOpenclaw = $false
+if ((Test-Path $openclawConfig) -and (Test-Path (Join-Path $STATE_DIR 'dados_local_openclaw'))) {
+    try {
+        $existingConfig = Get-Content $openclawConfig -Raw | ConvertFrom-Json
+        if ($existingConfig.gateway.mode -eq 'remote') {
+            Feedback-SKIP "OpenClaw ja configurado em mode:remote (${openclawConfig})"
+            Write-Host "  Para reconfigurar, remova: Remove-Item ${openclawConfig}" -ForegroundColor Yellow
+            $skipOpenclaw = $true
+        }
+    } catch { }
+}
+
+if (-not $skipOpenclaw) {
+    # --- Coletar dados para OpenClaw ---
+    # Ler gateway password do dados_gateway ou perguntar
+    $gatewayPassword = ''
+    $gatewayStateFile = Join-Path $STATE_DIR 'dados_gateway'
+    if (Test-Path $gatewayStateFile) {
+        $gatewayPassword = Read-StateValue -FilePath $gatewayStateFile -Key 'Gateway Password'
+    }
+    if ([string]::IsNullOrWhiteSpace($gatewayPassword)) {
+        $gatewayPassword = Read-Input -Prompt 'Password do gateway (WSS auth)' -Required -Secret
+    }
+
+    # Montar WSS URL
+    if (-not [string]::IsNullOrWhiteSpace($tailnet)) {
+        $wssUrl = "wss://${vpsHostname}.${tailnet}"
+    } else {
+        # Fallback: tentar construir a partir do GATEWAY_URL
+        $wssUrl = "wss://${vpsHostname}.${tailnet}"
+        if ([string]::IsNullOrWhiteSpace($tailnet)) {
+            Write-Host '  Tailnet nao detectado — insira o FQDN para o WSS URL.' -ForegroundColor Yellow
+            $wssFqdn = Read-Input -Prompt 'FQDN completo para WSS (ex: meu-vps.tailnet.ts.net)' -Required
+            $wssUrl = "wss://${wssFqdn}"
+        }
+    }
+
+    Write-Host ''
+    Write-Host "  WSS URL: $wssUrl" -ForegroundColor White
+    Write-Host ''
+
+    # --- Instalar/verificar OpenClaw CLI ---
+    $openclawVersion = 'unknown'
+    $openclawCmd = Get-Command openclaw -ErrorAction SilentlyContinue
+    if ($openclawCmd) {
+        $openclawVersion = (openclaw --version 2>$null | Select-Object -First 1) -replace '\s+', ' '
+        Write-Host "  OpenClaw CLI ja instalado (${openclawVersion})" -ForegroundColor Green
+    } else {
+        Write-Host '  Instalando OpenClaw CLI via npm...' -ForegroundColor Yellow
+        try {
+            npm install -g openclaw 2>$null | Out-Null
+            $openclawCmd = Get-Command openclaw -ErrorAction SilentlyContinue
+            if ($openclawCmd) {
+                $openclawVersion = (openclaw --version 2>$null | Select-Object -First 1) -replace '\s+', ' '
+                Write-Host "  OpenClaw CLI instalado (${openclawVersion})" -ForegroundColor Green
+            } else {
+                Write-Host '  OpenClaw CLI nao instalado — config sera gerado mesmo assim' -ForegroundColor Yellow
+                Write-Host '  Instale manualmente: npm install -g openclaw' -ForegroundColor Yellow
+            }
+        } catch {
+            Write-Host '  OpenClaw CLI nao instalado — config sera gerado mesmo assim' -ForegroundColor Yellow
+            Write-Host '  Instale manualmente: npm install -g openclaw' -ForegroundColor Yellow
+        }
+    }
+
+    # --- Criar ~/.openclaw/ e gerar openclaw.json ---
+    if (-not (Test-Path $openclawDir)) {
+        New-Item -ItemType Directory -Path $openclawDir -Force | Out-Null
+    }
+
+    # Backup se existente
+    if (Test-Path $openclawConfig) {
+        Copy-Item $openclawConfig "${openclawConfig}.bak" -Force
+        Write-Host "  Backup criado: ${openclawConfig}.bak"
+    }
+
+    $openclawWorkspace = Join-Path $openclawDir 'workspace'
+    $openclawJsonContent = @{
+        gateway = @{
+            mode   = 'remote'
+            remote = @{
+                url      = $wssUrl
+                password = $gatewayPassword
+            }
+        }
+        agents = @{
+            defaults = @{
+                model     = @{ primary = 'openrouter/auto' }
+                workspace = $openclawWorkspace
+            }
+        }
+    }
+
+    $openclawJsonContent | ConvertTo-Json -Depth 10 | Set-Content -Path $openclawConfig -Encoding UTF8
+    Write-Host "  Config gerado: ${openclawConfig} (mode:remote)" -ForegroundColor Green
+
+    # --- Testar conexao WSS (via HTTPS health check) ---
+    $wssTest = 'SKIP'
+    $httpsUrl = "https://${vpsHostname}.${tailnet}"
+    Write-Host ''
+    Write-Host "  Testando conexao ao gateway (${httpsUrl}/health)..."
+
+    try {
+        $null = Invoke-WebRequest -Uri "${httpsUrl}/health" -TimeoutSec 10 -SkipCertificateCheck -ErrorAction Stop
+        $wssTest = 'OK'
+        Write-Host '  Gateway remoto respondeu — WSS deve funcionar' -ForegroundColor Green
+    } catch {
+        # Tentar HTTP direto se Tailscale Serve nao ativo
+        try {
+            $null = Invoke-WebRequest -Uri "${GATEWAY_URL}/health" -TimeoutSec 10 -SkipCertificateCheck -ErrorAction Stop
+            $wssTest = 'OK'
+            Write-Host '  Gateway remoto respondeu via HTTP direto' -ForegroundColor Green
+        } catch {
+            $wssTest = 'FAIL'
+            Write-Host '  Gateway nao respondeu (pode estar offline — config salvo mesmo assim)' -ForegroundColor Yellow
+            Write-Host "  Teste manual: Invoke-WebRequest ${httpsUrl}/health" -ForegroundColor Yellow
+        }
+    }
+
+    # --- Salvar state OpenClaw ---
+    $openclawState = @{
+        'OpenClaw Version'  = $openclawVersion
+        'Config Path'       = $openclawConfig
+        'Gateway Mode'      = 'remote'
+        'Gateway URL'       = $wssUrl
+        'WSS Test'          = $wssTest
+        'Agente'            = $nomeAgente
+        'Data Configuracao' = Get-Date -Format 'yyyy-MM-dd HH:mm:ss'
+    }
+    Save-StateFile -FilePath (Join-Path $STATE_DIR 'dados_local_openclaw') -Data $openclawState
+
+    Feedback-OK 'OpenClaw configurado em mode:remote'
+}
+
+Pause-BetweenSteps
+
+# =============================================================================
+# =============================================================================
+#  ETAPA 4/4: AIOS INIT + REGISTRO DE AGENTE
+# =============================================================================
+# =============================================================================
+
+Write-Host ''
+Write-Host '--- Etapa 4/4: AIOS Init ---' -ForegroundColor Cyan
 Write-Host ''
 
 # --- Verificar Node.js / npm ---
@@ -811,9 +1058,9 @@ if (Test-Path $whitelabelFile) {
     Write-Host '  Dados do agente carregados de dados_whitelabel' -ForegroundColor Green
 } else {
     # Fallback: reusar nome do agente do bridge (evita pedir 2x)
-    $bridgeFile = Join-Path $STATE_DIR 'dados_bridge'
-    if ([string]::IsNullOrWhiteSpace($nomeAgente) -and (Test-Path $bridgeFile)) {
-        $nomeAgente = Read-StateValue -FilePath $bridgeFile -Key 'Agente'
+    $bridgeStateFile = Join-Path $STATE_DIR 'dados_bridge'
+    if ([string]::IsNullOrWhiteSpace($nomeAgente) -and (Test-Path $bridgeStateFile)) {
+        $nomeAgente = Read-StateValue -FilePath $bridgeStateFile -Key 'Agente'
         if (-not [string]::IsNullOrWhiteSpace($nomeAgente)) {
             Write-Host "  Nome do agente recuperado do bridge: $nomeAgente" -ForegroundColor Green
         }
@@ -983,7 +1230,73 @@ Type ``*help`` to see all commands.
 Set-Content -Path $agentFile -Value $agentDefinition -Encoding UTF8
 Write-Host "  Agente '${nomeAgente}' registrado em $agentFile" -ForegroundColor Green
 
-# --- Salvar state etapa 3 ---
+# --- Copiar bridge + hooks + agent command pro projeto AIOS ---
+$bridgeSrc = Join-Path $INSTALL_DIR '.aios-core' 'infrastructure' 'services'
+$bridgeDst = Join-Path $dirDestino '.aios-core' 'infrastructure' 'services'
+$settingsSrc = Join-Path $INSTALL_DIR '.claude' 'settings.json'
+$settingsDst = Join-Path $dirDestino '.claude' 'settings.json'
+
+$bridgeCopied = 0
+
+# Copiar bridge.js
+$bridgeSrcFile = Join-Path $bridgeSrc 'bridge.js'
+if (Test-Path $bridgeSrcFile) {
+    if (-not (Test-Path $bridgeDst)) { New-Item -ItemType Directory -Path $bridgeDst -Force | Out-Null }
+    Copy-Item $bridgeSrcFile (Join-Path $bridgeDst 'bridge.js') -Force
+    $bridgeCopied++
+}
+
+# Copiar service index do agente
+$agentSvcSrc = Join-Path $bridgeSrc $nomeAgente
+if (Test-Path $agentSvcSrc) {
+    $agentSvcDst = Join-Path $bridgeDst $nomeAgente
+    if (-not (Test-Path $agentSvcDst)) { New-Item -ItemType Directory -Path $agentSvcDst -Force | Out-Null }
+    Copy-Item (Join-Path $agentSvcSrc '*') $agentSvcDst -Recurse -Force
+    $bridgeCopied++
+}
+
+# Copiar session-check.ps1
+$sessionCheckSrc = Join-Path $bridgeSrc 'session-check.ps1'
+if (Test-Path $sessionCheckSrc) {
+    Copy-Item $sessionCheckSrc (Join-Path $bridgeDst 'session-check.ps1') -Force
+    $bridgeCopied++
+}
+
+# Copiar .claude/settings.json (hooks)
+if (Test-Path $settingsSrc) {
+    $settingsDstDir = Split-Path $settingsDst -Parent
+    if (-not (Test-Path $settingsDstDir)) { New-Item -ItemType Directory -Path $settingsDstDir -Force | Out-Null }
+    if (Test-Path $settingsDst) {
+        # Merge: copiar hooks do source pro destino
+        try {
+            $srcJson = Get-Content $settingsSrc -Raw | ConvertFrom-Json
+            $dstJson = Get-Content $settingsDst -Raw | ConvertFrom-Json
+            $dstJson | Add-Member -MemberType NoteProperty -Name 'hooks' -Value $srcJson.hooks -Force
+            $dstJson | ConvertTo-Json -Depth 10 | Set-Content -Path $settingsDst -Encoding UTF8
+        } catch {
+            Copy-Item $settingsSrc $settingsDst -Force
+        }
+    } else {
+        Copy-Item $settingsSrc $settingsDst -Force
+    }
+    $bridgeCopied++
+}
+
+# Registrar agente como Claude Code command (skill invocavel)
+$commandsDst = Join-Path $dirDestino '.claude' 'commands' 'AIOS' 'agents'
+if (-not (Test-Path $commandsDst)) { New-Item -ItemType Directory -Path $commandsDst -Force | Out-Null }
+if (Test-Path $agentFile) {
+    Copy-Item $agentFile (Join-Path $commandsDst "${nomeAgente}.md") -Force
+    $bridgeCopied++
+}
+
+if ($bridgeCopied -gt 0) {
+    Write-Host "  Bridge + hooks + agent command copiados para ${dirDestino} (${bridgeCopied} itens)" -ForegroundColor Green
+} else {
+    Write-Host '  Bridge nao encontrado no repo — configure manualmente com setup-local-bridge' -ForegroundColor Yellow
+}
+
+# --- Salvar state etapa 4 ---
 $allCommands = 'help,status,chat'
 foreach ($skill in $skillsArray) {
     $skill = $skill.Trim()
@@ -1012,6 +1325,12 @@ Feedback-OK 'AIOS inicializado e agente registrado'
 # RESULTADO FINAL
 # =============================================================================
 
+# Ler dados finais dos state files
+$finalAgentName = Read-StateValue -FilePath (Join-Path $STATE_DIR 'dados_bridge') -Key 'Agente'
+if ([string]::IsNullOrWhiteSpace($finalAgentName)) { $finalAgentName = $nomeAgente }
+$finalAiosDir = Read-StateValue -FilePath (Join-Path $STATE_DIR 'dados_aios_init') -Key 'Diretorio'
+if ([string]::IsNullOrWhiteSpace($finalAiosDir)) { $finalAiosDir = $INSTALL_DIR }
+
 Write-Host ''
 Write-Host '==============================================' -ForegroundColor Cyan
 Write-Host '  SETUP LOCAL CONCLUIDO!' -ForegroundColor Cyan
@@ -1019,10 +1338,13 @@ Write-Host '==============================================' -ForegroundColor Cya
 Write-Host ''
 Write-Host '  Seu ambiente local esta pronto.'
 Write-Host "  Para ativar o agente no Claude Code:"
-Write-Host "  cd $INSTALL_DIR && @${nomeAgente}" -ForegroundColor White
+Write-Host "  cd $finalAiosDir && @${finalAgentName}" -ForegroundColor White
 Write-Host ''
 Write-Host '  Para verificar o bridge:'
-Write-Host "  cd $INSTALL_DIR\.aios-core\infrastructure && node bridge.js status" -ForegroundColor White
+Write-Host "  cd $finalAiosDir && node .aios-core\infrastructure\services\bridge.js status" -ForegroundColor White
+Write-Host ''
+Write-Host '  Para verificar o OpenClaw:'
+Write-Host "  openclaw status" -ForegroundColor White
 Write-Host ''
 
 Feedback-OK 'Instrucoes exibidas'
