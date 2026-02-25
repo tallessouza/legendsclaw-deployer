@@ -142,17 +142,18 @@ else
 
   install_ok="false"
 
-  # Tentativa 1: installer oficial (recomendado)
-  if curl -fsSL https://openclaw.ai/install.sh | bash --no-onboard 2>&1; then
+  # Tentativa 1: npm global (mais confiavel em ambientes com Node ja instalado)
+  if command -v npm &>/dev/null; then
+    echo "  npm install -g openclaw ..."
+    npm install -g openclaw 2>&1 || true
     command -v openclaw &>/dev/null && install_ok="true"
   fi
 
-  # Tentativa 2: npm global
-  if [[ "$install_ok" == "false" ]] && command -v npm &>/dev/null; then
-    echo "  Installer oficial falhou — tentando npm install..."
-    if npm install -g openclaw 2>&1 | tail -5; then
-      command -v openclaw &>/dev/null && install_ok="true"
-    fi
+  # Tentativa 2: installer oficial
+  if [[ "$install_ok" == "false" ]]; then
+    echo "  npm falhou — tentando installer oficial..."
+    curl -fsSL https://openclaw.ai/install.sh | ENV_NO_ONBOARD=1 bash 2>&1 || true
+    command -v openclaw &>/dev/null && install_ok="true"
   fi
 
   if [[ "$install_ok" == "true" ]]; then
