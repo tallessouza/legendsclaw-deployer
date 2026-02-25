@@ -531,3 +531,234 @@ EOF
   [[ "$output" == *"09|9)"* ]]
   [[ "$output" == *"08-skills.sh"* ]]
 }
+
+# =============================================================================
+# Story 12.5: Skill Categories from Template
+# =============================================================================
+
+@test "template: 6 skill categories exist" {
+  local template_skills="$SCRIPT_DIR/apps/_template/skills"
+  local categories=("dev" "infrastructure" "memory" "orchestration" "superpowers" "system")
+  for cat in "${categories[@]}"; do
+    [[ -d "${template_skills}/${cat}" ]]
+  done
+}
+
+@test "template: each category has README.md" {
+  local template_skills="$SCRIPT_DIR/apps/_template/skills"
+  local categories=("dev" "infrastructure" "memory" "orchestration" "superpowers" "system")
+  for cat in "${categories[@]}"; do
+    [[ -f "${template_skills}/${cat}/README.md" ]]
+  done
+}
+
+@test "template: every skill has SKILL.md" {
+  local template_skills="$SCRIPT_DIR/apps/_template/skills"
+  local count=0
+  local missing=()
+  for skill_dir in "$template_skills"/*/; do
+    [[ "$(basename "$skill_dir")" == "lib" ]] && continue
+    for sub_dir in "$skill_dir"*/; do
+      [[ ! -d "$sub_dir" ]] && continue
+      [[ "$(basename "$sub_dir")" == "lib" ]] && continue
+      [[ "$(basename "$sub_dir")" == "tools" ]] && continue
+      if [[ -f "${sub_dir}SKILL.md" ]]; then
+        count=$((count + 1))
+      else
+        missing+=("$(basename "$skill_dir")/$(basename "$sub_dir")")
+      fi
+    done
+  done
+  if [[ ${#missing[@]} -gt 0 ]]; then
+    echo "Missing SKILL.md in: ${missing[*]}" >&2
+    return 1
+  fi
+  [[ $count -gt 0 ]]
+}
+
+# =============================================================================
+# Story 12.5: SKILL.md Frontmatter Format
+# =============================================================================
+
+@test "SKILL.md: has YAML frontmatter with required fields" {
+  local template_skills="$SCRIPT_DIR/apps/_template/skills"
+  local required_fields=("name" "description" "version" "tier" "always_on")
+  local fail_count=0
+
+  while IFS= read -r -d '' skill_md; do
+    # Check starts with ---
+    local first_line
+    first_line=$(head -1 "$skill_md")
+    if [[ "$first_line" != "---" ]]; then
+      echo "Missing frontmatter start: $skill_md" >&2
+      fail_count=$((fail_count + 1))
+      continue
+    fi
+    # Check each required field exists in frontmatter
+    for field in "${required_fields[@]}"; do
+      if ! sed -n '2,/^---$/p' "$skill_md" | grep -q "^${field}:"; then
+        echo "Missing field '${field}' in: $skill_md" >&2
+        fail_count=$((fail_count + 1))
+      fi
+    done
+  done < <(find "$template_skills" -name "SKILL.md" -print0)
+
+  [[ $fail_count -eq 0 ]]
+}
+
+@test "SKILL.md: memory/SKILL.md has frontmatter (migrated)" {
+  local skill_md="$SCRIPT_DIR/apps/_template/skills/memory/SKILL.md"
+  local first_line
+  first_line=$(head -1 "$skill_md")
+  [[ "$first_line" == "---" ]]
+  run grep "^name:" "$skill_md"
+  [[ "$status" -eq 0 ]]
+}
+
+@test "SKILL.md: elicitation/SKILL.md has frontmatter (migrated)" {
+  local skill_md="$SCRIPT_DIR/apps/_template/skills/elicitation/SKILL.md"
+  local first_line
+  first_line=$(head -1 "$skill_md")
+  [[ "$first_line" == "---" ]]
+  run grep "^name:" "$skill_md"
+  [[ "$status" -eq 0 ]]
+}
+
+# =============================================================================
+# Story 12.5: Always-on Skills
+# =============================================================================
+
+@test "always-on: context-recovery has always_on: true" {
+  local skill_md="$SCRIPT_DIR/apps/_template/skills/memory/context-recovery/SKILL.md"
+  run grep "always_on: true" "$skill_md"
+  [[ "$status" -eq 0 ]]
+}
+
+@test "always-on: planner has always_on: true" {
+  local skill_md="$SCRIPT_DIR/apps/_template/skills/orchestration/planner/SKILL.md"
+  run grep "always_on: true" "$skill_md"
+  [[ "$status" -eq 0 ]]
+}
+
+@test "always-on: context-recovery has index.js" {
+  [[ -f "$SCRIPT_DIR/apps/_template/skills/memory/context-recovery/index.js" ]]
+}
+
+@test "always-on: planner has index.js" {
+  [[ -f "$SCRIPT_DIR/apps/_template/skills/orchestration/planner/index.js" ]]
+}
+
+@test "always-on: context-recovery index.js exports required fields" {
+  local idx="$SCRIPT_DIR/apps/_template/skills/memory/context-recovery/index.js"
+  run cat "$idx"
+  [[ "$output" == *"name:"* ]]
+  [[ "$output" == *"handler:"* ]]
+  [[ "$output" == *"health:"* ]]
+}
+
+@test "always-on: planner index.js exports required fields" {
+  local idx="$SCRIPT_DIR/apps/_template/skills/orchestration/planner/index.js"
+  run cat "$idx"
+  [[ "$output" == *"name:"* ]]
+  [[ "$output" == *"handler:"* ]]
+  [[ "$output" == *"health:"* ]]
+}
+
+# =============================================================================
+# Story 12.5: Infrastructure skills have SKILL.md
+# =============================================================================
+
+@test "infrastructure: clickup-ops has SKILL.md" {
+  [[ -f "$SCRIPT_DIR/apps/_template/skills/infrastructure/clickup-ops/SKILL.md" ]]
+}
+
+@test "infrastructure: n8n-trigger has SKILL.md" {
+  [[ -f "$SCRIPT_DIR/apps/_template/skills/infrastructure/n8n-trigger/SKILL.md" ]]
+}
+
+@test "infrastructure: supabase-query has SKILL.md" {
+  [[ -f "$SCRIPT_DIR/apps/_template/skills/infrastructure/supabase-query/SKILL.md" ]]
+}
+
+@test "infrastructure: allos-status has SKILL.md" {
+  [[ -f "$SCRIPT_DIR/apps/_template/skills/infrastructure/allos-status/SKILL.md" ]]
+}
+
+@test "infrastructure: alerts has SKILL.md" {
+  [[ -f "$SCRIPT_DIR/apps/_template/skills/infrastructure/alerts/SKILL.md" ]]
+}
+
+# =============================================================================
+# Story 12.5: skills-entries.json Generation
+# =============================================================================
+
+@test "skills-entries: valid JSON structure" {
+  local entries_file="${TEST_APPS_DIR}/test-agent/config/skills-entries.json"
+  mkdir -p "$(dirname "$entries_file")"
+  echo '{ "memory": { "enabled": true }, "context-recovery": { "enabled": true } }' > "$entries_file"
+  run node -e "JSON.parse(require('fs').readFileSync('${entries_file}','utf8'));console.log('valid')"
+  [[ "$output" == "valid" ]]
+}
+
+@test "skills-entries: each entry has enabled field" {
+  local entries_file="${TEST_APPS_DIR}/test-agent/config/skills-entries.json"
+  mkdir -p "$(dirname "$entries_file")"
+  echo '{ "memory": { "enabled": true }, "alerts": { "enabled": true } }' > "$entries_file"
+  run node -e "
+    const e = JSON.parse(require('fs').readFileSync('${entries_file}','utf8'));
+    const ok = Object.values(e).every(v => typeof v.enabled === 'boolean');
+    console.log(ok ? 'valid' : 'invalid');
+  "
+  [[ "$output" == "valid" ]]
+}
+
+# =============================================================================
+# Story 12.5: 08-skills.sh generates SKILL.md with frontmatter
+# =============================================================================
+
+@test "08-skills.sh: SKILL.md generator uses frontmatter format" {
+  run grep "^---$" "$SCRIPT_DIR/ferramentas/08-skills.sh"
+  [[ "$status" -eq 0 ]]
+  run grep "always_on:" "$SCRIPT_DIR/ferramentas/08-skills.sh"
+  [[ "$status" -eq 0 ]]
+}
+
+@test "08-skills.sh: copies skill categories from template" {
+  run grep "SKILL_CATEGORIES" "$SCRIPT_DIR/ferramentas/08-skills.sh"
+  [[ "$status" -eq 0 ]]
+  [[ "$output" == *"dev"* ]]
+  [[ "$output" == *"infrastructure"* ]]
+  [[ "$output" == *"memory"* ]]
+  [[ "$output" == *"orchestration"* ]]
+  [[ "$output" == *"superpowers"* ]]
+  [[ "$output" == *"system"* ]]
+}
+
+@test "08-skills.sh: detects always-on skills via SKILL.md" {
+  run grep "always_on: true" "$SCRIPT_DIR/ferramentas/08-skills.sh"
+  [[ "$status" -eq 0 ]]
+}
+
+@test "08-skills.sh: generates skills-entries.json" {
+  run grep "skills-entries.json" "$SCRIPT_DIR/ferramentas/08-skills.sh"
+  [[ "$status" -eq 0 ]]
+}
+
+@test "08-skills.sh: Step 14 workspace sync removed" {
+  run grep "COPIAR SKILLS PARA OPENCLAW WORKSPACE" "$SCRIPT_DIR/ferramentas/08-skills.sh"
+  [[ "$status" -ne 0 ]]
+}
+
+# =============================================================================
+# Story 12.5: 14-gateway-config.sh reads skills-entries.json
+# =============================================================================
+
+@test "14-gateway-config.sh: reads skills-entries.json" {
+  run grep "skills-entries.json" "$SCRIPT_DIR/ferramentas/14-gateway-config.sh"
+  [[ "$status" -eq 0 ]]
+}
+
+@test "14-gateway-config.sh: SKILLS_ENTRIES env var used in aiosbot.json" {
+  run grep "SKILLS_ENTRIES" "$SCRIPT_DIR/ferramentas/14-gateway-config.sh"
+  [[ "$status" -eq 0 ]]
+}

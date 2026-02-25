@@ -558,25 +558,26 @@ JSEOF
 };
 JSEOF
 
-  # SKILL.md
+  # SKILL.md with YAML frontmatter (OpenClaw discovery format — Story 12.5)
   cat > "${skill_dir}/SKILL.md" << MDEOF
+---
+name: ${skill_name}
+description: ${skill_desc}
+version: 1.0.0
+tier: ${skill_tier}
+always_on: false
+---
+
 # ${skill_name}
 
-## Description
 ${skill_desc}
 
-## Environment Variables
-${skill_env_vars}
+## Capabilities
+- Handler with health check endpoint
+- Environment-based configuration
 
-## LLM Tier
-${skill_tier}
-
-## Usage
-\`\`\`javascript
-const skill = require('./${skill_name}');
-const result = await skill.handler({ /* input */ });
-const health = await skill.health();
-\`\`\`
+## Configuration
+- Requires: ${skill_env_vars}
 MDEOF
 
 done
@@ -723,6 +724,130 @@ fi
 } > "$INDEX_FILE"
 
 step_ok "index.js atualizado — ${num_skills} skills registradas (backup em .bak)"
+
+# =============================================================================
+# STEP 10b: COPIAR CATEGORIAS DE SKILLS DO TEMPLATE (Story 12.5)
+# =============================================================================
+TEMPLATE_SKILLS_DIR="${DEPLOYER_ROOT}/apps/_template/skills"
+SKILL_CATEGORIES=("dev" "infrastructure" "memory" "orchestration" "superpowers" "system")
+categories_copied=0
+
+for category in "${SKILL_CATEGORIES[@]}"; do
+  src_dir="${TEMPLATE_SKILLS_DIR}/${category}"
+  dest_dir="${SKILLS_DIR}/${category}"
+
+  if [[ ! -d "$src_dir" ]]; then
+    continue
+  fi
+
+  if [[ -d "$dest_dir" ]]; then
+    # Merge: copiar SKILL.md e README.md sem sobrescrever index.js existentes
+    find "$src_dir" -name "SKILL.md" -o -name "README.md" | while read -r src_file; do
+      rel_path="${src_file#"$src_dir/"}"
+      dest_file="${dest_dir}/${rel_path}"
+      dest_parent="$(dirname "$dest_file")"
+      mkdir -p "$dest_parent"
+      if [[ ! -f "$dest_file" ]]; then
+        cp "$src_file" "$dest_file"
+      fi
+    done
+    # Copiar index.js apenas para subdirs que nao tem (placeholder skills)
+    find "$src_dir" -name "index.js" | while read -r src_file; do
+      rel_path="${src_file#"$src_dir/"}"
+      dest_file="${dest_dir}/${rel_path}"
+      dest_parent="$(dirname "$dest_file")"
+      mkdir -p "$dest_parent"
+      if [[ ! -f "$dest_file" ]]; then
+        cp "$src_file" "$dest_file"
+      fi
+    done
+  else
+    cp -r "$src_dir" "$dest_dir"
+  fi
+
+  categories_copied=$((categories_copied + 1))
+done
+
+step_ok "${categories_copied} categorias de skills copiadas do template (${SKILL_CATEGORIES[*]})"
+
+# =============================================================================
+# STEP 10c: REGISTRAR ALWAYS-ON SKILLS NO INDEX.JS (Story 12.5 — AC4)
+# =============================================================================
+# Always-on skills: context-recovery, planner — devem estar no registry
+ALWAYS_ON_SKILLS=()
+
+# Detectar always-on skills pela presenca de always_on: true no SKILL.md
+for category in "${SKILL_CATEGORIES[@]}"; do
+  cat_dir="${SKILLS_DIR}/${category}"
+  [[ ! -d "$cat_dir" ]] && continue
+
+  for skill_md in "$cat_dir"/*/SKILL.md; do
+    [[ ! -f "$skill_md" ]] && continue
+    if grep -q "always_on: true" "$skill_md" 2>/dev/null; then
+      skill_subdir="$(basename "$(dirname "$skill_md")")"
+      skill_rel_path="${category}/${skill_subdir}"
+      # Verificar que tem index.js
+      if [[ -f "$(dirname "$skill_md")/index.js" ]]; then
+        ALWAYS_ON_SKILLS+=("$skill_rel_path")
+      fi
+    fi
+  done
+done
+
+if [[ ${#ALWAYS_ON_SKILLS[@]} -gt 0 ]]; then
+  # Append always-on skills ao index.js (se nao estao no registry)
+  for ao_skill in "${ALWAYS_ON_SKILLS[@]}"; do
+    skill_name_clean=$(basename "$ao_skill")
+    var_name=$(echo "$skill_name_clean" | sed 's/-/_/g')
+    if ! grep -q "require('./${ao_skill}')" "$INDEX_FILE" 2>/dev/null; then
+      # Inserir require antes do skills array
+      sed -i "/^const skills = \[/i const ${var_name} = require('./${ao_skill}');" "$INDEX_FILE"
+      # Inserir na array
+      sed -i "/^const skills = \[/a\\  ${var_name}," "$INDEX_FILE"
+    fi
+  done
+  step_ok "${#ALWAYS_ON_SKILLS[@]} always-on skills registradas no index.js (${ALWAYS_ON_SKILLS[*]})"
+else
+  step_skip "Nenhum always-on skill encontrado"
+fi
+
+# =============================================================================
+# STEP 10d: GERAR skills-entries.json (Story 12.5 — AC7)
+# =============================================================================
+# Este arquivo e lido pelo 14-gateway-config.sh durante o merge do openclaw.json
+SKILLS_ENTRIES_FILE="${APPS_DIR}/config/skills-entries.json"
+mkdir -p "$(dirname "$SKILLS_ENTRIES_FILE")"
+
+{
+  echo "{"
+  first=true
+
+  # Skills interativos selecionados
+  for skill_name in "${selected_skills[@]}"; do
+    if [[ "$first" == true ]]; then
+      first=false
+    else
+      echo ","
+    fi
+    printf '  "%s": { "enabled": true }' "$skill_name"
+  done
+
+  # Always-on skills
+  for ao_skill in "${ALWAYS_ON_SKILLS[@]}"; do
+    skill_name_clean=$(basename "$ao_skill")
+    if [[ "$first" == true ]]; then
+      first=false
+    else
+      echo ","
+    fi
+    printf '  "%s": { "enabled": true }' "$skill_name_clean"
+  done
+
+  echo ""
+  echo "}"
+} > "$SKILLS_ENTRIES_FILE"
+
+step_ok "skills-entries.json gerado em ${SKILLS_ENTRIES_FILE}"
 
 # =============================================================================
 # STEP 11: POPULAR .ENV COM KEYS DAS SKILLS
@@ -883,21 +1008,12 @@ echo ""
 echo "  Health check: ${health_ok}/${health_total} OK"
 step_ok "Health check concluido (${health_ok}/${health_total} OK)"
 
-# =============================================================================
-# STEP 14: COPIAR SKILLS PARA OPENCLAW WORKSPACE
-# =============================================================================
-OPENCLAW_WORKSPACE="${REAL_HOME}/.openclaw/workspace"
-if [[ -d "$OPENCLAW_WORKSPACE" ]]; then
-  DEST_SKILLS_DIR="${OPENCLAW_WORKSPACE}/apps/${nome_agente}/skills"
-  mkdir -p "$DEST_SKILLS_DIR"
-  cp -r "${SKILLS_DIR}/"* "$DEST_SKILLS_DIR/"
-  step_ok "Skills copiados para ~/.openclaw/workspace/apps/${nome_agente}/skills/"
-else
-  step_skip "OpenClaw nao instalado (~/.openclaw/workspace/ nao existe) — copie manualmente depois"
-fi
+# Step 14 removido (Story 12.5) — skills.load.extraDirs aponta direto para
+# apps/{agent}/skills/, OpenClaw descobre SKILL.md automaticamente.
+# Sync manual para ~/.openclaw/workspace/ e desnecessario.
 
 # =============================================================================
-# STEP 15: REINICIAR OPENCLAW GATEWAY
+# STEP 14: REINICIAR OPENCLAW GATEWAY
 # =============================================================================
 if reload_gateway; then
   step_ok "OpenClaw Gateway reiniciado — skills atualizadas"
@@ -911,7 +1027,7 @@ else
 fi
 
 # =============================================================================
-# STEP 16: SAVE STATE + RESUMO + HINTS
+# STEP 15: SAVE STATE + RESUMO + HINTS
 # =============================================================================
 mkdir -p "$STATE_DIR"
 

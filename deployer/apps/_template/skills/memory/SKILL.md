@@ -1,17 +1,21 @@
-# memory
+---
+name: memory
+description: Context persistence — local filesystem memory
+version: 1.0.0
+tier: budget
+always_on: false
+---
 
-## Description
-Context persistence — local filesystem memory
+# Memory Skill
 
-## Environment Variables
-None (uses ~/.clawd/memory/)
+Context persistence using local filesystem. Stores and retrieves agent memory,
+daily notes, and context data.
 
-## LLM Tier
-budget
+## Capabilities
+- Store and retrieve memories from local filesystem
+- Daily note management
+- Context data persistence across sessions
 
-## Usage
-```javascript
-const skill = require('./memory');
-const result = await skill.handler({ /* input */ });
-const health = await skill.health();
-```
+## Configuration
+- Requires: filesystem access to ~/.clawd/memory/
+- No external dependencies

@@ -313,6 +313,7 @@ HAS_EVOLUTION="$has_evolution" \
 TS_MODE="$ts_mode" \
 LOCAL_NODE="$nome_agente" \
 DENY_PATTERNS="$DENY_PATTERNS_JSON" \
+SKILLS_ENTRIES="$(cat "$CONFIG_DIR/skills-entries.json" 2>/dev/null || echo '{}')" \
 OUTPUT_PATH="$CONFIG_DIR/aiosbot.json" \
 node -e '
 const fs = require("fs");
@@ -463,7 +464,7 @@ const config = {
     tailscale: { mode: e.TS_MODE, resetOnExit: false },
     nodes: { browser: { mode: "auto", node: e.LOCAL_NODE } }
   },
-  skills: { install: { nodeManager: "npm" }, entries: {} },
+  skills: { install: { nodeManager: "npm" }, entries: JSON.parse(e.SKILLS_ENTRIES || "{}") },
   plugins: { entries: { telegram: { enabled: false } } }
 };
 
@@ -677,6 +678,9 @@ step_ok ".env consolidado gerado (${env_lines} linhas)"
 
 # =============================================================================
 # STEP 11: GERAR mcp-config.json
+# NOTA: mcp-config.json é para o Claude Code LOCAL (via bridge/hooks).
+#       O gateway OpenClaw NÃO usa este arquivo — usa plugins.entries
+#       no ~/.openclaw/openclaw.json (configurado pelo onboard wizard).
 # =============================================================================
 
 # Construir JSON condicionalmente via node
