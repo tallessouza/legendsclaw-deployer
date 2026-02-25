@@ -502,7 +502,7 @@ upsert_env_block() {
     echo ""
     echo "# LLM Router"
     echo "LLM_ROUTER_ENABLED=true"
-    echo "LLM_ROUTER_CONFIG_PATH=apps/${nome_agente}/config/llm-router-config.yaml"
+    echo "LLM_ROUTER_CONFIG_PATH=config/llm-router-config.yaml"
     echo "LLM_ROUTER_DEFAULT_TIER=${tier_padrao}"
     echo "LLM_ROUTER_PORT=55119"
     echo "OPENROUTER_API_KEY=${openrouter_key}"
