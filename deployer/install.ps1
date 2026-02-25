@@ -516,7 +516,7 @@ if ($tailscaleConnected) {
     Write-Host '  Verificando saude do gateway remoto...'
     try {
         $sw = [System.Diagnostics.Stopwatch]::StartNew()
-        $healthResponse = Invoke-RestMethod -Uri "${GATEWAY_URL}/health" -TimeoutSec 10 -ErrorAction Stop
+        $healthResponse = Invoke-RestMethod -Uri "${GATEWAY_URL}/health" -TimeoutSec 10 -SkipCertificateCheck -ErrorAction Stop
         $sw.Stop()
         Write-Host "  Gateway remoto respondeu ($($sw.ElapsedMilliseconds)ms)" -ForegroundColor Green
     } catch {

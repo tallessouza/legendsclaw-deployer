@@ -265,7 +265,7 @@ porta_gateway=""
 if [[ -n "$tailnet" ]]; then
   ts_serve_candidate="https://${vps_hostname}.${tailnet}"
   echo "  Testando Tailscale Serve (${ts_serve_candidate})..."
-  if curl -sf --max-time 5 "${ts_serve_candidate}/health" &>/dev/null 2>&1; then
+  if curl -skf --max-time 5 "${ts_serve_candidate}/health" &>/dev/null 2>&1; then
     tailscale_serve_url="$ts_serve_candidate"
     echo -e "  ${UI_GREEN:-\033[0;32m}Tailscale Serve detectado!${UI_NC:-\033[0m}"
   else
@@ -332,7 +332,7 @@ if [[ "$tailscale_connected" == "true" ]]; then
   # Health check do gateway
   echo "  Verificando saude do gateway remoto..."
   health_start=$(date +%s%N 2>/dev/null || date +%s)
-  health_response=$(curl -s --max-time 10 "${GATEWAY_URL}/health" 2>/dev/null || true)
+  health_response=$(curl -sk --max-time 10 "${GATEWAY_URL}/health" 2>/dev/null || true)
   health_end=$(date +%s%N 2>/dev/null || date +%s)
 
   if [[ -n "$health_response" ]]; then
@@ -399,7 +399,7 @@ module.exports = {
     const start = Date.now();
 
     return new Promise((resolve) => {
-      const req = mod.get(url, { timeout: 5000 }, (res) => {
+      const req = mod.get(url, { timeout: 5000, rejectUnauthorized: false }, (res) => {
         const latency_ms = Date.now() - start;
         let body = '';
         res.on('data', (chunk) => { body += chunk; });

@@ -145,7 +145,7 @@ module.exports = {
     const start = Date.now();
 
     return new Promise((resolve) => {
-      const req = mod.get(url, { timeout: 5000 }, (res) => {
+      const req = mod.get(url, { timeout: 5000, rejectUnauthorized: false }, (res) => {
         const latency_ms = Date.now() - start;
         let body = '';
         res.on('data', (chunk) => { body += chunk; });
