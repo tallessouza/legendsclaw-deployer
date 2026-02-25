@@ -142,36 +142,16 @@ else
 
   install_ok="false"
 
-  # Tentativa 1: npm global
-  if command -v npm &>/dev/null; then
-    if npm install -g openclaw 2>/dev/null; then
-      install_ok="true"
-    fi
+  # Tentativa 1: installer oficial (recomendado)
+  if curl -fsSL https://openclaw.ai/install.sh | bash --no-onboard 2>&1; then
+    command -v openclaw &>/dev/null && install_ok="true"
   fi
 
-  # Tentativa 2: clone do repo
-  if [[ "$install_ok" == "false" ]]; then
-    echo "  npm install falhou — tentando clone do repo..."
-    local_openclaw_dir="$HOME/.openclaw-install"
-    if [[ -d "$local_openclaw_dir/.git" ]]; then
-      git -C "$local_openclaw_dir" pull --ff-only 2>/dev/null || true
-    else
-      git clone https://github.com/openclaw-ai/openclaw "$local_openclaw_dir" 2>/dev/null || true
-    fi
-
-    if [[ -d "$local_openclaw_dir" ]]; then
-      pushd "$local_openclaw_dir" > /dev/null
-      if command -v pnpm &>/dev/null; then
-        pnpm install 2>/dev/null && install_ok="true"
-      elif command -v npm &>/dev/null; then
-        npm install 2>/dev/null && install_ok="true"
-      fi
-      popd > /dev/null
-
-      # Criar symlink se build produziu binario
-      if [[ "$install_ok" == "true" ]] && [[ -f "$local_openclaw_dir/dist/cli.js" ]]; then
-        ln -sf "$local_openclaw_dir/dist/cli.js" "$HOME/.local/bin/openclaw" 2>/dev/null || true
-      fi
+  # Tentativa 2: npm global
+  if [[ "$install_ok" == "false" ]] && command -v npm &>/dev/null; then
+    echo "  Installer oficial falhou — tentando npm install..."
+    if npm install -g openclaw 2>&1 | tail -5; then
+      command -v openclaw &>/dev/null && install_ok="true"
     fi
   fi
 
