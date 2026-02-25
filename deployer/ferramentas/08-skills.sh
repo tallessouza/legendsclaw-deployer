@@ -541,9 +541,6 @@ JSEOF
       const fs = require('fs');
       const path = require('path');
       const memDir = path.join(process.env.HOME || '/root', '.clawd', 'memory');
-      if (!fs.existsSync(memDir)) {
-        fs.mkdirSync(memDir, { recursive: true });
-      }
       return { ok: fs.existsSync(memDir), path: memDir };
 JSEOF
       ;;
@@ -732,11 +729,18 @@ TEMPLATE_SKILLS_DIR="${DEPLOYER_ROOT}/apps/_template/skills"
 SKILL_CATEGORIES=("dev" "infrastructure" "memory" "orchestration" "superpowers" "system")
 categories_copied=0
 
+if [[ ! -d "$TEMPLATE_SKILLS_DIR" ]]; then
+  step_fail "Template de skills nao encontrado: ${TEMPLATE_SKILLS_DIR}"
+  echo "  Verifique que o repositorio esta completo (deployer/apps/_template/skills/)"
+  exit 1
+fi
+
 for category in "${SKILL_CATEGORIES[@]}"; do
   src_dir="${TEMPLATE_SKILLS_DIR}/${category}"
   dest_dir="${SKILLS_DIR}/${category}"
 
   if [[ ! -d "$src_dir" ]]; then
+    echo -e "  ${UI_YELLOW}WARNING: Categoria '${category}' nao encontrada no template${UI_NC}"
     continue
   fi
 

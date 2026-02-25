@@ -1,0 +1,24 @@
+schema: 1
+story: '12.5'
+gate: CONCERNS
+status_reason: 'All 7 ACs met, 87/87 tests passing, 28 SKILL.md files validated. Minor robustness concerns in error handling for edge cases (silent failures, missing JSON validation).'
+reviewer: 'Quinn'
+updated: '2026-02-25T06:30:00Z'
+top_issues:
+  - id: 'MNT-001'
+    severity: low
+    finding: 'Template directory existence not validated — if deployer/apps/_template/skills/ is missing, 08-skills.sh reports "0 categorias copiadas" without warning'
+    suggested_action: 'Add explicit check and warning if template directory is absent'
+  - id: 'MNT-002'
+    severity: low
+    finding: 'skills-entries.json not validated as valid JSON before being passed to JSON.parse() in 14-gateway-config.sh — malformed file would cause silent failure'
+    suggested_action: 'Add JSON validation step before passing to Node.js inline script'
+  - id: 'DOC-001'
+    severity: low
+    finding: 'elicitation/README.md missing — only category without README.md'
+    suggested_action: 'Add README.md for consistency with other categories'
+  - id: 'MNT-003'
+    severity: low
+    finding: 'Memory skill health() creates directory as side-effect — health checks should be read-only'
+    suggested_action: 'Move directory creation to initialization, keep health() read-only'
+waiver: { active: false }

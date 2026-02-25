@@ -313,7 +313,7 @@ HAS_EVOLUTION="$has_evolution" \
 TS_MODE="$ts_mode" \
 LOCAL_NODE="$nome_agente" \
 DENY_PATTERNS="$DENY_PATTERNS_JSON" \
-SKILLS_ENTRIES="$(cat "$CONFIG_DIR/skills-entries.json" 2>/dev/null || echo '{}')" \
+SKILLS_ENTRIES="$(node -e "try{const d=require('fs').readFileSync('$CONFIG_DIR/skills-entries.json','utf8');JSON.parse(d);process.stdout.write(d)}catch(e){process.stdout.write('{}')}" 2>/dev/null || echo '{}')" \
 OUTPUT_PATH="$CONFIG_DIR/aiosbot.json" \
 node -e '
 const fs = require("fs");
