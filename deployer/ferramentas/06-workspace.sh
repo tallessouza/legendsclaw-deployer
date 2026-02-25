@@ -391,7 +391,10 @@ ${skills_section}
 | **orchestration** | task-orchestrator | \`read_file skills/orchestration/{name}/SKILL.md\` |
 | **system** | model-router, cost-monitor, skill-creator | \`read_file skills/system/{name}/SKILL.md\` |
 
-**Rule:** When you need a skill, read its full SKILL.md first. Don't guess what a skill does — read the definition.
+**Rules:**
+1. When you need a skill, read its full SKILL.md first. Don't guess what a skill does — read the definition.
+2. **NEVER create a new skill if a similar one already exists.** Before creating anything, run \`ls skills/*/\` and check ALL categories. The superpowers skills are complete and battle-tested — USE them, don't reinvent them.
+3. The skill-creator tool is ONLY for genuinely new capabilities that don't overlap with existing skills.
 
 AGENTS_SKILLS
 
