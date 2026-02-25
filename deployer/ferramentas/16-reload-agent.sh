@@ -143,7 +143,8 @@ esac
 # =============================================================================
 porta_openclaw="18789"
 if [[ -f "$STATE_DIR/dados_openclaw" ]]; then
-  porta_openclaw=$(grep "^Porta=" "$STATE_DIR/dados_openclaw" 2>/dev/null | cut -d'=' -f2 || echo "18789")
+  porta_openclaw=$(grep "^Porta:" "$STATE_DIR/dados_openclaw" 2>/dev/null | awk -F': ' '{print $2}' || echo "18789")
+  [[ -z "$porta_openclaw" ]] && porta_openclaw="18789"
 fi
 
 health_ok=false
