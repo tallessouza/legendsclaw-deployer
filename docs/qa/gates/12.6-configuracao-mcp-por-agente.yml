@@ -1,0 +1,8 @@
+schema: 1
+story: '12.6'
+gate: PASS
+status_reason: 'Story de verificação XS com mudança mínima (3 linhas de comentário). Todos os 6 ACs atendidos, zero risco de regressão.'
+reviewer: 'Quinn'
+updated: '2026-02-25T06:00:00Z'
+top_issues: []
+waiver: { active: false }
