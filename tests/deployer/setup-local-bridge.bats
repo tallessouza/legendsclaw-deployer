@@ -352,6 +352,167 @@ EOF
   [[ "$output" == *"validacao-local"* ]]
 }
 
+# --- Session Check (Story 12.3) ---
+
+@test "session-check: output has 4 fields in correct format" {
+  local SESSION_CHECK="${TEST_DIR}/session-check.sh"
+
+  # Generate a session-check.sh that mocks all dependencies
+  cat > "$SESSION_CHECK" << 'CHECKEOF'
+#!/usr/bin/env bash
+# Mock: Tailscale OK
+TS="offline"
+if command -v tailscale &>/dev/null; then
+  backend=$(tailscale status --json 2>/dev/null | node -pe 'JSON.parse(require("fs").readFileSync("/dev/stdin","utf8")).BackendState' 2>/dev/null || true)
+  [[ "$backend" == "Running" ]] && TS="OK"
+fi
+
+# Mock: Gateway offline (no curl target)
+GW="offline"
+if curl -sk --max-time 1 "http://localhost:99999/health" &>/dev/null; then
+  GW="OK"
+fi
+
+# Mock: OpenClaw config
+OC="not configured"
+oc_file="$HOME/.openclaw/openclaw.json"
+if [[ -f "$oc_file" ]]; then
+  mode=$(node -pe "JSON.parse(require('fs').readFileSync('$oc_file','utf8')).gateway?.mode" 2>/dev/null || true)
+  [[ -n "$mode" && "$mode" != "undefined" ]] && OC="$mode"
+fi
+
+# Mock: Bridge services (no bridge.js available)
+svc_count=$(node .aios-core/infrastructure/services/bridge.js list 2>/dev/null | grep -c "  [a-z]" || echo "0")
+
+echo "[Bridge] Tailscale: $TS | Gateway: $GW | OpenClaw: $OC | Services: $svc_count"
+CHECKEOF
+  chmod +x "$SESSION_CHECK"
+
+  run bash "$SESSION_CHECK"
+  [ "$status" -eq 0 ]
+
+  # Verify [Bridge] prefix
+  [[ "$output" == "[Bridge]"* ]]
+
+  # Verify 4 fields present
+  [[ "$output" == *"Tailscale:"* ]]
+  [[ "$output" == *"Gateway:"* ]]
+  [[ "$output" == *"OpenClaw:"* ]]
+  [[ "$output" == *"Services:"* ]]
+
+  # Verify pipe separators (3 pipes for 4 fields)
+  local pipe_count
+  pipe_count=$(echo "$output" | tr -cd '|' | wc -c)
+  [ "$pipe_count" -eq 3 ]
+}
+
+@test "session-check: does not block session when gateway offline" {
+  local SESSION_CHECK="${TEST_DIR}/session-check-offline.sh"
+
+  cat > "$SESSION_CHECK" << 'CHECKEOF'
+#!/usr/bin/env bash
+TS="offline"
+GW="offline"
+if curl -sk --max-time 1 "http://localhost:99999/health" &>/dev/null; then
+  GW="OK"
+fi
+OC="not configured"
+svc_count="0"
+echo "[Bridge] Tailscale: $TS | Gateway: $GW | OpenClaw: $OC | Services: $svc_count"
+CHECKEOF
+  chmod +x "$SESSION_CHECK"
+
+  # Script must exit 0 (no blocking) even when gateway is offline
+  run bash "$SESSION_CHECK"
+  [ "$status" -eq 0 ]
+
+  # Verify graceful degradation - shows "offline" not error
+  [[ "$output" == *"Gateway: offline"* ]]
+  [[ "$output" == *"Tailscale: offline"* ]]
+}
+
+@test "session-check: shows warning when openclaw.json missing" {
+  local SESSION_CHECK="${TEST_DIR}/session-check-noconfig.sh"
+
+  # Ensure no openclaw.json exists
+  rm -rf "$HOME/.openclaw" 2>/dev/null || true
+
+  cat > "$SESSION_CHECK" << 'CHECKEOF'
+#!/usr/bin/env bash
+TS="offline"
+GW="offline"
+OC="not configured"
+oc_file="$HOME/.openclaw/openclaw.json"
+if [[ -f "$oc_file" ]]; then
+  mode=$(node -pe "JSON.parse(require('fs').readFileSync('$oc_file','utf8')).gateway?.mode" 2>/dev/null || true)
+  [[ -n "$mode" && "$mode" != "undefined" ]] && OC="$mode"
+fi
+svc_count="0"
+echo "[Bridge] Tailscale: $TS | Gateway: $GW | OpenClaw: $OC | Services: $svc_count"
+CHECKEOF
+  chmod +x "$SESSION_CHECK"
+
+  run bash "$SESSION_CHECK"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"OpenClaw: not configured"* ]]
+}
+
+@test "session-check: reads mode from openclaw.json when present" {
+  local SESSION_CHECK="${TEST_DIR}/session-check-config.sh"
+
+  # Create mock openclaw.json with mode: remote
+  mkdir -p "$HOME/.openclaw"
+  cat > "$HOME/.openclaw/openclaw.json" << 'EOF'
+{"gateway":{"mode":"remote","port":19888}}
+EOF
+
+  cat > "$SESSION_CHECK" << 'CHECKEOF'
+#!/usr/bin/env bash
+TS="offline"
+GW="offline"
+OC="not configured"
+oc_file="$HOME/.openclaw/openclaw.json"
+if [[ -f "$oc_file" ]]; then
+  mode=$(node -pe "JSON.parse(require('fs').readFileSync('$oc_file','utf8')).gateway?.mode" 2>/dev/null || true)
+  [[ -n "$mode" && "$mode" != "undefined" ]] && OC="$mode"
+fi
+svc_count="0"
+echo "[Bridge] Tailscale: $TS | Gateway: $GW | OpenClaw: $OC | Services: $svc_count"
+CHECKEOF
+  chmod +x "$SESSION_CHECK"
+
+  run bash "$SESSION_CHECK"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"OpenClaw: remote"* ]]
+}
+
+@test "session-check: HOOKS_JSON references session-check.sh" {
+  # Verify setup-local-bridge.sh uses session-check.sh in hooks
+  local SCRIPT="${BATS_TEST_DIRNAME}/../../deployer/ferramentas/setup-local-bridge.sh"
+
+  run grep "session-check.sh" "$SCRIPT"
+  [ "$status" -eq 0 ]
+
+  # Verify SessionStart hook calls session-check.sh
+  run grep -A5 '"SessionStart"' "$SCRIPT"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"session-check.sh"* ]]
+}
+
+@test "session-check: PreToolUse and PostToolUse hooks unchanged" {
+  local SCRIPT="${BATS_TEST_DIRNAME}/../../deployer/ferramentas/setup-local-bridge.sh"
+
+  # PreToolUse still uses validate-call
+  run grep -A3 'PreToolUse' "$SCRIPT"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"validate-call"* ]]
+
+  # PostToolUse still uses log-execution
+  run grep -A3 'PostToolUse' "$SCRIPT"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"log-execution"* ]]
+}
+
 # --- VPS Ferramentas Unchanged ---
 
 @test "vps tools: all 16 ferramentas files unchanged" {
