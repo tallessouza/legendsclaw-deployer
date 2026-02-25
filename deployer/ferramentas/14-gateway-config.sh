@@ -281,11 +281,9 @@ fi
 if [[ -n "$ts_hostname" && -n "$ts_tailnet" ]]; then
   gateway_host="${ts_hostname}.${ts_tailnet}.ts.net"
   ts_mode="funnel"
-  gw_bind="0.0.0.0"
 else
   gateway_host="localhost"
   ts_mode="off"
-  gw_bind="loopback"
 fi
 
 # Gerar aiosbot.json programaticamente via Node.js
@@ -313,7 +311,6 @@ AGENT_NAME="$nome_agente" \
 WHATSAPP_PHONE="$whatsapp_admin_phone" \
 HAS_EVOLUTION="$has_evolution" \
 TS_MODE="$ts_mode" \
-GW_BIND="$gw_bind" \
 LOCAL_NODE="$nome_agente" \
 DENY_PATTERNS="$DENY_PATTERNS_JSON" \
 SKILLS_ENTRIES="$(node -e "try{const d=require('fs').readFileSync('$CONFIG_DIR/skills-entries.json','utf8');JSON.parse(d);process.stdout.write(d)}catch(e){process.stdout.write('{}')}" 2>/dev/null || echo '{}')" \
@@ -461,7 +458,7 @@ const config = {
   gateway: {
     port: parseInt(e.GATEWAY_PORT) || 18789,
     mode: "local",
-    bind: e.GW_BIND || "loopback",
+    bind: "loopback",
     auth: { mode: "password", password: e.GATEWAY_PASSWORD },
     trustedProxies: ["127.0.0.1", "::1"],
     tailscale: { mode: e.TS_MODE, resetOnExit: false },
@@ -781,9 +778,8 @@ fi
 # =============================================================================
 # STEP 13b: MERGE INTO ~/.openclaw/openclaw.json (Story 12.0)
 # Deep merge deployer-generated fields into the real OpenClaw config.
-# Fields NOT merged (preserved from onboard): gateway.port,
+# Fields NOT merged (preserved from onboard): gateway.port, gateway.bind,
 # wizard, auth.profiles, commands, meta.
-# NOTE: gateway.bind IS now merged (set to "all" when Tailscale configured).
 # =============================================================================
 OPENCLAW_CONFIG="${REAL_HOME}/.openclaw/openclaw.json"
 
@@ -802,7 +798,6 @@ else
   AGENT_ID="$nome_agente" \
   AGENT_WORKSPACE="$workspace_path" \
   AGENT_SKILLS_DIR="$agent_skills_dir" \
-  GW_BIND="$gw_bind" \
   node -e '
 const fs = require("fs");
 const e = process.env;
@@ -850,8 +845,7 @@ if (aiosbot.skills?.entries) {
 // 6. Gateway tailscale mode (AC8) — preserve other tailscale fields
 openclaw.gateway = openclaw.gateway || {};
 openclaw.gateway.tailscale = { ...openclaw.gateway.tailscale, mode: "serve" };
-// 6b. Gateway bind — "all" when Tailscale configured, "loopback" otherwise
-if (e.GW_BIND) openclaw.gateway.bind = e.GW_BIND;
+
 
 // 7. Gateway auth
 if (aiosbot.gateway?.auth) openclaw.gateway.auth = aiosbot.gateway.auth;
