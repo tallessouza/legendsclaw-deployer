@@ -342,8 +342,33 @@ const config = {
     providers: (() => {
       const p = {};
       // Registrar providers com base nas keys disponíveis
-      if (e.OPENROUTER_KEY) p["openrouter"] = { apiKey: e.OPENROUTER_KEY };
-      if (e.ANTHROPIC_KEY) p["anthropic"] = { apiKey: e.ANTHROPIC_KEY };
+      if (e.OPENROUTER_KEY) p["openrouter"] = {
+        baseUrl: "https://openrouter.ai/api/v1",
+        apiKey: e.OPENROUTER_KEY,
+        models: [
+          { id: "anthropic/claude-sonnet-4.6", name: "Claude Sonnet 4.6", reasoning: false, input: ["text"], contextWindow: 1000000, maxTokens: 16384 },
+          { id: "anthropic/claude-opus-4.6", name: "Claude Opus 4.6", reasoning: true, input: ["text"], contextWindow: 1000000, maxTokens: 32768 },
+          { id: "google/gemini-3-flash-preview", name: "Gemini 3 Flash", reasoning: false, input: ["text"], contextWindow: 1048576, maxTokens: 65536 },
+          { id: "google/gemini-3.1-pro-preview", name: "Gemini 3.1 Pro", reasoning: false, input: ["text"], contextWindow: 1048576, maxTokens: 65536 },
+          { id: "deepseek/deepseek-v3.2", name: "DeepSeek V3.2", reasoning: false, input: ["text"], contextWindow: 163840, maxTokens: 16384 },
+          { id: "x-ai/grok-4.1-fast", name: "Grok 4.1 Fast", reasoning: false, input: ["text"], contextWindow: 2000000, maxTokens: 16384 },
+          { id: "openai/gpt-5.2-pro", name: "GPT-5.2 Pro", reasoning: false, input: ["text"], contextWindow: 400000, maxTokens: 16384 },
+          { id: "qwen/qwen3.5-plus-02-15", name: "Qwen 3.5 Plus", reasoning: false, input: ["text"], contextWindow: 1000000, maxTokens: 16384 },
+          { id: "mistralai/mistral-large-2512", name: "Mistral Large 3", reasoning: false, input: ["text"], contextWindow: 262144, maxTokens: 16384 },
+          { id: "moonshotai/kimi-k2.5", name: "Kimi K2.5", reasoning: false, input: ["text"], contextWindow: 262144, maxTokens: 16384 },
+          { id: "minimax/minimax-m2.5", name: "MiniMax M2.5", reasoning: false, input: ["text"], contextWindow: 196608, maxTokens: 16384 },
+          { id: "z-ai/glm-5", name: "GLM 5", reasoning: false, input: ["text"], contextWindow: 204800, maxTokens: 16384 }
+        ]
+      };
+      if (e.ANTHROPIC_KEY) p["anthropic"] = {
+        baseUrl: "https://api.anthropic.com/v1",
+        apiKey: e.ANTHROPIC_KEY,
+        models: [
+          { id: "claude-sonnet-4-6-20260217", name: "Claude Sonnet 4.6", reasoning: false, input: ["text"], contextWindow: 1000000, maxTokens: 16384 },
+          { id: "claude-opus-4-6-20260205", name: "Claude Opus 4.6", reasoning: true, input: ["text"], contextWindow: 1000000, maxTokens: 32768 },
+          { id: "claude-haiku-4-5-20251001", name: "Claude Haiku 4.5", reasoning: false, input: ["text"], contextWindow: 200000, maxTokens: 8192 }
+        ]
+      };
       // LLM Router local (sempre disponível)
       p["anthropic-router"] = {
         baseUrl: "http://localhost:55119/v1",
@@ -366,12 +391,12 @@ const config = {
     defaults: {
       model: (() => {
         // Primary: Anthropic direto > OpenRouter > LLM Router
-        const primary = e.ANTHROPIC_KEY ? "anthropic/claude-sonnet-4"
-          : e.OPENROUTER_KEY ? "openrouter/auto"
+        const primary = e.ANTHROPIC_KEY ? "anthropic/claude-sonnet-4.6"
+          : e.OPENROUTER_KEY ? "openrouter/anthropic/claude-sonnet-4.6"
           : "anthropic-router/router-auto";
         const fallbacks = [];
         if (primary !== "anthropic-router/router-auto") fallbacks.push("anthropic-router/router-auto");
-        if (e.OPENROUTER_KEY && primary !== "openrouter/auto") fallbacks.push("openrouter/auto");
+        if (e.OPENROUTER_KEY && primary !== "openrouter/anthropic/claude-sonnet-4.6") fallbacks.push("openrouter/anthropic/claude-sonnet-4.6");
         fallbacks.push("openrouter/google/gemini-3-flash-preview");
         return { primary, fallbacks };
       })(),
@@ -500,18 +525,20 @@ if (e.OPENAI_KEY) envVars.OPENAI_API_KEY = e.OPENAI_KEY;
 // === Model aliases condicionais ===
 const models = config.agents.defaults.models;
 if (e.ANTHROPIC_KEY) {
-  models["anthropic/claude-opus-4-5"] = { alias: "reasoning" };
-  models["anthropic/claude-3.5-haiku"] = { alias: "haiku" };
-  models["anthropic/claude-sonnet-4.5"] = { alias: "sonnet" };
   models["anthropic/claude-opus-4.6"] = { alias: "opus" };
+  models["anthropic/claude-sonnet-4.6"] = { alias: "sonnet" };
+  models["anthropic/claude-haiku-4.5"] = { alias: "haiku" };
 }
 if (e.OPENROUTER_KEY) {
-  models["openrouter/deepseek/deepseek-v3.2"] = { alias: "backup" };
-  models["openrouter/mistralai/devstral-2512"] = { alias: "code" };
-  models["openrouter/nvidia/nemotron-3-nano-30b-a3b:free"] = { alias: "free" };
-  models["openrouter/google/gemini-2.5-flash"] = { alias: "media" };
-  models["openrouter/google/gemini-2.0-flash-001"] = { alias: "fast" };
-  models["openrouter/google/gemini-3-flash-preview"] = { alias: "gemini3" };
+  models["openrouter/deepseek/deepseek-v3.2"] = { alias: "deepseek" };
+  models["openrouter/x-ai/grok-4.1-fast"] = { alias: "grok" };
+  models["openrouter/google/gemini-3-flash-preview"] = { alias: "gemini" };
+  models["openrouter/google/gemini-3.1-pro-preview"] = { alias: "gemini-pro" };
+  models["openrouter/openai/gpt-5.2-pro"] = { alias: "gpt" };
+  models["openrouter/qwen/qwen3.5-plus-02-15"] = { alias: "qwen" };
+  models["openrouter/mistralai/mistral-large-2512"] = { alias: "mistral" };
+  models["openrouter/moonshotai/kimi-k2.5"] = { alias: "kimi" };
+  models["openrouter/z-ai/glm-5"] = { alias: "glm" };
 }
 
 // === WhatsApp / Evolution ===
@@ -944,6 +971,10 @@ printf "  %-20s %-45s %s\n" "mcp-config.json" "$MCP_DIR/mcp-config.json" "$(wc -
 if [[ -f "$OPENCLAW_CONFIG" ]]; then
   printf "  %-20s %-45s %s\n" "openclaw.json" "$OPENCLAW_CONFIG" "$(wc -c < "$OPENCLAW_CONFIG") bytes (merged)"
 fi
+echo ""
+echo -e "  ${UI_BOLD:-\033[1m}⚠️  COPIE AGORA — so sera exibida uma vez:${UI_NC:-\033[0m}"
+echo -e "  Gateway Password: ${UI_BOLD:-\033[1m}${gateway_password}${UI_NC:-\033[0m}"
+echo -e "  Hooks Token:      ${UI_BOLD:-\033[1m}${hooks_token}${UI_NC:-\033[0m}"
 echo ""
 echo "  Model aliases: ${alias_count}"
 echo "  MCP servers: ${mcp_count}"
