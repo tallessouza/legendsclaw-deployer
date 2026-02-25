@@ -582,7 +582,7 @@ if ($tailscaleConnected) {
 }
 
 # --- Criar Service Index ---
-$servicesDir = Join-Path $INSTALL_DIR '.aios-core' 'infrastructure' 'services'
+$servicesDir = Join-Path (Join-Path (Join-Path $INSTALL_DIR '.aios-core') 'infrastructure') 'services'
 $agentServiceDir = Join-Path $servicesDir $nomeAgente
 
 # Limpar servicos antigos (manter apenas o agente atual)
@@ -680,7 +680,7 @@ try {
 
 # 3. OpenClaw config
 `$OC = 'not configured'
-`$ocFile = Join-Path `$HOME '.openclaw' 'openclaw.json'
+`$ocFile = Join-Path (Join-Path `$HOME '.openclaw') 'openclaw.json'
 if (Test-Path `$ocFile) {
     try {
         `$ocJson = Get-Content `$ocFile -Raw | ConvertFrom-Json
@@ -702,7 +702,7 @@ Set-Content -Path $sessionCheckFile -Value $sessionCheckContent -Encoding UTF8
 Write-Host "  Session check criado: $sessionCheckFile" -ForegroundColor Green
 
 # --- Configurar Claude Code Hooks ---
-$settingsFile = Join-Path $INSTALL_DIR '.claude' 'settings.json'
+$settingsFile = Join-Path (Join-Path $INSTALL_DIR '.claude') 'settings.json'
 
 # Hooks no formato real do settings.json — usa session-check.ps1 no SessionStart
 $hooksObj = @{
@@ -1115,7 +1115,7 @@ if (Test-Path $skillsFile) {
 }
 
 # --- Gerar arquivo de definicao do agente ---
-$agentsDir = Join-Path $dirDestino '.aios-core' 'development' 'agents'
+$agentsDir = Join-Path (Join-Path (Join-Path $dirDestino '.aios-core') 'development') 'agents'
 $agentFile = Join-Path $agentsDir "${nomeAgente}.md"
 
 if (-not (Test-Path $agentsDir)) {
@@ -1243,10 +1243,10 @@ Set-Content -Path $agentFile -Value $agentDefinition -Encoding UTF8
 Write-Host "  Agente '${nomeAgente}' registrado em $agentFile" -ForegroundColor Green
 
 # --- Copiar bridge + hooks + agent command pro projeto AIOS ---
-$bridgeSrc = Join-Path $INSTALL_DIR '.aios-core' 'infrastructure' 'services'
-$bridgeDst = Join-Path $dirDestino '.aios-core' 'infrastructure' 'services'
-$settingsSrc = Join-Path $INSTALL_DIR '.claude' 'settings.json'
-$settingsDst = Join-Path $dirDestino '.claude' 'settings.json'
+$bridgeSrc = Join-Path (Join-Path (Join-Path $INSTALL_DIR '.aios-core') 'infrastructure') 'services'
+$bridgeDst = Join-Path (Join-Path (Join-Path $dirDestino '.aios-core') 'infrastructure') 'services'
+$settingsSrc = Join-Path (Join-Path $INSTALL_DIR '.claude') 'settings.json'
+$settingsDst = Join-Path (Join-Path $dirDestino '.claude') 'settings.json'
 
 $bridgeCopied = 0
 
@@ -1295,7 +1295,7 @@ if (Test-Path $settingsSrc) {
 }
 
 # Registrar agente como Claude Code command (skill invocavel)
-$commandsDst = Join-Path $dirDestino '.claude' 'commands' 'AIOS' 'agents'
+$commandsDst = Join-Path (Join-Path (Join-Path (Join-Path $dirDestino '.claude') 'commands') 'AIOS') 'agents'
 if (-not (Test-Path $commandsDst)) { New-Item -ItemType Directory -Path $commandsDst -Force | Out-Null }
 if (Test-Path $agentFile) {
     Copy-Item $agentFile (Join-Path $commandsDst "${nomeAgente}.md") -Force
