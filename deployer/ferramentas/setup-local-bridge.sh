@@ -258,12 +258,29 @@ if [[ -z "$vps_hostname" ]]; then
   done
 fi
 
-# Porta do gateway
+# Verificar se Tailscale Serve esta ativo na VPS (HTTPS sem porta)
+# Testa https://hostname.tailnet primeiro — se responder, usa essa URL
+tailscale_serve_url=""
 porta_gateway=""
-input "bridge.porta_gateway" "Porta do gateway OpenClaw [18789]: " porta_gateway --default=18789
+if [[ -n "$tailnet" ]]; then
+  ts_serve_candidate="https://${vps_hostname}.${tailnet}"
+  echo "  Testando Tailscale Serve (${ts_serve_candidate})..."
+  if curl -sf --max-time 5 "${ts_serve_candidate}/health" &>/dev/null 2>&1; then
+    tailscale_serve_url="$ts_serve_candidate"
+    echo -e "  ${UI_GREEN:-\033[0;32m}Tailscale Serve detectado!${UI_NC:-\033[0m}"
+  else
+    echo -e "  ${UI_YELLOW:-\033[0;33m}Tailscale Serve nao respondeu — usando porta direta.${UI_NC:-\033[0m}"
+  fi
+fi
 
 # Montar GATEWAY_URL
-if [[ -n "$tailnet" ]]; then
+if [[ -n "$tailscale_serve_url" ]]; then
+  # Tailscale Serve ativo — HTTPS via tailnet, sem porta
+  GATEWAY_URL="$tailscale_serve_url"
+  porta_gateway="443"
+elif [[ -n "$tailnet" ]]; then
+  # Sem Serve — usar HTTP direto com porta
+  input "bridge.porta_gateway" "Porta do gateway OpenClaw [18789]: " porta_gateway --default=18789
   GATEWAY_URL="http://${vps_hostname}.${tailnet}:${porta_gateway}"
 else
   echo ""
@@ -273,6 +290,7 @@ else
     echo -e "  ${UI_RED}Formato invalido. Esperado: hostname.tailnet-name.ts.net${UI_NC}"
     input "bridge.tailnet_fqdn" "FQDN completo da VPS: " fqdn_completo --required
   done
+  input "bridge.porta_gateway" "Porta do gateway OpenClaw [18789]: " porta_gateway --default=18789
   GATEWAY_URL="http://${fqdn_completo}:${porta_gateway}"
   tailnet=$(echo "$fqdn_completo" | sed "s/^${vps_hostname}\.//" || echo "$fqdn_completo")
 fi

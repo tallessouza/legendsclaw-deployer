@@ -322,12 +322,35 @@ else
 fi
 
 # =============================================================================
+# STEP 12: TAILSCALE SERVE — expor gateway via Tailscale (sem abrir firewall)
+# =============================================================================
+tailscale_serve_url=""
+if command -v tailscale &>/dev/null && tailscale status &>/dev/null; then
+  echo ""
+  echo "  Configurando Tailscale Serve para expor gateway na tailnet..."
+  if sudo tailscale serve --bg "${porta_openclaw}" 2>/dev/null; then
+    # Extrair hostname Tailscale
+    ts_hostname=$(tailscale status --json 2>/dev/null | grep -o '"Self":{"ID[^}]*"HostName":"[^"]*"' | grep -o '"HostName":"[^"]*"' | cut -d'"' -f4 || true)
+    ts_tailnet=$(tailscale status --json 2>/dev/null | grep -o '"MagicDNSSuffix":"[^"]*"' | cut -d'"' -f4 || true)
+    if [[ -n "$ts_hostname" && -n "$ts_tailnet" ]]; then
+      tailscale_serve_url="https://${ts_hostname}.${ts_tailnet}"
+    fi
+    step_ok "Tailscale Serve ativo — gateway acessivel via tailnet na porta ${porta_openclaw}"
+  else
+    step_skip "Tailscale Serve nao disponivel (gateway acessivel apenas localmente)"
+  fi
+else
+  step_skip "Tailscale nao conectado — Serve nao configurado"
+fi
+
+# =============================================================================
 # SALVAR ESTADO
 # =============================================================================
 mkdir -p "$STATE_DIR"
 cat > "$STATE_DIR/dados_openclaw" << EOF
-URL Gateway: https://${dominio_openclaw}
 Porta: ${porta_openclaw}
+Tailscale Serve URL: ${tailscale_serve_url:-N/A}
+Dominio: ${dominio_openclaw}
 Repo: ${repo_url}
 Install Path: /opt/openclaw
 Systemd Unit: ~/.config/systemd/user/openclaw-gateway.service (via onboard)
@@ -341,7 +364,10 @@ resumo_final
 
 echo -e "${UI_BOLD}  OpenClaw Gateway${UI_NC}"
 echo ""
-echo "  URL:       https://${dominio_openclaw}"
+if [[ -n "$tailscale_serve_url" ]]; then
+  echo "  Tailscale: ${tailscale_serve_url}"
+fi
+echo "  Dominio:   https://${dominio_openclaw}"
 echo "  Porta:     ${porta_openclaw}"
 echo "  Repo:      ${repo_url}"
 echo "  Path:      /opt/openclaw"
