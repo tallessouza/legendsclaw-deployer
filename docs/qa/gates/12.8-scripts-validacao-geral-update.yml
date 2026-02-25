@@ -1,0 +1,20 @@
+schema: 1
+story: '12.8'
+gate: CONCERNS
+status_reason: 'Implementation meets all ACs. Two medium concerns: test coverage is structural-only (no behavioral mocks) and update.sh has a potential variable reference issue on git pull abort path.'
+reviewer: 'Quinn'
+updated: '2026-02-25T08:30:00Z'
+top_issues:
+  - id: 'TEST-001'
+    severity: medium
+    finding: 'Tests are structural/content-grep only — no behavioral tests with mocked state files, mocked curl, or mocked git. Coverage validates code presence but not execution paths.'
+    suggested_action: 'Add behavioral BATS tests that mock STATE_DIR with real state files, mock curl responses, and verify step_ok/step_fail output for each scenario. Low priority — can be follow-up story.'
+  - id: 'MNT-001'
+    severity: low
+    finding: 'update.sh line 78 references $backup_dir in git pull failure message, but if config_dir did not exist (step_skip on line 52), backup_dir was still set but mkdir was never called — message references a non-existent path.'
+    suggested_action: 'Guard the backup_dir reference in the failure message, or always create the backup dir regardless.'
+  - id: 'MNT-002'
+    severity: low
+    finding: 'validate.sh CHECK 1 aggregates 3 state files into a single step — if 2 of 3 are missing, the FAIL message only says "State files ausentes" without listing which ones are missing.'
+    suggested_action: 'Include the list of missing state files in the step_fail message for better diagnostics.'
+waiver: { active: false }
