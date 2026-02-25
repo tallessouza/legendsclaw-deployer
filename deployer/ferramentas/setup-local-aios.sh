@@ -107,7 +107,7 @@ else
 
   init_output=""
   init_exit=0
-  init_output=$(cd "$dir_destino" && npx aios-core init "$nome_projeto" 2>&1) || init_exit=$?
+  init_output=$(cd "$dir_destino" && npx aios-core init "$nome_projeto" </dev/tty 2>&1) || init_exit=$?
 
   if [[ "$init_exit" -ne 0 ]]; then
     step_fail "npx aios-core init falhou (exit code: ${init_exit})"

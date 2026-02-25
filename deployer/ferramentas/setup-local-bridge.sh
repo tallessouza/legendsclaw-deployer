@@ -50,9 +50,9 @@ fi
 tailscale_installed="false"
 tailscale_connected="false"
 
-if command -v tailscale &>/dev/null; then
+if command -v tailscale &>/dev/null || [[ -x /usr/bin/tailscale ]] || [[ -x /usr/sbin/tailscale ]]; then
   tailscale_installed="true"
-  if tailscale status &>/dev/null; then
+  if tailscale status &>/dev/null 2>&1 || /usr/bin/tailscale status &>/dev/null 2>&1; then
     tailscale_connected="true"
   fi
 fi
@@ -75,6 +75,8 @@ if [[ "$tailscale_installed" == "false" ]]; then
       linux|wsl)
         echo "  Instalando Tailscale..."
         if curl -fsSL https://tailscale.com/install.sh | sh 2>/dev/null; then
+          hash -r 2>/dev/null || true
+          export PATH="/usr/bin:/usr/sbin:/usr/local/bin:$PATH"
           tailscale_installed="true"
           step_ok "Tailscale instalado"
         else
@@ -123,10 +125,12 @@ else
     echo "  Executando: sudo tailscale up"
     echo "  (siga as instrucoes de login no navegador)"
     echo ""
-    if sudo tailscale up 2>&1; then
+    # Resolver path do tailscale (pode nao estar no PATH do sudo)
+    ts_bin=$(command -v tailscale 2>/dev/null || echo "/usr/bin/tailscale")
+    if sudo "$ts_bin" up 2>&1; then
       # Re-verificar conexao
       sleep 2
-      if tailscale status &>/dev/null; then
+      if "$ts_bin" status &>/dev/null; then
         tailscale_connected="true"
         step_ok "Tailscale conectado com sucesso"
       else
@@ -329,6 +333,18 @@ fi
 # =============================================================================
 SERVICES_DIR=".aios-core/infrastructure/services"
 AGENT_SERVICE_DIR="${SERVICES_DIR}/${nome_agente}"
+
+# Limpar servicos antigos (manter apenas o agente atual)
+if [[ -d "$SERVICES_DIR" ]]; then
+  for old_svc in "$SERVICES_DIR"/*/; do
+    [[ -d "$old_svc" ]] || continue
+    local_name=$(basename "$old_svc")
+    if [[ "$local_name" != "$nome_agente" ]]; then
+      rm -rf "$old_svc"
+      echo "  Servico antigo removido: ${local_name}"
+    fi
+  done
+fi
 
 mkdir -p "$AGENT_SERVICE_DIR"
 
@@ -560,6 +576,5 @@ echo "  Service:       ${AGENT_SERVICE_DIR}/index.js"
 echo "  Settings:      ${SETTINGS_FILE}"
 echo "  Estado:        ~/dados_vps/dados_bridge"
 echo "  Log:           ${LOG_FILE}"
-echo ""
 
 log_finish

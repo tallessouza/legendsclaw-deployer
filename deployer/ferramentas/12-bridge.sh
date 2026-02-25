@@ -103,6 +103,18 @@ step_ok "Informacoes confirmadas"
 SERVICES_DIR=".aios-core/infrastructure/services"
 AGENT_SERVICE_DIR="${SERVICES_DIR}/${nome_agente}"
 
+# Limpar servicos antigos (manter apenas o agente atual)
+if [[ -d "$SERVICES_DIR" ]]; then
+  for old_svc in "$SERVICES_DIR"/*/; do
+    [[ -d "$old_svc" ]] || continue
+    local_name=$(basename "$old_svc")
+    if [[ "$local_name" != "$nome_agente" ]]; then
+      rm -rf "$old_svc"
+      echo "  Servico antigo removido: ${local_name}"
+    fi
+  done
+fi
+
 mkdir -p "$AGENT_SERVICE_DIR"
 
 cat > "${AGENT_SERVICE_DIR}/index.js" << JSEOF

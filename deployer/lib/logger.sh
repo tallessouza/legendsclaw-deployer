@@ -18,7 +18,11 @@ log_init() {
   mkdir -p "$LOG_DIR"
 
   # Redireciona stdout e stderr para tee (tela + arquivo)
-  exec > >(tee -a "$LOG_FILE") 2>&1
+  # Evita tee duplo quando rodando como subscript (install.sh → ferramenta.sh)
+  if [[ -z "${LEGENDSCLAW_TEE_ACTIVE:-}" ]]; then
+    export LEGENDSCLAW_TEE_ACTIVE=1
+    exec > >(tee -a "$LOG_FILE") 2>&1
+  fi
 
   # Header do log
   echo "=============================================="
