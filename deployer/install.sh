@@ -61,7 +61,7 @@ echo "Data: $(date '+%Y-%m-%d %H:%M:%S')"
 echo "Hostname: $(hostname)"
 echo "OS: $(grep PRETTY_NAME /etc/os-release 2>/dev/null | cut -d'"' -f2 || uname -s)"
 echo "User: $(whoami)"
-echo "Modo: ${MODE^^}"
+echo "Modo: $(echo "$MODE" | tr '[:lower:]' '[:upper:]')"
 echo "Log: ${LOG_FILE}"
 echo "=============================================="
 echo ""
@@ -117,7 +117,7 @@ if [[ "$MODE" == "vps" ]]; then
     exit 1
   fi
 fi
-feedback OK "User: ${REAL_USER} (modo: ${MODE^^})"
+feedback OK "User: ${REAL_USER} (modo: $(echo "$MODE" | tr '[:lower:]' '[:upper:]'))"
 
 # =============================================================================
 # STEP 2: OS check (soft gate)

@@ -65,7 +65,7 @@ hint_provider() {
 
   echo ""
   echo -e "${UI_BOLD:-\033[1m}=============================================="
-  echo "  HINT: DICAS ${provider^^}"
+  echo "  HINT: DICAS $(echo "$provider" | tr '[:lower:]' '[:upper:]')"
   echo -e "==============================================${UI_NC:-\033[0m}"
   echo ""
 
