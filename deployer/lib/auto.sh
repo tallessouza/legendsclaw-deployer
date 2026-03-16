@@ -5,6 +5,7 @@
 # Permite execucao automatizada das ferramentas via arquivo de config.
 # NOTE: This file is sourced (not executed standalone).
 #       It inherits set -euo pipefail from the calling script.
+# COMPAT: Bash 3.2+ (macOS) — no namerefs, no associative arrays
 # =============================================================================
 
 # --- Auto Mode Globals ---
@@ -14,10 +15,10 @@ AUTO_MODE="${AUTO_MODE:-false}"
 # AUTO_CONFIG: caminho para o arquivo de configuracao
 AUTO_CONFIG="${AUTO_CONFIG:-}"
 
-# Associative array com valores do config (preenchido por auto_load_config)
-declare -gA _AUTO_VALUES
+# Config file path (usado por auto_get_value para lookup)
+_AUTO_CONFIG_FILE=""
 
-# Parseia arquivo de configuracao para o associative array _AUTO_VALUES
+# Parseia arquivo de configuracao — apenas salva path para lookup posterior
 # Formato: "key: value" (ignora linhas vazias e comentarios #)
 # Uso: auto_load_config
 # Retorna: 0 se sucesso, 1 se arquivo nao encontrado
@@ -32,52 +33,52 @@ auto_load_config() {
     return 1
   fi
 
-  # Limpa valores anteriores
-  _AUTO_VALUES=()
-
-  local line key value
-  while IFS= read -r line || [[ -n "$line" ]]; do
-    # Ignora linhas vazias e comentarios
-    [[ -z "$line" ]] && continue
-    [[ "$line" =~ ^[[:space:]]*# ]] && continue
-
-    # Split em ": " (primeiro ": " encontrado)
-    key="${line%%:*}"
-    value="${line#*: }"
-
-    # Trim whitespace do key
-    key="$(echo "$key" | sed 's/^[[:space:]]*//; s/[[:space:]]*$//')"
-
-    # Se value == line inteira (nao tinha ": "), pula
-    if [[ "$key" == "$line" ]]; then
-      continue
-    fi
-
-    # Trim whitespace do value
-    value="$(echo "$value" | sed 's/^[[:space:]]*//; s/[[:space:]]*$//')"
-
-    _AUTO_VALUES["$key"]="$value"
-  done < "$AUTO_CONFIG"
-
+  _AUTO_CONFIG_FILE="$AUTO_CONFIG"
   return 0
 }
 
+# Busca valor de uma chave no config file
+# Uso: auto_get_value "config.key"
+# Retorna: valor via stdout (vazio se nao encontrado)
+auto_get_value() {
+  local _key="$1"
+  if [[ -z "$_AUTO_CONFIG_FILE" || ! -f "$_AUTO_CONFIG_FILE" ]]; then
+    echo ""
+    return
+  fi
+  local _line _k _v
+  while IFS= read -r _line || [[ -n "$_line" ]]; do
+    [[ -z "$_line" ]] && continue
+    [[ "$_line" =~ ^[[:space:]]*# ]] && continue
+    _k="${_line%%:*}"
+    _v="${_line#*: }"
+    _k="$(echo "$_k" | sed 's/^[[:space:]]*//; s/[[:space:]]*$//')"
+    [[ "$_k" == "$_line" ]] && continue
+    _v="$(echo "$_v" | sed 's/^[[:space:]]*//; s/[[:space:]]*$//')"
+    if [[ "$_k" == "$_key" ]]; then
+      echo "$_v"
+      return
+    fi
+  done < "$_AUTO_CONFIG_FILE"
+  echo ""
+}
+
 # Funcao input() — substitui read -rp com suporte a AUTO_MODE
-# Usa Bash 4.3+ nameref para atribuir diretamente na variavel do caller.
+# Usa eval para atribuir na variavel do caller (compativel Bash 3.2).
 #
 # Uso: input "config.key" "Prompt: " variable [--secret] [--required] [--default=X]
 #
 # Parametros:
 #   $1 — config key (ex: "base.dominio_portainer")
 #   $2 — prompt string (ex: "Dominio do Portainer: ")
-#   $3 — nome da variavel do caller (nameref)
+#   $3 — nome da variavel do caller (string, atribuida via eval)
 #   $4+ — flags opcionais: --secret, --required, --default=VALUE
 #
 # Retorna: 0 se sucesso, 1 se --required e chave ausente em AUTO_MODE
 input() {
   local _config_key="$1"
   local _prompt="$2"
-  local -n _var_ref="$3"
+  local _var_name="$3"
   shift 3
 
   # Parse flags
@@ -101,38 +102,42 @@ input() {
   done
 
   if [[ "$AUTO_MODE" == "true" ]]; then
-    # Modo automatizado — buscar no associative array
-    local _auto_val="${_AUTO_VALUES[$_config_key]:-}"
+    # Modo automatizado — buscar no config file
+    local _auto_val
+    _auto_val=$(auto_get_value "$_config_key")
 
     if [[ -n "$_auto_val" ]]; then
-      _var_ref="$_auto_val"
+      eval "$_var_name=\"\$_auto_val\""
       if [[ "$_secret" == "true" ]]; then
         echo "[auto] ${_config_key}: ********"
       else
         echo "[auto] ${_config_key}: ${_auto_val}"
       fi
     elif [[ -n "$_default_val" ]]; then
-      _var_ref="$_default_val"
+      eval "$_var_name=\"\$_default_val\""
       echo "[auto] ${_config_key}: ${_default_val} (default)"
     elif [[ "$_required" == "true" ]]; then
       echo "ERRO: Chave obrigatoria ausente no config: ${_config_key}" >&2
       return 1
     else
-      _var_ref=""
+      eval "$_var_name=''"
     fi
   else
     # Modo interativo — read normal
+    local _input_tmp=""
     if [[ "$_secret" == "true" ]]; then
-      read -rsp "$_prompt" _var_ref
+      read -rsp "$_prompt" _input_tmp
       echo ""
     else
-      read -rp "$_prompt" _var_ref
+      read -rp "$_prompt" _input_tmp
     fi
 
     # Aplicar default se vazio
-    if [[ -z "$_var_ref" && -n "$_default_val" ]]; then
-      _var_ref="$_default_val"
+    if [[ -z "$_input_tmp" && -n "$_default_val" ]]; then
+      _input_tmp="$_default_val"
     fi
+
+    eval "$_var_name=\"\$_input_tmp\""
   fi
 
   return 0
@@ -145,15 +150,17 @@ input() {
 #
 # Parametros:
 #   $1 — prompt string
-#   $2 — nome da variavel do caller (nameref)
+#   $2 — nome da variavel do caller (string, atribuida via eval)
 auto_confirm() {
   local _confirm_prompt="$1"
-  local -n _confirm_ref="$2"
+  local _confirm_var="$2"
 
   if [[ "$AUTO_MODE" == "true" ]]; then
-    _confirm_ref="s"
+    eval "$_confirm_var='s'"
     echo "[auto] Confirmado automaticamente"
   else
-    read -rp "$_confirm_prompt" _confirm_ref
+    local _confirm_tmp=""
+    read -rp "$_confirm_prompt" _confirm_tmp
+    eval "$_confirm_var=\"\$_confirm_tmp\""
   fi
 }

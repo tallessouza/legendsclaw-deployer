@@ -52,41 +52,45 @@ get_node_major() {
 # Seta _resultado=versao e _mensagem=texto via nameref (sem subshell)
 instalar_git() {
   local so="$1"
-  local -n _out_ver="$2"
-  local -n _out_msg="$3"
-  _out_ver=""
+  local _vname="$2"
+  local _mname="$3"
+  eval "$_vname=''"
 
   if cmd_exists git; then
-    _out_ver=$(get_version "git --version")
-    _out_msg="Git ja instalado (v${_out_ver})"
+    local _v; _v=$(get_version "git --version")
+    eval "$_vname=\"\$_v\""
+    eval "$_mname=\"Git ja instalado (v\${_v})\""
     return 0
   fi
 
   case "$so" in
     linux|wsl)
       if sudo apt-get update -qq && sudo apt-get install -y -qq git; then
-        _out_ver=$(get_version "git --version")
-        _out_msg="Git instalado (v${_out_ver})"
+        local _v; _v=$(get_version "git --version")
+        eval "$_vname=\"\$_v\""
+        eval "$_mname=\"Git instalado (v\${_v})\""
         return 0
       else
-        _out_msg="Falha ao instalar git via apt"
+        eval "$_mname='Falha ao instalar git via apt'"
         return 1
       fi
       ;;
     macos)
       if cmd_exists brew; then
         if brew install git 2>/dev/null; then
-          _out_ver=$(get_version "git --version")
-          _out_msg="Git instalado via Homebrew (v${_out_ver})"
+          local _v; _v=$(get_version "git --version")
+          eval "$_vname=\"\$_v\""
+          eval "$_mname=\"Git instalado via Homebrew (v\${_v})\""
           return 0
         fi
       fi
       if cmd_exists git; then
-        _out_ver=$(get_version "git --version")
-        _out_msg="Git disponivel via Xcode CLT (v${_out_ver})"
+        local _v; _v=$(get_version "git --version")
+        eval "$_vname=\"\$_v\""
+        eval "$_mname=\"Git disponivel via Xcode CLT (v\${_v})\""
         return 0
       fi
-      _out_msg="Git nao encontrado. Instale Xcode CLT: xcode-select --install"
+      eval "$_mname='Git nao encontrado. Instale Xcode CLT: xcode-select --install'"
       return 1
       ;;
   esac
@@ -95,15 +99,16 @@ instalar_git() {
 # Uso: instalar_nodejs "linux" _resultado _mensagem
 instalar_nodejs() {
   local so="$1"
-  local -n _out_ver="$2"
-  local -n _out_msg="$3"
-  _out_ver=""
+  local _vname="$2"
+  local _mname="$3"
+  eval "$_vname=''"
   local node_major
   node_major=$(get_node_major)
 
   if [[ "$node_major" -ge "$NODE_MIN_VERSION" ]]; then
-    _out_ver=$(get_version "node --version")
-    _out_msg="Node.js ja instalado (v${_out_ver})"
+    local _v; _v=$(get_version "node --version")
+    eval "$_vname=\"\$_v\""
+    eval "$_mname=\"Node.js ja instalado (v\${_v})\""
     return 0
   fi
 
@@ -111,20 +116,22 @@ instalar_nodejs() {
     linux|wsl)
       if curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash - 2>/dev/null \
          && sudo apt-get install -y -qq nodejs 2>/dev/null; then
-        _out_ver=$(get_version "node --version")
-        _out_msg="Node.js instalado via NodeSource (v${_out_ver})"
+        local _v; _v=$(get_version "node --version")
+        eval "$_vname=\"\$_v\""
+        eval "$_mname=\"Node.js instalado via NodeSource (v\${_v})\""
         return 0
       fi
       if cmd_exists nvm || [[ -s "$HOME/.nvm/nvm.sh" ]]; then
         # shellcheck disable=SC1091
         [[ -s "$HOME/.nvm/nvm.sh" ]] && source "$HOME/.nvm/nvm.sh"
         if nvm install 22 && nvm use 22; then
-          _out_ver=$(get_version "node --version")
-          _out_msg="Node.js instalado via nvm (v${_out_ver})"
+          local _v; _v=$(get_version "node --version")
+          eval "$_vname=\"\$_v\""
+          eval "$_mname=\"Node.js instalado via nvm (v\${_v})\""
           return 0
         fi
       fi
-      _out_msg="Falha ao instalar Node.js >= ${NODE_MIN_VERSION}"
+      eval "$_mname=\"Falha ao instalar Node.js >= ${NODE_MIN_VERSION}\""
       return 1
       ;;
     macos)
@@ -133,12 +140,13 @@ instalar_nodejs() {
           if [[ -d "$(brew --prefix)/opt/node@22/bin" ]]; then
             export PATH="$(brew --prefix)/opt/node@22/bin:$PATH"
           fi
-          _out_ver=$(get_version "node --version")
-          _out_msg="Node.js instalado via Homebrew (v${_out_ver})"
+          local _v; _v=$(get_version "node --version")
+          eval "$_vname=\"\$_v\""
+          eval "$_mname=\"Node.js instalado via Homebrew (v\${_v})\""
           return 0
         fi
       fi
-      _out_msg="Falha ao instalar Node.js. Instale Homebrew primeiro: https://brew.sh"
+      eval "$_mname='Falha ao instalar Node.js. Instale Homebrew primeiro: https://brew.sh'"
       return 1
       ;;
   esac
@@ -146,27 +154,29 @@ instalar_nodejs() {
 
 # Uso: instalar_claude_code _resultado _mensagem
 instalar_claude_code() {
-  local -n _out_ver="$1"
-  local -n _out_msg="$2"
-  _out_ver=""
+  local _vname="$1"
+  local _mname="$2"
+  eval "$_vname=''"
 
   if cmd_exists claude; then
-    _out_ver=$(claude --version 2>/dev/null | head -1 || echo "unknown")
-    _out_msg="Claude Code CLI ja instalado (${_out_ver})"
+    local _v; _v=$(claude --version 2>/dev/null | head -1 || echo "unknown")
+    eval "$_vname=\"\$_v\""
+    eval "$_mname=\"Claude Code CLI ja instalado (\${_v})\""
     return 0
   fi
 
   if ! cmd_exists npm; then
-    _out_msg="npm nao encontrado. Instale Node.js primeiro"
+    eval "$_mname='npm nao encontrado. Instale Node.js primeiro'"
     return 1
   fi
 
   if npm install -g @anthropic-ai/claude-code 2>/dev/null; then
-    _out_ver=$(claude --version 2>/dev/null | head -1 || echo "unknown")
-    _out_msg="Claude Code CLI instalado (${_out_ver})"
+    local _v; _v=$(claude --version 2>/dev/null | head -1 || echo "unknown")
+    eval "$_vname=\"\$_v\""
+    eval "$_mname=\"Claude Code CLI instalado (\${_v})\""
     return 0
   else
-    _out_msg="Falha ao instalar Claude Code CLI via npm"
+    eval "$_mname='Falha ao instalar Claude Code CLI via npm'"
     return 1
   fi
 }
@@ -175,19 +185,19 @@ instalar_claude_code() {
 # _resultado: connected | disconnected | not_connected | not_installed
 instalar_tailscale() {
   local so="$1"
-  local -n _out_status="$2"
-  local -n _out_msg="$3"
-  _out_status="not_installed"
+  local _sname="$2"
+  local _mname="$3"
+  eval "$_sname='not_installed'"
 
   if cmd_exists tailscale; then
     local ts_state
     ts_state=$(tailscale status --json 2>/dev/null | grep -o '"BackendState":"[^"]*"' | cut -d'"' -f4 || echo "unknown")
     if [[ "$ts_state" == "Running" ]]; then
-      _out_status="connected"
-      _out_msg="Tailscale instalado e conectado"
+      eval "$_sname='connected'"
+      eval "$_mname='Tailscale instalado e conectado'"
     else
-      _out_status="disconnected"
-      _out_msg="Tailscale instalado (status: ${ts_state})"
+      eval "$_sname='disconnected'"
+      eval "$_mname=\"Tailscale instalado (status: \${ts_state})\""
     fi
     return 0
   fi
@@ -204,25 +214,25 @@ instalar_tailscale() {
       hash -r 2>/dev/null || true
       export PATH="/usr/bin:/usr/sbin:/usr/local/bin:$PATH"
       if command -v tailscale &>/dev/null || [[ -x /usr/bin/tailscale ]]; then
-        _out_status="not_connected"
-        _out_msg="Tailscale instalado"
+        eval "$_sname='not_connected'"
+        eval "$_mname='Tailscale instalado'"
         return 0
       else
-        _out_status="not_installed"
-        _out_msg="Falha ao instalar Tailscale"
+        eval "$_sname='not_installed'"
+        eval "$_mname='Falha ao instalar Tailscale'"
         return 1
       fi
       ;;
     macos)
       if cmd_exists brew; then
         if brew install tailscale 2>/dev/null; then
-          _out_status="not_connected"
-          _out_msg="Tailscale instalado via Homebrew"
+          eval "$_sname='not_connected'"
+          eval "$_mname='Tailscale instalado via Homebrew'"
           return 0
         fi
       fi
-      _out_status="not_installed"
-      _out_msg="Falha ao instalar Tailscale. Baixe em: https://tailscale.com/download/mac"
+      eval "$_sname='not_installed'"
+      eval "$_mname='Falha ao instalar Tailscale. Baixe em: https://tailscale.com/download/mac'"
       return 1
       ;;
   esac
