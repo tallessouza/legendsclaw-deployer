@@ -158,6 +158,16 @@ instalar_nodejs() {
         eval "$(fnm env --shell bash 2>/dev/null)" 2>/dev/null || true
         if fnm install 22 && fnm use 22 && fnm default 22; then
           eval "$(fnm env --shell bash 2>/dev/null)" 2>/dev/null || true
+          # Persistir fnm no shell profile para subshells e sessoes futuras
+          local _fnm_dir="$HOME/.fnm"
+          local _shell_rc="$HOME/.zshrc"
+          if [[ ! -f "$_shell_rc" ]]; then _shell_rc="$HOME/.bash_profile"; fi
+          if ! grep -q 'fnm env' "$_shell_rc" 2>/dev/null; then
+            echo '' >> "$_shell_rc"
+            echo '# fnm (Fast Node Manager) — adicionado por Legendsclaw Deployer' >> "$_shell_rc"
+            echo "export PATH=\"$_fnm_dir:\$PATH\"" >> "$_shell_rc"
+            echo 'eval "$(fnm env --shell $(basename $SHELL) 2>/dev/null)" 2>/dev/null || true' >> "$_shell_rc"
+          fi
           local _v; _v=$(get_version "node --version")
           eval "$_vname=\"\$_v\""
           eval "$_mname=\"Node.js instalado via fnm (v\${_v})\""

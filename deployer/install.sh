@@ -306,6 +306,12 @@ else
     exit 1
   fi
 
+  # Garantir que Node.js via fnm esteja no PATH para etapas seguintes
+  if [[ -d "$HOME/.fnm" ]]; then
+    export PATH="$HOME/.fnm:$PATH"
+    eval "$("$HOME/.fnm/fnm" env --shell bash 2>/dev/null)" 2>/dev/null || true
+  fi
+
   pause_between_steps
 
   # STEP 7: Bridge Local→VPS (Tailscale)
