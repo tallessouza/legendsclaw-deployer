@@ -142,18 +142,51 @@ else
   echo ""
   echo -e "  ${UI_YELLOW}Tailscale instalado mas NAO conectado.${UI_NC}"
   echo ""
-  echo "  [1] Conectar agora (sudo tailscale up)"
-  echo "  [2] Continuar offline (configurar bridge sem testar)"
-  echo ""
-  ts_opcao=""
-  input "bridge.ts_connect" "Opcao [1]: " ts_opcao --default=1
 
-  if [[ "$ts_opcao" == "1" ]]; then
+  # Detectar SO para escolher metodo de conexao
+  _so_connect=$(detectar_so 2>/dev/null || echo "linux")
+
+  if [[ "$_so_connect" == "macos" ]]; then
+    # macOS: abrir o app e aguardar conexao
+    echo "  Abrindo Tailscale.app — faca login no app para conectar."
     echo ""
+    open -a Tailscale 2>/dev/null || true
+    echo "  Aguardando conexao do Tailscale..."
+    echo "  (habilite em System Settings > Privacy & Security se solicitado)"
+    echo ""
+    # Aguardar ate 120 segundos pela conexao
+    _ts_wait=0
+    while [[ "$_ts_wait" -lt 120 ]]; do
+      if command -v tailscale &>/dev/null && tailscale status &>/dev/null 2>&1; then
+        tailscale_connected="true"
+        break
+      fi
+      # Checar via CLI dentro do .app
+      if [[ -x "/Applications/Tailscale.app/Contents/MacOS/Tailscale" ]]; then
+        if "/Applications/Tailscale.app/Contents/MacOS/Tailscale" status &>/dev/null 2>&1; then
+          tailscale_connected="true"
+          break
+        fi
+      fi
+      sleep 3
+      _ts_wait=$((_ts_wait + 3))
+      printf "."
+    done
+    echo ""
+
+    if [[ "$tailscale_connected" == "true" ]]; then
+      step_ok "Tailscale conectado com sucesso"
+    else
+      echo -e "  ${UI_YELLOW}Tailscale nao conectou em 2 minutos.${UI_NC}"
+      echo "  Conecte manualmente pelo app e rode este script novamente."
+      step_fail "Tailscale nao conectado"
+      exit 1
+    fi
+  else
+    # Linux/WSL: sudo tailscale up
     echo "  Executando: sudo tailscale up"
     echo "  (siga as instrucoes de login no navegador)"
     echo ""
-    # Resolver path do tailscale (pode nao estar no PATH do sudo)
     ts_bin=$(command -v tailscale 2>/dev/null || true)
     if [[ -z "$ts_bin" ]]; then
       for _p in /opt/homebrew/bin/tailscale /usr/local/bin/tailscale /usr/bin/tailscale; do
@@ -162,23 +195,22 @@ else
     fi
     ts_bin="${ts_bin:-tailscale}"
     if sudo "$ts_bin" up 2>&1; then
-      # Re-verificar conexao
       sleep 2
       if "$ts_bin" status &>/dev/null; then
         tailscale_connected="true"
         step_ok "Tailscale conectado com sucesso"
       else
         echo -e "  ${UI_YELLOW}Tailscale login executado mas status nao confirmado.${UI_NC}"
-        echo "  Continuando em modo offline."
-        step_ok "Dependencias verificadas — Node $(node --version), Tailscale offline"
+        echo "  Conecte manualmente e rode este script novamente."
+        step_fail "Tailscale nao conectado"
+        exit 1
       fi
     else
-      echo -e "  ${UI_YELLOW}Falha ao conectar Tailscale. Continuando offline.${UI_NC}"
-      step_ok "Dependencias verificadas — Node $(node --version), Tailscale offline"
+      echo -e "  ${UI_RED}Falha ao conectar Tailscale.${UI_NC}"
+      echo "  Conecte manualmente: sudo tailscale up"
+      step_fail "Tailscale nao conectado"
+      exit 1
     fi
-  else
-    echo -e "  Continuando em modo offline."
-    step_ok "Dependencias verificadas — Node $(node --version), Tailscale offline"
   fi
 fi
 
