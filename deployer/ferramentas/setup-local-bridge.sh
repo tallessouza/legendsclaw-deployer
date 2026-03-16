@@ -62,6 +62,13 @@ if command -v tailscale &>/dev/null; then
   if tailscale status &>/dev/null 2>&1; then
     tailscale_connected="true"
   fi
+elif [[ -d "/Applications/Tailscale.app" ]]; then
+  # macOS: Tailscale instalado como app (CLI pode estar em Contents/MacOS)
+  export PATH="/Applications/Tailscale.app/Contents/MacOS:$PATH"
+  tailscale_installed="true"
+  if command -v tailscale &>/dev/null && tailscale status &>/dev/null 2>&1; then
+    tailscale_connected="true"
+  fi
 fi
 
 if [[ "$tailscale_installed" == "false" ]]; then
@@ -100,22 +107,27 @@ if [[ "$tailscale_installed" == "false" ]]; then
         fi
         ;;
       macos)
-        if command -v brew &>/dev/null; then
-          echo "  Instalando Tailscale via Homebrew..."
-          if brew install tailscale 2>/dev/null; then
-            # Atualizar PATH com prefix do Homebrew
-            export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
+        # Baixar e instalar o .pkg oficial (nao usa brew — evita compilar Go)
+        echo "  Baixando Tailscale para macOS..."
+        local _pkg_url="https://pkgs.tailscale.com/stable/Tailscale-latest-macos.pkg"
+        local _pkg_path="/tmp/Tailscale.pkg"
+        if curl -fsSL "$_pkg_url" -o "$_pkg_path" 2>/dev/null; then
+          echo "  Instalando Tailscale.pkg (pode pedir senha)..."
+          if sudo installer -pkg "$_pkg_path" -target / 2>/dev/null; then
+            rm -f "$_pkg_path"
+            export PATH="/opt/homebrew/bin:/usr/local/bin:/Applications/Tailscale.app/Contents/MacOS:$PATH"
             hash -r 2>/dev/null || true
             tailscale_installed="true"
-            step_ok "Tailscale instalado via Homebrew"
+            step_ok "Tailscale instalado via .pkg"
           else
-            echo -e "  ${UI_RED}Falha ao instalar Tailscale.${UI_NC}"
-            echo "  Baixe em: https://tailscale.com/download/mac"
+            rm -f "$_pkg_path"
+            echo -e "  ${UI_RED}Falha ao instalar Tailscale.pkg${UI_NC}"
+            echo "  Baixe manualmente: https://tailscale.com/download/mac"
             step_ok "Continuando sem Tailscale (bridge offline)"
           fi
         else
-          echo -e "  ${UI_YELLOW}Homebrew nao encontrado.${UI_NC}"
-          echo "  Baixe em: https://tailscale.com/download/mac"
+          echo -e "  ${UI_RED}Falha ao baixar Tailscale.${UI_NC}"
+          echo "  Baixe manualmente: https://tailscale.com/download/mac"
           step_ok "Continuando sem Tailscale (bridge offline)"
         fi
         ;;
