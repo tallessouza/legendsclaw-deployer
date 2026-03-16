@@ -50,9 +50,16 @@ fi
 tailscale_installed="false"
 tailscale_connected="false"
 
-if command -v tailscale &>/dev/null || [[ -x /usr/bin/tailscale ]] || [[ -x /usr/sbin/tailscale ]]; then
+# Adicionar paths comuns do Tailscale (Homebrew macOS, Linux)
+for _tp in /opt/homebrew/bin /usr/local/bin /usr/bin /usr/sbin; do
+  if [[ -x "$_tp/tailscale" ]] && ! command -v tailscale &>/dev/null; then
+    export PATH="$_tp:$PATH"
+  fi
+done
+
+if command -v tailscale &>/dev/null; then
   tailscale_installed="true"
-  if tailscale status &>/dev/null 2>&1 || /usr/bin/tailscale status &>/dev/null 2>&1; then
+  if tailscale status &>/dev/null 2>&1; then
     tailscale_connected="true"
   fi
 fi
@@ -133,7 +140,13 @@ else
     echo "  (siga as instrucoes de login no navegador)"
     echo ""
     # Resolver path do tailscale (pode nao estar no PATH do sudo)
-    ts_bin=$(command -v tailscale 2>/dev/null || echo "/usr/bin/tailscale")
+    ts_bin=$(command -v tailscale 2>/dev/null || true)
+    if [[ -z "$ts_bin" ]]; then
+      for _p in /opt/homebrew/bin/tailscale /usr/local/bin/tailscale /usr/bin/tailscale; do
+        if [[ -x "$_p" ]]; then ts_bin="$_p"; break; fi
+      done
+    fi
+    ts_bin="${ts_bin:-tailscale}"
     if sudo "$ts_bin" up 2>&1; then
       # Re-verificar conexao
       sleep 2
