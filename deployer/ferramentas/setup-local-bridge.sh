@@ -103,6 +103,9 @@ if [[ "$tailscale_installed" == "false" ]]; then
         if command -v brew &>/dev/null; then
           echo "  Instalando Tailscale via Homebrew..."
           if brew install tailscale 2>/dev/null; then
+            # Atualizar PATH com prefix do Homebrew
+            export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
+            hash -r 2>/dev/null || true
             tailscale_installed="true"
             step_ok "Tailscale instalado via Homebrew"
           else
