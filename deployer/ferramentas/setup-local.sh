@@ -137,18 +137,25 @@ instalar_nodejs() {
       return 1
       ;;
     macos)
-      # Prioridade 1: fnm (binario pre-compilado, rapido)
+      # Prioridade 1: fnm via download direto do binario (NÃO usar brew)
       if ! cmd_exists fnm; then
         echo "  Instalando fnm (Fast Node Manager)..."
-        if curl -fsSL https://fnm.vercel.app/install | bash -s -- --skip-shell 2>/dev/null; then
-          export PATH="$HOME/.local/share/fnm:$HOME/.fnm:$PATH"
-          # fnm pode instalar em locais diferentes
-          if [[ -d "$HOME/.local/share/fnm" ]]; then
-            eval "$("$HOME/.local/share/fnm/fnm" env --shell bash 2>/dev/null)" 2>/dev/null || true
-          fi
+        local _fnm_dir="$HOME/.fnm"
+        mkdir -p "$_fnm_dir"
+        local _arch
+        _arch=$(uname -m)
+        local _fnm_arch="arm64"
+        if [[ "$_arch" == "x86_64" ]]; then _fnm_arch="x64"; fi
+        local _fnm_url="https://github.com/Schniz/fnm/releases/latest/download/fnm-macos.zip"
+        if curl -fsSL "$_fnm_url" -o /tmp/fnm.zip 2>/dev/null && \
+           unzip -o /tmp/fnm.zip -d "$_fnm_dir" 2>/dev/null; then
+          chmod +x "$_fnm_dir/fnm"
+          rm -f /tmp/fnm.zip
         fi
+        export PATH="$_fnm_dir:$PATH"
       fi
       if cmd_exists fnm; then
+        eval "$(fnm env --shell bash 2>/dev/null)" 2>/dev/null || true
         if fnm install 22 && fnm use 22 && fnm default 22; then
           eval "$(fnm env --shell bash 2>/dev/null)" 2>/dev/null || true
           local _v; _v=$(get_version "node --version")
@@ -165,19 +172,6 @@ instalar_nodejs() {
           local _v; _v=$(get_version "node --version")
           eval "$_vname=\"\$_v\""
           eval "$_mname=\"Node.js instalado via nvm (v\${_v})\""
-          return 0
-        fi
-      fi
-      # Prioridade 3: brew (lento, compila OpenSSL)
-      if cmd_exists brew; then
-        echo "  Instalando Node.js via Homebrew (pode demorar)..."
-        if brew install node@22 2>/dev/null; then
-          if [[ -d "$(brew --prefix)/opt/node@22/bin" ]]; then
-            export PATH="$(brew --prefix)/opt/node@22/bin:$PATH"
-          fi
-          local _v; _v=$(get_version "node --version")
-          eval "$_vname=\"\$_v\""
-          eval "$_mname=\"Node.js instalado via Homebrew (v\${_v})\""
           return 0
         fi
       fi
