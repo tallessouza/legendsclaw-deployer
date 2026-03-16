@@ -190,8 +190,34 @@ if [[ -d "$INSTALL_DIR/.git" ]]; then
     exit 1
   fi
 elif [[ -d "$INSTALL_DIR" ]]; then
-  feedback FAIL "${INSTALL_DIR} existe mas nao e um repositorio git"
-  exit 1
+  # Diretorio existe mas sem .git — perguntar se pode limpar e clonar
+  echo ""
+  echo -e "  ${YELLOW}${INSTALL_DIR} existe mas nao e um repositorio git.${NC}"
+  echo -e "  O conteudo sera removido e o repositorio sera clonado."
+  echo ""
+  printf "  Continuar? (s/n): "
+  resp=""
+  if [[ -e /dev/tty ]]; then
+    read -r resp </dev/tty
+  else
+    read -r resp
+  fi
+  if [[ "$resp" =~ ^[Ss]$ ]]; then
+    rm -rf "$INSTALL_DIR"
+    mkdir -p "$INSTALL_DIR"
+    if git clone "$REPO_URL" "$INSTALL_DIR" > /dev/null 2>&1; then
+      if [[ "${REAL_USER:-}" != "root" ]] && [[ $EUID -eq 0 ]]; then
+        chown -R "${REAL_USER}:${REAL_GROUP}" "$INSTALL_DIR"
+      fi
+      feedback OK "Repositorio clonado em ${INSTALL_DIR} (diretorio anterior substituido)"
+    else
+      feedback FAIL "Falha ao clonar repositorio"
+      exit 1
+    fi
+  else
+    feedback FAIL "Cancelado pelo usuario"
+    exit 1
+  fi
 else
   if [[ "$MODE" == "vps" ]]; then
     # VPS: criar /opt/legendsclaw com sudo se necessario

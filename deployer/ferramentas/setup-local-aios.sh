@@ -21,7 +21,7 @@ source "${LIB_DIR}/hints.sh"
 source "${LIB_DIR}/env-detect.sh"
 
 readonly NODE_MIN_VERSION=22
-readonly TOTAL_STEPS=9
+readonly TOTAL_STEPS=10
 
 # =============================================================================
 # STEP 1: LOGGING + STEP INIT
@@ -92,11 +92,11 @@ fi
 step_ok "Dados do projeto coletados"
 
 # =============================================================================
-# STEP 4: EXECUTAR npx aios-core init (AC: 4, 5)
+# STEP 4: EXECUTAR npx aiox-core init (AC: 4, 5)
 # =============================================================================
 
 aios_dir="${dir_destino}/.aios-core"
-# aios-core init pode criar subdiretorio com nome do projeto
+# aiox-core init pode criar subdiretorio com nome do projeto
 aios_dir_nested="${dir_destino}/${nome_projeto}/.aios-core"
 
 if [[ -d "$aios_dir" ]]; then
@@ -108,24 +108,24 @@ elif [[ -d "$aios_dir_nested" ]]; then
   step_skip "AIOS ja inicializado em ${dir_destino}"
 else
   echo ""
-  echo "  Executando npx aios-core init ${nome_projeto}..."
+  echo "  Executando npx aiox-core init ${nome_projeto}..."
   echo "  (isto pode demorar na primeira execucao)"
   echo ""
 
-  # Rodar direto no terminal (sem captura) — aios-core init e interativo
-  (cd "$dir_destino" && npx aios-core init "$nome_projeto" </dev/tty >/dev/tty 2>&1)
+  # Rodar direto no terminal (sem captura) — aiox-core init e interativo
+  (cd "$dir_destino" && npx aiox-core init "$nome_projeto" </dev/tty >/dev/tty 2>&1)
   init_exit=$?
 
   if [[ "$init_exit" -ne 0 ]]; then
-    step_fail "npx aios-core init falhou (exit code: ${init_exit})"
+    step_fail "npx aiox-core init falhou (exit code: ${init_exit})"
     echo ""
     echo "  Tente manualmente:"
     echo "    cd ${dir_destino}"
-    echo "    npx aios-core init ${nome_projeto}"
+    echo "    npx aiox-core init ${nome_projeto}"
     exit 1
   fi
 
-  # aios-core init cria subdiretorio {nome_projeto}/.aios-core/
+  # aiox-core init cria subdiretorio {nome_projeto}/.aios-core/
   # Verificar ambos os paths possiveis
   if [[ -d "$aios_dir_nested" ]]; then
     dir_destino="${dir_destino}/${nome_projeto}"
@@ -248,7 +248,8 @@ for skill in "${skills_array[@]}"; do
 done
 
 # Montar dependencies tools
-deps_tools="    - git"
+deps_tools="    - git
+    - ssh"
 for skill in "${skills_array[@]}"; do
   skill=$(echo "$skill" | sed 's/^[[:space:]]*//; s/[[:space:]]*$//')
   [[ -z "$skill" ]] && continue
@@ -256,10 +257,17 @@ for skill in "${skills_array[@]}"; do
     - ${skill}"
 done
 
+# Adicionar command *vps
+commands_yaml="${commands_yaml}
+  - name: vps
+    visibility: [full, quick]
+    description: 'Execute VPS operations via SSH (status, logs, health, skills, etc.)'"
+
 # Montar lista de quick commands para markdown
 quick_commands="- \`*help\` - Show all available commands
 - \`*status\` - Show agent status
-- \`*chat\` - Start conversation"
+- \`*chat\` - Start conversation
+- \`*vps\` - VPS operations (status, logs, health, skills)"
 for skill in "${skills_array[@]}"; do
   skill=$(echo "$skill" | sed 's/^[[:space:]]*//; s/[[:space:]]*$//')
   [[ -z "$skill" ]] && continue
@@ -321,6 +329,14 @@ ${commands_yaml}
 dependencies:
   tools:
 ${deps_tools}
+
+vps_remote:
+  ssh_alias: openclaw
+  ops_script: .aios-core/infrastructure/services/vps-remote/vps-ops.sh
+  architecture_doc: .aios-core/infrastructure/services/vps-remote/VPS-ARCHITECTURE.md
+
+knowledge_base:
+  - .aios-core/infrastructure/services/vps-remote/VPS-ARCHITECTURE.md
 
 autoClaude:
   version: '3.0'
@@ -401,7 +417,125 @@ else
 fi
 
 # =============================================================================
-# STEP 9: SALVAR ESTADO (AC: 10) + HINTS (AC: 11) + RESUMO
+# STEP 9: ELICITATION SSH — CONEXAO VPS
+# =============================================================================
+
+vps_host=""
+vps_user=""
+vps_ssh_ok=false
+
+echo ""
+echo "  Configuracao de acesso SSH a VPS (OpenClaw)"
+echo ""
+
+# Tentar detectar host via Tailscale peers
+ts_host=""
+if command -v tailscale &>/dev/null; then
+  ts_host=$(tailscale status 2>/dev/null | grep -i "vps\|openclaw" | awk '{print $1}' | head -1 || true)
+fi
+
+if [[ -n "$ts_host" ]]; then
+  echo "  Detectado via Tailscale: ${ts_host}"
+  input "vps.host" "IP/hostname da VPS [${ts_host}]: " vps_host --default="$ts_host"
+else
+  input "vps.host" "IP/hostname da VPS: " vps_host --default=""
+fi
+
+if [[ -z "$vps_host" ]]; then
+  step_skip "SSH VPS nao configurado (sem host)"
+else
+  input "vps.user" "Usuario SSH [root]: " vps_user --default="root"
+
+  # Detectar chave SSH
+  ssh_key=""
+  for key_file in ~/.ssh/id_ed25519 ~/.ssh/id_rsa ~/.ssh/id_ecdsa; do
+    if [[ -f "$key_file" ]]; then
+      ssh_key="$key_file"
+      break
+    fi
+  done
+
+  if [[ -n "$ssh_key" ]]; then
+    echo "  Chave SSH detectada: ${ssh_key}"
+  else
+    echo "  Nenhuma chave SSH encontrada em ~/.ssh/"
+    echo "  Gerando nova chave ed25519..."
+    ssh-keygen -t ed25519 -f ~/.ssh/id_ed25519 -N "" -q
+    ssh_key=~/.ssh/id_ed25519
+    echo "  Chave gerada: ${ssh_key}"
+    echo "  Copie a chave publica para a VPS:"
+    echo "    ssh-copy-id -i ${ssh_key}.pub ${vps_user}@${vps_host}"
+    echo ""
+  fi
+
+  # Testar conexao
+  echo "  Testando conexao SSH..."
+  if ssh -o ConnectTimeout=5 -o BatchMode=yes "${vps_user}@${vps_host}" echo ok &>/dev/null; then
+    echo "  Conexao SSH OK!"
+    vps_ssh_ok=true
+
+    # Verificar pre-requisitos na VPS
+    echo "  Verificando OpenClaw na VPS..."
+    if ssh -o ConnectTimeout=5 -o BatchMode=yes "${vps_user}@${vps_host}" "systemctl is-active openclaw" &>/dev/null; then
+      echo "  OpenClaw service: ativo"
+    else
+      echo "  OpenClaw service: inativo ou nao encontrado"
+    fi
+  else
+    echo "  Conexao SSH falhou — verifique credenciais e firewall"
+    echo "  Continuando sem SSH (configure manualmente depois)"
+  fi
+
+  # Configurar ~/.ssh/config com alias openclaw
+  ssh_config=~/.ssh/config
+  if ! grep -q "^Host openclaw" "$ssh_config" 2>/dev/null; then
+    mkdir -p ~/.ssh
+    cat >> "$ssh_config" << SSHEOF
+
+# OpenClaw VPS — adicionado por Legendsclaw Deployer
+Host openclaw
+  HostName ${vps_host}
+  User ${vps_user}
+  IdentityFile ${ssh_key:-~/.ssh/id_ed25519}
+  StrictHostKeyChecking accept-new
+  ConnectTimeout 10
+SSHEOF
+    chmod 600 "$ssh_config"
+    echo "  Alias 'openclaw' adicionado em ~/.ssh/config"
+  else
+    echo "  Alias 'openclaw' ja existe em ~/.ssh/config"
+  fi
+
+  # Copiar vps-remote/ para projeto destino
+  vps_remote_src="${REPO_ROOT}/.aios-core/infrastructure/services/vps-remote"
+  vps_remote_dst="${dir_destino}/.aios-core/infrastructure/services/vps-remote"
+  if [[ -d "$vps_remote_src" ]]; then
+    mkdir -p "$vps_remote_dst"
+    cp -rp "${vps_remote_src}/." "${vps_remote_dst}/"
+    echo "  vps-remote/ copiado para ${dir_destino}"
+  fi
+
+  # Salvar estado SSH
+  mkdir -p "$STATE_DIR"
+  cat > "$STATE_DIR/dados_vps_ssh" << EOF
+SSH Host: ${vps_host}
+SSH User: ${vps_user}
+SSH Key: ${ssh_key:-~/.ssh/id_ed25519}
+SSH Alias: openclaw
+SSH OK: ${vps_ssh_ok}
+Data Configuracao: $(date '+%Y-%m-%d %H:%M:%S')
+EOF
+  chmod 600 "$STATE_DIR/dados_vps_ssh"
+
+  if [[ "$vps_ssh_ok" == "true" ]]; then
+    step_ok "SSH VPS configurado — alias 'openclaw' (${vps_user}@${vps_host})"
+  else
+    step_ok "SSH VPS configurado (alias salvo, conexao pendente)"
+  fi
+fi
+
+# =============================================================================
+# STEP 10: SALVAR ESTADO (AC: 10) + HINTS (AC: 11) + RESUMO
 # =============================================================================
 
 # Montar lista de commands para state file

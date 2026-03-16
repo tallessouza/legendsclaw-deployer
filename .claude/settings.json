@@ -34,6 +34,8 @@
       "Bash(uniq *)",
       "Bash(date *)",
       "Bash(echo *)",
+      "Bash(ssh openclaw *)",
+      "Bash(bash .aios-core/infrastructure/services/vps-remote/vps-ops.sh *)",
       "Bash(test *)",
       "Bash(true)",
       "Bash(false)",
@@ -47,6 +49,9 @@
       "Bash(git push --force*)",
       "Bash(git reset --hard*)",
       "Bash(git clean -f*)",
+      "Bash(ssh openclaw rm -rf *)",
+      "Bash(ssh openclaw shutdown*)",
+      "Bash(ssh openclaw reboot*)",
       "Bash(sudo *)"
     ]
   },

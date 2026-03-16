@@ -1012,34 +1012,34 @@ if ($confirma -notmatch '^[Ss]$') {
     exit 0
 }
 
-# --- npx aios-core init ---
+# --- npx aiox-core init ---
 $aiosDir = Join-Path $dirDestino '.aios-core'
 
 if (Test-Path $aiosDir) {
     Write-Host "  AIOS ja inicializado em $dirDestino" -ForegroundColor Yellow
 } else {
     Write-Host ''
-    Write-Host "  Executando npx aios-core init ${nomeProjeto}..."
+    Write-Host "  Executando npx aiox-core init ${nomeProjeto}..."
     Write-Host '  (isto pode demorar na primeira execucao)'
     Write-Host ''
 
     $prevDir = Get-Location
     try {
         Set-Location $dirDestino
-        $initOutput = npx aios-core init $nomeProjeto 2>&1
+        $initOutput = npx aiox-core init $nomeProjeto 2>&1
         $initExit = $LASTEXITCODE
     } finally {
         Set-Location $prevDir
     }
 
     if ($initExit -ne 0) {
-        Write-Host "  npx aios-core init falhou (exit code: ${initExit})" -ForegroundColor Red
+        Write-Host "  npx aiox-core init falhou (exit code: ${initExit})" -ForegroundColor Red
         Write-Host "  Output: $initOutput" -ForegroundColor Yellow
         Write-Host ''
         Write-Host '  Tente manualmente:' -ForegroundColor Yellow
         Write-Host "    cd $dirDestino" -ForegroundColor Yellow
-        Write-Host "    npx aios-core init $nomeProjeto" -ForegroundColor Yellow
-        Feedback-FAIL 'npx aios-core init falhou'
+        Write-Host "    npx aiox-core init $nomeProjeto" -ForegroundColor Yellow
+        Feedback-FAIL 'npx aiox-core init falhou'
         Show-Summary
         exit 1
     }
