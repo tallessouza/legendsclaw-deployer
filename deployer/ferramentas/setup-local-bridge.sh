@@ -107,27 +107,27 @@ if [[ "$tailscale_installed" == "false" ]]; then
         fi
         ;;
       macos)
-        # Usar brew cask (app pre-compilado, sem compilar Go/OpenSSL)
+        # brew install --formula tailscale (CLI pre-compilado, sem compilar Go)
         if command -v brew &>/dev/null; then
-          echo "  Instalando Tailscale app via Homebrew cask..."
-          brew install --cask tailscale-app 2>/dev/null || true
-          # Checar se o app foi instalado (brew pode retornar erro por caveats)
-          if [[ -d "/Applications/Tailscale.app" ]] || command -v tailscale &>/dev/null; then
-            export PATH="/Applications/Tailscale.app/Contents/MacOS:/opt/homebrew/bin:$PATH"
+          echo "  Instalando Tailscale CLI via Homebrew (formula)..."
+          if brew install --formula tailscale 2>/dev/null; then
+            export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
             hash -r 2>/dev/null || true
             tailscale_installed="true"
-            # Abrir o app para que o usuario possa habilitar a extensao
-            open -a Tailscale 2>/dev/null || true
-            step_ok "Tailscale.app instalado (habilite em System Settings > Privacy & Security se necessario)"
+            # Iniciar daemon
+            sudo brew services start tailscale 2>/dev/null || true
+            step_ok "Tailscale CLI instalado"
           else
-            echo -e "  ${UI_RED}Falha ao instalar Tailscale via cask.${UI_NC}"
-            echo "  Baixe manualmente: https://tailscale.com/download/mac"
-            step_ok "Continuando sem Tailscale (bridge offline)"
+            echo -e "  ${UI_RED}Falha ao instalar Tailscale.${UI_NC}"
+            echo "  Instale manualmente: brew install --formula tailscale"
+            step_fail "Tailscale nao instalado"
+            exit 1
           fi
         else
-          echo -e "  ${UI_YELLOW}Homebrew nao encontrado.${UI_NC}"
-          echo "  Baixe Tailscale em: https://tailscale.com/download/mac"
-          step_ok "Continuando sem Tailscale (bridge offline)"
+          echo -e "  ${UI_RED}Homebrew nao encontrado.${UI_NC}"
+          echo "  Instale Homebrew primeiro: https://brew.sh"
+          step_fail "Tailscale nao instalado"
+          exit 1
         fi
         ;;
     esac
