@@ -107,25 +107,29 @@ if [[ "$tailscale_installed" == "false" ]]; then
         fi
         ;;
       macos)
-        # brew install --formula tailscale (CLI pre-compilado, sem compilar Go)
-        if command -v brew &>/dev/null; then
-          echo "  Instalando Tailscale CLI via Homebrew (formula)..."
-          if brew install --formula tailscale 2>/dev/null; then
-            export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
+        # Baixar .zip com Tailscale.app de pkgs.tailscale.com (sem brew, sem compilar)
+        echo "  Baixando Tailscale.app..."
+        _ts_zip_url="https://pkgs.tailscale.com/stable/macos/Tailscale-1.94.2-macos.zip"
+        _ts_zip="/tmp/Tailscale.zip"
+        if curl -fsSL "$_ts_zip_url" -o "$_ts_zip" 2>/dev/null; then
+          echo "  Extraindo para /Applications..."
+          unzip -o "$_ts_zip" -d /Applications/ 2>/dev/null || true
+          rm -f "$_ts_zip"
+          if [[ -d "/Applications/Tailscale.app" ]]; then
+            export PATH="/Applications/Tailscale.app/Contents/MacOS:$PATH"
             hash -r 2>/dev/null || true
             tailscale_installed="true"
-            # Iniciar daemon
-            sudo brew services start tailscale 2>/dev/null || true
-            step_ok "Tailscale CLI instalado"
+            open -a Tailscale 2>/dev/null || true
+            step_ok "Tailscale.app instalado"
           else
-            echo -e "  ${UI_RED}Falha ao instalar Tailscale.${UI_NC}"
-            echo "  Instale manualmente: brew install --formula tailscale"
+            echo -e "  ${UI_RED}Falha ao extrair Tailscale.app${UI_NC}"
+            echo "  Baixe manualmente: https://pkgs.tailscale.com/stable/#macos"
             step_fail "Tailscale nao instalado"
             exit 1
           fi
         else
-          echo -e "  ${UI_RED}Homebrew nao encontrado.${UI_NC}"
-          echo "  Instale Homebrew primeiro: https://brew.sh"
+          echo -e "  ${UI_RED}Falha ao baixar Tailscale.${UI_NC}"
+          echo "  Baixe manualmente: https://pkgs.tailscale.com/stable/#macos"
           step_fail "Tailscale nao instalado"
           exit 1
         fi
