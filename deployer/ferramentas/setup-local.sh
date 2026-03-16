@@ -285,15 +285,16 @@ instalar_tailscale() {
       fi
       ;;
     macos)
-      if cmd_exists brew; then
-        if brew install tailscale 2>/dev/null; then
-          eval "$_sname='not_connected'"
-          eval "$_mname='Tailscale instalado via Homebrew'"
-          return 0
-        fi
+      # Checar se Tailscale.app esta instalado (Mac App Store ou download direto)
+      if [[ -d "/Applications/Tailscale.app" ]]; then
+        eval "$_sname='not_connected'"
+        eval "$_mname='Tailscale.app encontrado (abra o app para conectar)'"
+        return 0
       fi
+      # Nao usar brew install tailscale (compila dependencias, demora muito)
+      # Instruir download direto do .app
       eval "$_sname='not_installed'"
-      eval "$_mname='Falha ao instalar Tailscale. Baixe em: https://tailscale.com/download/mac'"
+      eval "$_mname='Tailscale nao encontrado. Baixe o app: https://tailscale.com/download/mac'"
       return 1
       ;;
   esac
