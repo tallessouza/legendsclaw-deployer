@@ -59,7 +59,7 @@ instalar_homebrew() {
   fi
 
   echo "  Instalando Homebrew (pode pedir senha do sistema)..."
-  if /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"; then
+  if NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)" </dev/tty; then
     # Adicionar brew ao PATH para a sessao atual
     if [[ -f /opt/homebrew/bin/brew ]]; then
       eval "$(/opt/homebrew/bin/brew shellenv)"
