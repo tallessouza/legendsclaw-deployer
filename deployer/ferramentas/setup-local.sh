@@ -18,7 +18,7 @@ source "${LIB_DIR}/hints.sh"
 readonly STATE_DIR="$HOME/dados_vps"
 readonly STATE_FILE="${STATE_DIR}/dados_local_setup"
 readonly NODE_MIN_VERSION=22
-readonly TOTAL_STEPS=6
+# TOTAL_STEPS definido dinamicamente em main() (7 no macOS, 6 nos demais)
 
 # =============================================================================
 # Helpers de instalacao por SO
@@ -48,8 +48,36 @@ get_node_major() {
 # Funcoes de instalacao
 # =============================================================================
 
+# Instala Homebrew no macOS se nao estiver presente
+# Uso: instalar_homebrew _mensagem
+instalar_homebrew() {
+  local _mname="$1"
+
+  if cmd_exists brew; then
+    eval "$_mname='Homebrew ja instalado'"
+    return 0
+  fi
+
+  echo "  Instalando Homebrew (pode pedir senha do sistema)..."
+  if /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"; then
+    # Adicionar brew ao PATH para a sessao atual
+    if [[ -f /opt/homebrew/bin/brew ]]; then
+      eval "$(/opt/homebrew/bin/brew shellenv)"
+    elif [[ -f /usr/local/bin/brew ]]; then
+      eval "$(/usr/local/bin/brew shellenv)"
+    fi
+    if cmd_exists brew; then
+      eval "$_mname='Homebrew instalado com sucesso'"
+      return 0
+    fi
+  fi
+
+  eval "$_mname='Falha ao instalar Homebrew. Instale manualmente: https://brew.sh'"
+  return 1
+}
+
 # Uso: instalar_git "linux" _resultado _mensagem
-# Seta _resultado=versao e _mensagem=texto via nameref (sem subshell)
+# Seta _resultado=versao e _mensagem=texto via eval (Bash 3.2 compat)
 instalar_git() {
   local so="$1"
   local _vname="$2"
@@ -324,13 +352,27 @@ main() {
     exit 1
   fi
 
-  step_init "$TOTAL_STEPS"
+  # macOS precisa de Homebrew como pre-requisito (step extra)
+  local total_steps=6
+  if [[ "$so" == "macos" ]]; then
+    total_steps=7
+  fi
+  step_init "$total_steps"
 
   # Variaveis de estado
   local git_ver="" node_ver="" claude_ver="" _msg=""
   local ts_installed="false" ts_status="not_installed"
 
-  # --- Step 1: Git ---
+  # --- Step macOS: Homebrew ---
+  if [[ "$so" == "macos" ]]; then
+    if instalar_homebrew _msg; then
+      step_ok "$_msg"
+    else
+      step_fail "$_msg"
+    fi
+  fi
+
+  # --- Step: Git ---
   if instalar_git "$so" git_ver _msg; then
     step_ok "$_msg"
   else
