@@ -48,34 +48,6 @@ get_node_major() {
 # Funcoes de instalacao
 # =============================================================================
 
-# Instala Homebrew no macOS se nao estiver presente
-# Uso: instalar_homebrew _mensagem
-instalar_homebrew() {
-  local _mname="$1"
-
-  if cmd_exists brew; then
-    eval "$_mname='Homebrew ja instalado'"
-    return 0
-  fi
-
-  echo "  Instalando Homebrew (pode pedir senha do sistema)..."
-  if NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)" </dev/tty; then
-    # Adicionar brew ao PATH para a sessao atual
-    if [[ -f /opt/homebrew/bin/brew ]]; then
-      eval "$(/opt/homebrew/bin/brew shellenv)"
-    elif [[ -f /usr/local/bin/brew ]]; then
-      eval "$(/usr/local/bin/brew shellenv)"
-    fi
-    if cmd_exists brew; then
-      eval "$_mname='Homebrew instalado com sucesso'"
-      return 0
-    fi
-  fi
-
-  eval "$_mname='Falha ao instalar Homebrew. Instale manualmente: https://brew.sh'"
-  return 1
-}
-
 # Uso: instalar_git "linux" _resultado _mensagem
 # Seta _resultado=versao e _mensagem=texto via eval (Bash 3.2 compat)
 instalar_git() {
@@ -104,22 +76,24 @@ instalar_git() {
       fi
       ;;
     macos)
-      if cmd_exists brew; then
-        if brew install git 2>/dev/null; then
-          local _v; _v=$(get_version "git --version")
-          eval "$_vname=\"\$_v\""
-          eval "$_mname=\"Git instalado via Homebrew (v\${_v})\""
-          return 0
-        fi
-      fi
       if cmd_exists git; then
         local _v; _v=$(get_version "git --version")
         eval "$_vname=\"\$_v\""
         eval "$_mname=\"Git disponivel via Xcode CLT (v\${_v})\""
         return 0
       fi
-      eval "$_mname='Git nao encontrado. Instale Xcode CLT: xcode-select --install'"
-      return 1
+      # Instalar Xcode CLT (traz git, make, clang)
+      echo "  Instalando Xcode Command Line Tools..."
+      xcode-select --install 2>/dev/null || true
+      # Aguardar instalacao (xcode-select --install abre dialog do sistema)
+      echo "  Aguardando instalacao do Xcode CLT (confirme o dialog do sistema)..."
+      until cmd_exists git; do
+        sleep 5
+      done
+      local _v; _v=$(get_version "git --version")
+      eval "$_vname=\"\$_v\""
+      eval "$_mname=\"Git instalado via Xcode CLT (v\${_v})\""
+      return 0
       ;;
   esac
 }
@@ -386,27 +360,13 @@ main() {
     exit 1
   fi
 
-  # macOS precisa de Homebrew como pre-requisito (step extra)
-  local total_steps=6
-  if [[ "$so" == "macos" ]]; then
-    total_steps=7
-  fi
-  step_init "$total_steps"
+  step_init 6
 
   # Variaveis de estado
   local git_ver="" node_ver="" claude_ver="" _msg=""
   local ts_installed="false" ts_status="not_installed"
 
-  # --- Step macOS: Homebrew ---
-  if [[ "$so" == "macos" ]]; then
-    if instalar_homebrew _msg; then
-      step_ok "$_msg"
-    else
-      step_fail "$_msg"
-    fi
-  fi
-
-  # --- Step: Git ---
+  # --- Step 1: Git ---
   if instalar_git "$so" git_ver _msg; then
     step_ok "$_msg"
   else
