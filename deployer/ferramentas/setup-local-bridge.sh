@@ -107,27 +107,22 @@ if [[ "$tailscale_installed" == "false" ]]; then
         fi
         ;;
       macos)
-        # Baixar e instalar o .pkg oficial (nao usa brew — evita compilar Go)
-        echo "  Baixando Tailscale para macOS..."
-        local _pkg_url="https://pkgs.tailscale.com/stable/Tailscale-latest-macos.pkg"
-        local _pkg_path="/tmp/Tailscale.pkg"
-        if curl -fsSL "$_pkg_url" -o "$_pkg_path" 2>/dev/null; then
-          echo "  Instalando Tailscale.pkg (pode pedir senha)..."
-          if sudo installer -pkg "$_pkg_path" -target / 2>/dev/null; then
-            rm -f "$_pkg_path"
-            export PATH="/opt/homebrew/bin:/usr/local/bin:/Applications/Tailscale.app/Contents/MacOS:$PATH"
+        # Usar brew cask (app pre-compilado, sem compilar Go/OpenSSL)
+        if command -v brew &>/dev/null; then
+          echo "  Instalando Tailscale app via Homebrew cask..."
+          if brew install --cask tailscale-app 2>/dev/null; then
+            export PATH="/Applications/Tailscale.app/Contents/MacOS:/opt/homebrew/bin:$PATH"
             hash -r 2>/dev/null || true
             tailscale_installed="true"
-            step_ok "Tailscale instalado via .pkg"
+            step_ok "Tailscale.app instalado"
           else
-            rm -f "$_pkg_path"
-            echo -e "  ${UI_RED}Falha ao instalar Tailscale.pkg${UI_NC}"
+            echo -e "  ${UI_RED}Falha ao instalar Tailscale via cask.${UI_NC}"
             echo "  Baixe manualmente: https://tailscale.com/download/mac"
             step_ok "Continuando sem Tailscale (bridge offline)"
           fi
         else
-          echo -e "  ${UI_RED}Falha ao baixar Tailscale.${UI_NC}"
-          echo "  Baixe manualmente: https://tailscale.com/download/mac"
+          echo -e "  ${UI_YELLOW}Homebrew nao encontrado.${UI_NC}"
+          echo "  Baixe Tailscale em: https://tailscale.com/download/mac"
           step_ok "Continuando sem Tailscale (bridge offline)"
         fi
         ;;
