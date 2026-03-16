@@ -110,11 +110,15 @@ if [[ "$tailscale_installed" == "false" ]]; then
         # Usar brew cask (app pre-compilado, sem compilar Go/OpenSSL)
         if command -v brew &>/dev/null; then
           echo "  Instalando Tailscale app via Homebrew cask..."
-          if brew install --cask tailscale-app 2>/dev/null; then
+          brew install --cask tailscale-app 2>/dev/null || true
+          # Checar se o app foi instalado (brew pode retornar erro por caveats)
+          if [[ -d "/Applications/Tailscale.app" ]] || command -v tailscale &>/dev/null; then
             export PATH="/Applications/Tailscale.app/Contents/MacOS:/opt/homebrew/bin:$PATH"
             hash -r 2>/dev/null || true
             tailscale_installed="true"
-            step_ok "Tailscale.app instalado"
+            # Abrir o app para que o usuario possa habilitar a extensao
+            open -a Tailscale 2>/dev/null || true
+            step_ok "Tailscale.app instalado (habilite em System Settings > Privacy & Security se necessario)"
           else
             echo -e "  ${UI_RED}Falha ao instalar Tailscale via cask.${UI_NC}"
             echo "  Baixe manualmente: https://tailscale.com/download/mac"
