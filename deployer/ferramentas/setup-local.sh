@@ -163,7 +163,40 @@ instalar_nodejs() {
       return 1
       ;;
     macos)
+      # Prioridade 1: fnm (binario pre-compilado, rapido)
+      if ! cmd_exists fnm; then
+        echo "  Instalando fnm (Fast Node Manager)..."
+        if curl -fsSL https://fnm.vercel.app/install | bash -s -- --skip-shell 2>/dev/null; then
+          export PATH="$HOME/.local/share/fnm:$HOME/.fnm:$PATH"
+          # fnm pode instalar em locais diferentes
+          if [[ -d "$HOME/.local/share/fnm" ]]; then
+            eval "$("$HOME/.local/share/fnm/fnm" env --shell bash 2>/dev/null)" 2>/dev/null || true
+          fi
+        fi
+      fi
+      if cmd_exists fnm; then
+        if fnm install 22 && fnm use 22 && fnm default 22; then
+          eval "$(fnm env --shell bash 2>/dev/null)" 2>/dev/null || true
+          local _v; _v=$(get_version "node --version")
+          eval "$_vname=\"\$_v\""
+          eval "$_mname=\"Node.js instalado via fnm (v\${_v})\""
+          return 0
+        fi
+      fi
+      # Prioridade 2: nvm
+      if cmd_exists nvm || [[ -s "$HOME/.nvm/nvm.sh" ]]; then
+        # shellcheck disable=SC1091
+        [[ -s "$HOME/.nvm/nvm.sh" ]] && source "$HOME/.nvm/nvm.sh"
+        if nvm install 22 && nvm use 22; then
+          local _v; _v=$(get_version "node --version")
+          eval "$_vname=\"\$_v\""
+          eval "$_mname=\"Node.js instalado via nvm (v\${_v})\""
+          return 0
+        fi
+      fi
+      # Prioridade 3: brew (lento, compila OpenSSL)
       if cmd_exists brew; then
+        echo "  Instalando Node.js via Homebrew (pode demorar)..."
         if brew install node@22 2>/dev/null; then
           if [[ -d "$(brew --prefix)/opt/node@22/bin" ]]; then
             export PATH="$(brew --prefix)/opt/node@22/bin:$PATH"
@@ -174,7 +207,7 @@ instalar_nodejs() {
           return 0
         fi
       fi
-      eval "$_mname='Falha ao instalar Node.js. Instale Homebrew primeiro: https://brew.sh'"
+      eval "$_mname='Falha ao instalar Node.js >= ${NODE_MIN_VERSION}'"
       return 1
       ;;
   esac
