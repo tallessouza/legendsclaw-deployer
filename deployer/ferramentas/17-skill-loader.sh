@@ -28,24 +28,21 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 LIB_DIR="${SCRIPT_DIR}/../lib"
 
-# Source libs (se disponíveis — script pode rodar standalone)
-if [[ -f "${LIB_DIR}/ui.sh" ]]; then
-  source "${LIB_DIR}/ui.sh"
-  source "${LIB_DIR}/logger.sh"
-  source "${LIB_DIR}/common.sh"
-  source "${LIB_DIR}/auto.sh"
-  HAS_LIBS=true
-else
-  HAS_LIBS=false
-  # Fallbacks mínimos
-  ok()   { echo "  [OK] $1"; }
-  fail() { echo "  [FAIL] $1"; exit 1; }
-  info() { echo "  [INFO] $1"; }
-  warn() { echo "  [WARN] $1"; }
-  step_ok()   { ok "$1"; }
-  step_fail() { fail "$1"; }
-  step_skip() { info "$1"; }
-fi
+# Funções standalone (não depende das libs do deployer)
+GREEN='\033[0;32m'
+RED='\033[0;31m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+BOLD='\033[1m'
+NC='\033[0m'
+
+ok()        { echo -e "  ${GREEN}[OK]${NC} $1"; }
+fail()      { echo -e "  ${RED}[FAIL]${NC} $1"; exit 1; }
+info()      { echo -e "  ${BLUE}[INFO]${NC} $1"; }
+warn()      { echo -e "  ${YELLOW}[WARN]${NC} $1"; }
+step_ok()   { ok "$1"; }
+step_fail() { fail "$1"; }
+step_skip() { info "$1"; }
 
 # =============================================================================
 # DETECTAR HOME E PATHS
